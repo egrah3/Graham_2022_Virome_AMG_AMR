@@ -17,7 +17,7 @@
 
 #Output Notes:
 #This pipeline will generate two fasta file containing virome contigs (META_unmapped_1000_contigs.fa and SAMPLE_unmapped_1000_contigs.fa)
-#The next step in this pipeline is the next step in pipeline is 3. Contig Mapping (03_Identify_Circular_Virus.sh)
+#The next step in this pipeline is the next step in pipeline is 3. Contig Mapping (03_Identify_Phage.sh)
 
 #General Notes:
 #This pipeline is designed to be run using the Holland Computing Center at the University of Nebraska. Some tool commands may differ depending on installation of the tool. Please refer to the listed Githubs for each tool used as mentioned in script for further information if issues arise 
@@ -283,4 +283,4 @@ samtools fasta SAMPLE_unmapped_1000_contigs.bam > SAMPLE_unmapped_1000_contigs.f
 samtools view -c -f 4 SAMPLE_1000_CONTIGS.sorted.bam >> SAMPLE_num_unmapped_reads_all_1000.txt
 
 #### The output of META_unmapped_1000_contigs.fa and SAMPLE_unmapped_1000_contigs.fa will be used for downstream processing ####
-#### The next step in pipeline is 3. Contig Mapping (03_Identify_Circular_Virus.sh) ####
+#### The next step in pipeline is 3. Contig Mapping (03_Identify_Phage.sh) ####
