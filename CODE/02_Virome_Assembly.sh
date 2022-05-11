@@ -1,0 +1,286 @@
+### Title: 02_Virome_Assembly ###
+### Author: Ema H Graham ###
+### For Questions Email: ema.graham@huskers.unl.edu ###
+
+############################################
+## -------------------------------------- ##
+## ------------- Description ------------ ##
+## -------------------------------------- ##
+############################################
+
+#Input Notes:
+#This is the second step of this pipeline and is starting using fastq data files that were organized into folders using the 01_Obtain_Virome_Data.sh
+#All fastq data files that correspond to samples with index ending in 23 and 25 as indicated in metadata file are control reads and should be put in a directory ./Raw_Control_Reads
+ #Sample file names were changed to be "SampleID"_forward.fq (e.g. for sample HV_001_25 reads it would be ./Raw_Control_Reads/HV_001_25_forward.fq and ./Raw_Control_Reads/HV_001_25_reverse.fq
+#All other fastq data files that are not control reads were put in a different directory ./Raw_Reads
+ #Sample file names were changed to be "SampleID"_forward.fq (e.g. for sample HV_001_01 reads it would be ./Raw_Reads/HV_001_01_forward.fq and ./Raw_Reads/HV_001_01_reverse.fq
+
+#Output Notes:
+#This pipeline will generate two fasta file containing virome contigs (META_unmapped_1000_contigs.fa and SAMPLE_unmapped_1000_contigs.fa)
+#The next step in this pipeline is the next step in pipeline is 3. Contig Mapping (03_Identify_Circular_Virus.sh)
+
+#General Notes:
+#This pipeline is designed to be run using the Holland Computing Center at the University of Nebraska. Some tool commands may differ depending on installation of the tool. Please refer to the listed Githubs for each tool used as mentioned in script for further information if issues arise 
+#Some file locations may differ from yours so this needs to be changed accordingly. This script is designed to be run all in one folder
+#This script is designed to be used for viral metagenome data but can be altered to be used for any type of metagenome data by changing host and contamination removal steps
+
+######################################################################
+## ---------------------------------------------------------------- ##
+## -- Quality Assessment of Raw Sequencing Reads in Fastq Format -- ##
+## ---------------------------------------------------------------- ##
+######################################################################
+
+#This pipeline should be performed on all samples in Raw_Reads directory generated using the 01_Obtain_Virome_Data.sh script. Here we will use one sample (HV_001_01) as an example. Please repeat each step for all samples.  
+
+## --------------------------------------
+## --------- Quality Evaluation ---------
+## --------------------------------------
+
+#Fastq data files were initially quality checked using FastQC 
+#FastQC is available at https://www.bioinformatics.babraham.ac.uk/projects/fastqc/
+
+fastqc Raw_Reads/HV_001_01_forward.fq
+fastqc Raw_Reads/HV_001_01_reverse.fq
+
+## ---------------------------------------
+## ------------ Phi X Removal ------------
+## ---------------------------------------
+
+#Phi X contaminating reads were removed from fastq data files using BBduk from the BBmap package
+#BBmap can be found at: https://github.com/BioInfoTools/BBMap
+#BBmap guide is available at https://jgi.doe.gov/data-and-tools/bbtools/bb-tools-user-guide/bbmap-guide/ 
+
+mkdir Phi_Remove/
+
+bbduk.sh in=Raw_Reads/HV_001_01_forward.fq out=Phi_Remove/HV_001_01_filt_forward.fq k=31 ref=artifacts,phix ordered cardinality
+bbduk.sh in=Raw_Reads/HV_001_01_reverse.fq out=Phi_Remove/HV_001_01_filt_reverse.fq k=31 ref=artifacts,phix ordered cardinality
+
+## --------------------------------------
+## ---------- Quality Trimming ----------
+## --------------------------------------
+
+#Phix removed data files were trimmed to remove low quality reads and short reads and return matching paired end reads using the Sickle
+#Sickle is available at https://github.com/najoshi/sickle
+
+mkdir Phi_Remove_Trimmed/
+
+sickle pe -t sanger -f Phi_Remove/HV_001_01_filt_forward.fq -r Phi_Remove/HV_001_01_filt_reverse.fq -o Phi_Remove_Trimmed/HV_001_01_S4_trimmed_pair_R1.fastq -p Phi_Remove_Trimmed/HV_001_01_S4_trimmed_pair_R2.fastq -s Phi_Remove_Trimmed/HV_001_01_S4_trimmed_single.fastq -q 30 -l 75
+
+## -----------------------------------------------
+## - Bacterial 16S rRNA Contamination Evaluation -
+## -----------------------------------------------
+
+#16S reads were obtained from the SILVA database v.138.1 to be used as a reference
+
+mkdir 16S_Ref/
+mkdir 16S_Mapped/
+
+wget https://ftp.arb-silva.de/release_138.1/Exports/SILVA_138.1_SSURef_tax_silva.fasta.gz ./16S/
+
+#BBmap was used to make a reference using the 16S rDNA reads obtained 
+
+bbmap.sh ref=./16S_Ref/SILVA_138.1_SSURef_tax_silva.fasta.gz -Xmx23g
+
+#Trimmed Data files were mapped to the 16S rDNA reference using BBMap and flags and parameters described for high precision mapping of contamination detection as suggested in the BBMap Guide; percentages of mapped reads were determined
+
+bbmap.sh minid=0.95 maxindel=3 bwr=0.16 bw=12 quickmatch fast path=./16S_Ref/ qtrim=rl trimq=10 untrim -Xmx23g in=Phi_Remove_Trimmed/HV_001_01_S4_trimmed_pair_R1.fastq outm=16S_Mapped/HV_001_01_16S_R1.fq
+bbmap.sh minid=0.95 maxindel=3 bwr=0.16 bw=12 quickmatch fast path=./16S_Ref/ qtrim=rl trimq=10 untrim -Xmx23g in=Phi_Remove_Trimmed/HV_001_01_S4_trimmed_pair_R2.fastq outm=16S_Mapped/HV_001_01_16S_R2.fq
+
+
+## ----------------------------------------
+## - Removal of Human Contaminating Reads -
+## ----------------------------------------
+
+#The hg19 human genome was retrieved and indexed using BBmap
+
+mkdir Human_Ref/
+mkdir Human_Remove/
+
+wget http://hgdownload.cse.ucsc.edu/goldenPath/hg19/bigZips/chromFa.tar.gz ./Human_Ref/
+tar zvfx ./Human_Ref/chromFa.tar.gz
+cat ./Human_Ref/*.fa > ./Human_Ref/hg19.fa
+rm ./Human_Ref/chr*.fa
+
+bbmap.sh ref=./Human_Ref/hg19.fa -Xmx23g
+
+#Trimmed Data files were mapped to the hg19 human indexed genome using with standard operational flags for high precision mapping with low sensitivity to lower the risk of false positive mapping as suggested in the BBMap Guide
+
+bbmap.sh minid=0.95 maxindel=3 bwr=0.16 bw=12 quickmatch fast minhits=2 path=./Human_Ref qtrim=rl trimq=10 untrim -Xmx23g in=Phi_Remove_Trimmed/HV_001_01_S4_trimmed_pair_R1.fastq outu=Human_Remove/HV_001_01_clean_R1.fq outm=Human_Remove/HV_001_01_human_R1.fq
+bbmap.sh minid=0.95 maxindel=3 bwr=0.16 bw=12 quickmatch fast minhits=2 path=./Human_Ref qtrim=rl trimq=10 untrim -Xmx23g in=Phi_Remove_Trimmed/HV_001_01_S4_trimmed_pair_R2.fastq outu=Human_Remove/HV_001_01_clean_R2.fq outm=Human_Remove/HV_001_01_human_R2.fq
+
+## --------------------------------------
+## --------- Quality Trimming 2 ---------
+## --------------------------------------
+
+# Trimming was performed on human contamination removed reads to make paired end reads the same length
+
+mkdir Human_Remove_Trimmed/ 
+
+sickle pe -t sanger -f Human_Remove/HV_001_01_clean.R1.fq -r Human_Remove/HV_001_01_clean.R2.fq -o Human_Remove_Trimmed/HV_001_01_final_R1.fastq -p Human_Remove_Trimmed/HV_001_01_final_R2.fastq -s Human_Remove_Trimmed/HV_001_01_final_single.fastq
+
+############################################
+## -------------------------------------- ##
+## ---- De novo Virome Meta-Assembly ---- ##
+## -------------------------------------- ##
+############################################
+
+## --------------------------------------
+## -------------- Assembly --------------
+## --------------------------------------
+
+#A data set was formed by combining all sample (not negative control) raw filtered reads and running an assembly on those reads to make one meta-assembly:
+
+#Combine all forward reads and reverse reads for an overall virome assembly (for all non-control samples)
+
+cat Human_Remove_Trimmed/*_final_R1.fastq > forward_overall.fastq
+cat Human_Remove_Trimmed/*_final_R2.fastq > reverse_overall.fastq
+
+#Megahit v.1.2.8 was used for de novo assembly and can be found at https://github.com/voutcn/megahit
+
+megahit -1 forward_overall.fastq -2 reverse_overall.fastq -o MEGAHIT_OUTPUT_ALL -t 36 --presets meta-large
+
+## --------------------------------------
+## --- Quality Evaluation of Assembly ---
+## --------------------------------------
+
+#QUAST v.5.0.2 was run on the resulting assembly output to assess the meta-assembly quality
+#QUAST can be found at: https://github.com/ablab/quast
+
+quast.py ./MEGAHIT_OUTPUT_ALL/final_contigs.fa -o QUAST_OUTPUT
+
+##################################################
+## -------------------------------------------- ##
+## - Generate Greater Than >1kb Meta-Assembly - ##
+## -------------------------------------------- ##
+##################################################
+
+
+#All contigs smaller than 1000 bp in length were removed from the meta-assembly
+#removesmalls.pl perl script can be found at: https://github.com/drtamermansour/p_asteroides/blob/master/scripts/removesmalls.pl
+
+cp MEGAHIT_OUTPUT_ALL/final_contigs.fa > ./META_CONTIGS.fa 
+perl removesmalls.pl 1000 ./META_CONTIGS.fa  > ./META_1000_CONTIGS.fa
+
+#################################################
+## ------------------------------------------- ##
+## -- De novo Virome Within Sample-Assembly -- ##
+## ------------------------------------------- ##
+#################################################
+
+#Assemblies were also preformed on a sample by sample basis to reduce loss data due to viral sequence varients across samples
+#This was performed for each sample (not for negative controls) so repeat this step for each individual sample. Here we use the example of using sample HV_001_01
+
+megahit -1 HV_001_01_final_R1.fastq -2 HV_001_01_final_R2.fastq -o MEGAHIT_OUTPUT_HV_001_01 -t 36 --presets meta-large
+cp MEGAHIT_OUTPUT_HV_001_01/final_contigs.fa > ./HV_001_01_final_contigs.fa
+sed -i 's/>/>HV_001_01_/g' HV_001_01_final.contigs.fa
+
+## --------------------------------------
+## --- Quality Evaluation of Assembly ---
+## --------------------------------------
+
+#QUAST v.5.0.2 was run on the resulting assembly output to assess the meta-assembly quality
+#QUAST can be found at: https://github.com/ablab/quast
+
+quast.py ./MEGAHIT_OUTPUT_HV_001_01/final_contigs.fa -o QUAST_OUTPUT_HV_001_01
+
+## ----------------------------------------
+## --- Combine Within Sample-Assemblies ---
+## ----------------------------------------
+
+#Once this processes has been completed for all samples (as was shown with sample HV_001_01 all within sample contigs will be combined together into one file
+
+cat *final_contigs.fa SAMPLE_CONTIGS.fa
+
+####################################################
+## ---------------------------------------------- ##
+## - Generate Greater Than >1kb Sample-Assembly - ##
+## ---------------------------------------------- ##
+####################################################
+
+#All contigs smaller than 1000 bp in length were removed from the within sample-assembly
+#removesmalls.pl perl script can be found at: https://github.com/drtamermansour/p_asteroides/blob/master/scripts/removesmalls.pl
+
+perl removesmalls.pl 1000 ./SAMPLE_CONTIGS.fa  > ./SAMPLE_1000_CONTIGS.fa
+
+########################################################
+## -------------------------------------------------- ##
+## - De novo Negative Control Samples Meta-Assembly - ##
+## -------------------------------------------------- ##
+########################################################
+
+## --------------------------------------
+## -------------- Assembly --------------
+## --------------------------------------
+
+#An additional data set was made that contained only negative control reads that can be used to remove any contaminating reads from the overall assembly
+
+#Copy (cp) all control raw reads (all samples with index ending in 23 and 25 as indicated in metadata file) into a folder and combine all forward and reverse reads
+
+mkdir Controls/
+
+cat Raw_Control_Reads/*forward.fq > ./Controls/control_forward.fq
+cat Raw_Control_Reads/*reverse.fq > ./Controls/control_reverse.fq
+
+megahit -1 ./Controls/control_forward.fq -2 ./Controls/control_reverse.fq.gz  -o CON_MEGAHIT_OUTPUT -t 36 --presets meta-large
+
+## --------------------------------------
+## --- Quality Evaluation of Assembly ---
+## --------------------------------------
+
+cp CON_MEGAHIT_OUTPUT/final_contigs.fa > CON_MEGAHIT_OUTPUT/CON_CONTIGS.fa 
+perl removesmalls.pl 1000 CON_MEGAHIT_OUTPUT/CON_CONTIGS.fa > ./CON_1000_CONTIGS.fa
+ 
+#############################################
+## --------------------------------------- ##
+## - Removal of Negative Control Contigs - ##
+## --------------------------------------- ##
+#############################################
+
+#Negative control contigs were used as a reference and any contigs from the overall assembly that mapped to control reads were removed 
+#This was preformed for both the meta-assembly and the within sample-assembly
+
+#BWA v.0.7 was used for mapping of overall contigs to the negative contigs
+#BWA can be found at: https://github.com/lh3/bwa
+
+bwa index CON_1000_CONTIGS.fa
+bwa mem CON_1000_CONTIGS.fa META_1000_CONTIGS.fa > META_1000_CONTIGS.sam
+bwa mem CON_1000_CONTIGS.fa SAMPLE_1000_CONTIGS.fa > SAMPLE_1000_CONTIGS.sam
+
+#Samtools was used to manipulate the sam file and pull out all unmapped contigs to be used for downstream processing
+#Samtools can be found at: https://github.com/samtools/samtools
+
+samtools faidx CON_1000_CONTIGS.fa
+
+samtools import CON_1000_CONTIGS.fa.fai META_1000_CONTIGS.sam META_1000_CONTIGS.bam
+samtools sort -O BAM -o META_1000_CONTIGS.sorted.bam META_1000_CONTIGS.bam
+samtools index META_1000_CONTIGS.sorted.bam
+samtools idxstats META_1000_CONTIGS.sorted.bam > META_1000_CONTIGS.sorted.idxstats.txt
+
+samtools import CON_1000_CONTIGS.fa.fai SAMPLE_1000_CONTIGS.sam SAMPLE_1000_CONTIGS.bam
+samtools sort -O BAM -o SAMPLE_1000_CONTIGS.sorted.bam SAMPLE_1000_CONTIGS.bam
+samtools index SAMPLE_1000_CONTIGS.sorted.bam
+samtools idxstats SAMPLE_1000_CONTIGS.sorted.bam > SAMPLE_1000_CONTIGS.sorted.idxstats.txt
+
+
+#Pull out mapped reads
+
+samtools view -b -F 4 -b META_1000_CONTIGS.sorted.bam > META_mapped_1000_contigs.bam
+samtools fasta META_mapped_1000_contigs.bam > META_mapped_1000_contigs.fa
+samtools view -c -F 4 META_1000_CONTIGS.sorted.bam >> META_num_mapped_reads_all_1000.txt
+
+samtools view -b -F 4 -b SAMPLE_1000_CONTIGS.sorted.bam > SAMPLE_mapped_1000_contigs.bam
+samtools fasta SAMPLE_mapped_1000_contigs.bam > SAMPLE_mapped_1000_contigs.fa
+samtools view -c -F 4 SAMPLE_1000_CONTIGS.sorted.bam >> SAMPLE_num_mapped_reads_all_1000.txt
+
+#Pull out unmapped reads
+
+samtools view -b -f 4 -b META_1000_CONTIGS.sorted.bam > META_unmapped_1000_contigs.bam
+samtools fasta META_unmapped_1000_contigs.bam > META_unmapped_1000_contigs.fa
+samtools view -c -f 4 META_1000_CONTIGS.sorted.bam >> META_num_unmapped_reads_all_1000.txt
+
+samtools view -b -f 4 -b SAMPLE_1000_CONTIGS.sorted.bam > SAMPLE_unmapped_1000_contigs.bam
+samtools fasta SAMPLE_unmapped_1000_contigs.bam > SAMPLE_unmapped_1000_contigs.fa
+samtools view -c -f 4 SAMPLE_1000_CONTIGS.sorted.bam >> SAMPLE_num_unmapped_reads_all_1000.txt
+
+#### The output of META_unmapped_1000_contigs.fa and SAMPLE_unmapped_1000_contigs.fa will be used for downstream processing ####
+#### The next step in pipeline is 3. Contig Mapping (03_Identify_Circular_Virus.sh) ####
