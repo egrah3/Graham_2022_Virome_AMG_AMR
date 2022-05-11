@@ -283,4 +283,4 @@ samtools fasta SAMPLE_unmapped_1000_contigs.bam > SAMPLE_unmapped_1000_contigs.f
 samtools view -c -f 4 SAMPLE_1000_CONTIGS.sorted.bam >> SAMPLE_num_unmapped_reads_all_1000.txt
 
 #### The output of META_unmapped_1000_contigs.fa and SAMPLE_unmapped_1000_contigs.fa will be used for downstream processing ####
-#### The next step in pipeline is 3. Contig Mapping (03_Identify_Phage.sh) ####
+#### The next step in pipeline is 3. Identification of Phage (03_Identify_Phage.sh) ####
