@@ -3,3 +3,197 @@ title: "07_Phage_Diversity"
 output: html_document
 author: "Ema H Graham"
 ---
+For Questions Email: ema.graham@huskers.unl.edu
+
+## Description
+
+Input Notes: 
+Will need the following files:
+- counts2_bowtie.txt (generated using 06_Phage_Mapping.sh)
+- Sequencing_Data_Info_Sheet3.csv (Metadata, provided on Github)
+- edited_annotation.csv (generated using 05_Phage_Annotations.sh)
+
+Output Notes: 
+Will generate a Phyloseq object that contains Phage contigs that is used to make a bar plot of the overall relative abundance distribution of each taxonomic classification and assess beta and alpha diversity of the phage contigs
+
+```{r setup,message=FALSE}
+library(ggthemes)
+library(ggplot2)
+library(tidyverse)
+library(phyloseq)
+library(readr)
+library(ggsci)
+library(dplyr)
+library(tidyr)
+library(vegan)
+library(cowplot)
+```
+
+## Phyloseq Object Without Classifications
+
+Upload sample metadata for the Phyloseq object
+```{r,message=FALSE,warning=FALSE,results="hide"}
+Upload_Metadata <- read_csv("Sequencing_Data_Info_Sheet3.csv")
+Metadata <- Upload_Metadata
+# In the metadata change the Time_Collected so that it is better for graph outputs
+Metadata$Time <- Metadata$Time_Collected
+Metadata$Time[which(Metadata$Time == "T_0")] <- "00_Weeks"
+Metadata$Time[which(Metadata$Time == "2_week")] <- "02_Weeks"
+Metadata$Time[which(Metadata$Time == "1_month")] <- "04_Weeks"
+Metadata$Time[which(Metadata$Time == "3_month")] <- "12_Weeks"
+Metadata$Time[which(Metadata$Time == "6_month")] <- "24_Weeks"
+# Make sample_data for Phyloseq
+META <- sample_data(Metadata)
+sample_names(META)= META$SampleID
+```
+Upload count data to make the OTU table for the phyloseq object
+```{r,message=FALSE,warning=FALSE,results="hide"}
+phage_counts2 <- read_delim("counts2_bowtie.txt", 
+    "\t", escape_double = FALSE, trim_ws = TRUE)
+phage_counts2 <- subset(phage_counts2, select = -c(length))
+```
+Make annotation file to classify contigs as their own classification
+```{r,message=FALSE,warning=FALSE,results="hide"}
+Anntations <- phage_counts2
+Anntations$Superkingdom <- "Viruses"
+Anntations <- subset(Anntations, select = c(Superkingdom, contig))
+Anntations <- as.data.frame(Anntations)
+row.names(Anntations)<-Anntations$contig
+PTAX<- as.matrix(Anntations)
+PTAX <- tax_table(PTAX)
+```
+Make OTU table for the phyloseq object
+```{r,message=FALSE,warning=FALSE,results="hide"}
+phage_counts2->phage_counts
+phage_counts <- as.data.frame(phage_counts)
+row.names(phage_counts)<-phage_counts$contig
+phage_counts <- subset(phage_counts, select = -c(contig))
+POTU <- otu_table(phage_counts, taxa_are_rows = TRUE)
+```
+Make Phyloseq Object
+```{r}
+PPHY <- phyloseq(POTU, PTAX, META)
+#Remove repeat samples and samples not used in this study
+Samples_toRemove <- c("HV_001_27", "HV_002_27", "HV_003_27", "HV_004_27", "HV_005_27", "HV_006_27", "HV_007_27", "HV_008_27",
+                      "HV_009_27", "HV_010_27", "HV_011_27", "HV_012_27", "HV_013_27", "HV_014_27", "HV_015_27", "HV_016_27",
+                      "HV_017_27", "HV_018_27", "HV_019_27", "HV_020_27", "HV_021_27", "HV_022_27", "HV_023_27", "HV_024_27",
+                      "HV_025_27", "HV_026_27", "HV_027_27", "HV_028_27", "HV_029_27", "HV_030_27", "HV_015_20", "HV_015_21", 
+                      "HV_020_22", "HV_027_02", "HV_027_03", "HV_027_04", "HV_027_05", "HV_027_06", "HV_027_07", "HV_020_10",
+                      "HV_021_13", "HV_027_01")
+PPHY1 <- subset_samples(PPHY, !(SampleID %in% Samples_toRemove))
+```
+
+## Alpha Diversity
+
+Extract abundance matrix from the phyloseq object
+```{r,message=FALSE,warning=FALSE,results="hide"}
+Total_OTU <- as(otu_table(PPHY1), "matrix")
+```
+Transpose if necessary
+```{r,message=FALSE,warning=FALSE,results="hide"}
+Total_OTU <- t(Total_OTU)
+```
+Coerce to data.frame
+```{r,message=FALSE,warning=FALSE,results="hide"}
+Total_OTUdf = as.data.frame(Total_OTU)
+```
+Merge metadata file with alpha diversity measures:
+
+Remove samples from metadatafile that were removed from your phyloseq object (i.e., control samples, repeated samples, and other samples that are of other persons you are not using in this data set due to missing timepoint data (P33, >P43))
+```{r,message=FALSE,warning=FALSE,results="hide"}
+Metadata_stat <- Metadata2[!grepl("HV_001_27", Metadata2$SampleID),]
+Metadata_stat <- Metadata_stat[!grepl("HV_002_27", Metadata_stat$SampleID),]
+Metadata_stat <- Metadata_stat[!grepl("HV_003_27", Metadata_stat$SampleID),]
+Metadata_stat <- Metadata_stat[!grepl("HV_004_27", Metadata_stat$SampleID),]
+Metadata_stat <- Metadata_stat[!grepl("HV_005_27", Metadata_stat$SampleID),]
+Metadata_stat <- Metadata_stat[!grepl("HV_006_27", Metadata_stat$SampleID),]
+Metadata_stat <- Metadata_stat[!grepl("HV_007_27", Metadata_stat$SampleID),]
+Metadata_stat <- Metadata_stat[!grepl("HV_008_27", Metadata_stat$SampleID),]
+Metadata_stat <- Metadata_stat[!grepl("HV_009_27", Metadata_stat$SampleID),]
+Metadata_stat <- Metadata_stat[!grepl("HV_010_27", Metadata_stat$SampleID),]
+Metadata_stat <- Metadata_stat[!grepl("HV_011_27", Metadata_stat$SampleID),]
+Metadata_stat <- Metadata_stat[!grepl("HV_012_27", Metadata_stat$SampleID),]
+Metadata_stat <- Metadata_stat[!grepl("HV_013_27", Metadata_stat$SampleID),]
+Metadata_stat <- Metadata_stat[!grepl("HV_014_27", Metadata_stat$SampleID),]
+Metadata_stat <- Metadata_stat[!grepl("HV_015_27", Metadata_stat$SampleID),]
+Metadata_stat <- Metadata_stat[!grepl("HV_016_27", Metadata_stat$SampleID),]
+Metadata_stat <- Metadata_stat[!grepl("HV_017_27", Metadata_stat$SampleID),]
+Metadata_stat <- Metadata_stat[!grepl("HV_018_27", Metadata_stat$SampleID),]
+Metadata_stat <- Metadata_stat[!grepl("HV_019_27", Metadata_stat$SampleID),]
+Metadata_stat <- Metadata_stat[!grepl("HV_020_27", Metadata_stat$SampleID),]
+Metadata_stat <- Metadata_stat[!grepl("HV_021_27", Metadata_stat$SampleID),]
+Metadata_stat <- Metadata_stat[!grepl("HV_022_27", Metadata_stat$SampleID),]
+Metadata_stat <- Metadata_stat[!grepl("HV_023_27", Metadata_stat$SampleID),]
+Metadata_stat <- Metadata_stat[!grepl("HV_024_27", Metadata_stat$SampleID),]
+Metadata_stat <- Metadata_stat[!grepl("HV_025_27", Metadata_stat$SampleID),]
+Metadata_stat <- Metadata_stat[!grepl("HV_026_27", Metadata_stat$SampleID),]
+Metadata_stat <- Metadata_stat[!grepl("HV_027_27", Metadata_stat$SampleID),]
+Metadata_stat <- Metadata_stat[!grepl("HV_028_27", Metadata_stat$SampleID),]
+Metadata_stat <- Metadata_stat[!grepl("HV_029_27", Metadata_stat$SampleID),]
+Metadata_stat <- Metadata_stat[!grepl("HV_030_27", Metadata_stat$SampleID),]
+Metadata_stat <- Metadata_stat[!grepl("HV_015_20", Metadata_stat$SampleID),]
+Metadata_stat <- Metadata_stat[!grepl("HV_015_21", Metadata_stat$SampleID),]
+Metadata_stat <- Metadata_stat[!grepl("HV_020_22", Metadata_stat$SampleID),]
+Metadata_stat <- Metadata_stat[!grepl("HV_027_02", Metadata_stat$SampleID),]
+Metadata_stat <- Metadata_stat[!grepl("HV_027_03", Metadata_stat$SampleID),]
+Metadata_stat <- Metadata_stat[!grepl("HV_027_04", Metadata_stat$SampleID),]
+Metadata_stat <- Metadata_stat[!grepl("HV_027_05", Metadata_stat$SampleID),]
+Metadata_stat <- Metadata_stat[!grepl("HV_027_06", Metadata_stat$SampleID),]
+Metadata_stat <- Metadata_stat[!grepl("HV_027_07", Metadata_stat$SampleID),]
+Metadata_stat <- Metadata_stat[!grepl("HV_020_10", Metadata_stat$SampleID),]
+Metadata_stat <- Metadata_stat[!grepl("HV_021_13", Metadata_stat$SampleID),]
+Metadata_stat <- Metadata_stat[!grepl("HV_027_01", Metadata_stat$SampleID),]
+```
+Alpha Diversity Measure: Shannon
+```{r,message=FALSE,warning=FALSE,results="hide"}
+Metadata_stat$shannon.vegan <- diversity(Total_OTUdf, index = "shannon")
+```
+ANOVA of Variables Gender, Subject, and Locations within Subject Using The Shannon Index Alpha Diversity Measure
+```{r}
+model1 <- aov(shannon.vegan~ Gender + Subject/Location , data = Metadata_stat)
+summary(model1)
+```
+
+## Beta Diversity 
+
+Normalize
+```{r,message=FALSE,warning=FALSE,results="hide"}
+norm_PPHY1<- transform_sample_counts(PPHY1, function(x) x / sum(x) )
+```
+
+PCoA ordination of Bray-Curtis distances
+```{r,message=FALSE,warning=FALSE,results="hide"}
+ord.PPHY1.pcoa <- ordinate(norm_PPHY1, method="PCoA", distance="bray")
+p<-plot_ordination(norm_PPHY1, ord.PPHY1.pcoa, color = "Location", axes = c(2,1)) +
+  geom_point(size=2)+stat_ellipse()+theme_half_open()
+ggsave(plot=p,"bray_beta.pdf",dpi = 600, width = 9,
+  height = 6, units="in",pointsize=12)
+```
+```{r}
+p
+```
+
+PCoA ordination of Jaccard distances
+```{r,message=FALSE,warning=FALSE,results="hide"}
+ord.PPHY1.pcoa <- ordinate(norm_PPHY1, method="PCoA", distance="jaccard", binary = TRUE)
+p2<-plot_ordination(norm_PPHY1, ord.PPHY1.pcoa, color = "Location", axes = c(2,1)) +
+  geom_point(size=2) +stat_ellipse()+theme_half_open()
+ggsave(plot=p2,"jaccard_beta.pdf",dpi = 600, width = 9,
+  height = 6, units="in",pointsize=12)
+```  
+```{r}
+p2
+```
+
+Adonis statistical evaluation of clustering based on variables
+```{r}
+metadata_1 <- as(sample_data(norm_PPHY1), "data.frame")
+#Bray-Curtis distances
+adonis(phyloseq::distance(norm_PPHY1, method="bray") ~  Subject:Location + Gender + Subject,
+       data = metadata_1)
+```
+```{r}
+#Jaccard Distances
+adonis(phyloseq::distance(norm_PPHY1, method="jaccard", binary = TRUE) ~ Subject:Location + Gender + Subject ,
+       data = metadata_1)
+```
