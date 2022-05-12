@@ -48,3 +48,6 @@ VIBRANT_run.py -virome -i META_unmapped_1000_contigs.fa
 cp VIBRANT_META_unmapped_1000_contigs/VIBRANT_phages_META_unmapped_1000_contigs/META_unmapped_1000_contigs.phages_combined* ./VIBRANT_OUTPUT_CONTIGS/
 VIBRANT_run.py -virome -i SAMPLE_unmapped_1000_contigs.fa
 cp VIBRANT_SAMPLE_unmapped_1000_contigs/VIBRANT_phages_SAMPLE_unmapped_1000_contigs/SAMPLE_unmapped_1000_contigs.phages_combined* ./VIBRANT_OUTPUT_CONTIGS/
+
+#Figure 1A was PCoA Plot produced via VIBRANT and is a standard output produced by VIBRANT
+#Figures 3B & 3C AMG plots were roduced via VIBRANT and is a standard output produced by VIBRANT 
