@@ -1,0 +1,67 @@
+---
+title: "04_AMG_Bar_Graph"
+output: html_document
+author: "Ema H Graham"
+---
+For Questions Email: ema.graham@huskers.unl.edu
+
+## Description
+
+Input Notes: 
+Will need the following files:
+- VIBRANT_AMG_pathways_ALL_unmapped_1000_contigs.tsv (generated using VIBRANT; is found in VIBRANT_results file)
+
+Output Notes: 
+Will generate metabolism pathway bar graph showing prevalence of AMG metabolism pathway types found in phage population (Figure 3A)
+
+```{r setup,message=FALSE}
+library(ggthemes)
+library(ggplot2)
+library(readr)
+library(ggsci)
+library(cowplot)
+```
+
+# Generate metabolism pathway bar graph
+
+Obtain metabolism pathway data from the output of VIBRANT (produced using 02_Identify_Phage.sh)
+```{r,message=FALSE,warning=FALSE,results="hide"}
+VIBRANT_AMG_pathways_unmapped_contigs <- read_delim("VIBRANT_results_ALL_unmapped_1000_contigs/VIBRANT_AMG_pathways_ALL_unmapped_1000_contigs.tsv", 
+    "\t", escape_double = FALSE, trim_ws = TRUE)
+```
+Order contigs by Metabolism type
+```{r,message=FALSE,warning=FALSE,results="hide"}
+VIBRANT_AMG_pathways_unmapped_contigs <- VIBRANT_AMG_pathways_unmapped_contigs[order(VIBRANT_AMG_pathways_unmapped_contigs$Metabolism),]
+```
+Turn your 'Pathway' column into a character vector
+```{r,message=FALSE,warning=FALSE,results="hide"}
+VIBRANT_AMG_pathways_unmapped_contigs$Pathway <- as.character(VIBRANT_AMG_pathways_unmapped_contigs$Pathway)
+```
+Then turn it back into a factor with the levels in the correct order
+```{r,message=FALSE,warning=FALSE,results="hide"}
+VIBRANT_AMG_pathways_unmapped_contigs$Pathway <- factor(VIBRANT_AMG_pathways_unmapped_contigs$Pathway, levels=unique(VIBRANT_AMG_pathways_unmapped_contigs$Pathway))
+````
+Make pathway barplot using ggplot
+```{r,message=FALSE,warning=FALSE,results="hide"}
+amg_barg<-ggplot(data=VIBRANT_AMG_pathways_unmapped_contigs, aes(x=Pathway, y=Total_AMGs, fill=Metabolism)) +
+  geom_bar(position = "dodge", stat="identity") + 
+  theme(axis.text.x = element_text(angle = 90, vjust = 0, hjust=1, size = 10),plot.title = element_blank())+ 
+  ylab("Total AMGs")+
+  theme(panel.background = element_blank())+
+  theme(plot.title = element_text(face = "bold",
+                                         size = rel(1.2), hjust = 0.5))+
+  theme(axis.text = element_text(colour="black"), 
+               axis.line = element_line(colour="black"),
+               axis.ticks = element_line())+
+    scale_y_continuous(
+    # don't expand y scale at the lower end
+    expand = expansion(mult = c(0, 0.05))
+  )
+          
+plot_pathway<-amg_barg + coord_flip()
+#Save plot as "pathway.pdf"
+ggsave(plot=plot_pathway,"pathway.pdf",dpi = 600, pointsize=10, height = 40, width= 35, units = "cm")
+```
+This will generate bar plot with the breakdown of pathways and metabolism types as seen in Figure 3A.
+Bar plot was then edited in Adobe Illustrator to combine it with figures 3B and 3C.
+Alternative ploting idea: might want to break up into one overall and then have seperate graphs for each metabolism type.
