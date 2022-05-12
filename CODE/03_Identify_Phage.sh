@@ -14,7 +14,7 @@
 
 #Output Notes:
 #This pipeline will identify bacteriophage from your viral genome assembles 
-#The next step in this pipeline is the next step in pipeline is 4. Phage_Annotation (04_Phage_Annotation.sh)
+#The next step in this pipeline is the next step in pipeline is 4. Phage_Annotation (04_AMG_Bar_Graph.sh)
 
 #General Notes:
 #This pipeline is designed to be run using the Holland Computing Center at the University of Nebraska. Some tool commands may differ depending on installation of the tool. Please refer to the listed Githubs for each tool used as mentioned in script for further information if issues arise 
