@@ -1,0 +1,2240 @@
+---
+title: "08_AMG_Diversity"
+output: html_document
+author: "Ema H Graham"
+---
+For Questions Email: ema.graham@huskers.unl.edu
+
+## Description
+
+Input Notes: 
+Will need the following files:
+- SAMPLE_counts2_bowtie.txt (generated using 06_Phage_Mapping.sh)
+- Sequencing_Data_Info_Sheet3.csv (Metadata, provided on Github)
+- ALL_CONTIGS_AMG_taxa_final.csv (provided on GitHub)
+
+Output Notes: 
+Makes heatmaps assoicated with metabolism and metabolism pathway persistance and total abundance across subjects, locations, and time points. 
+
+```{r setup,message=FALSE}
+library(phyloseq)
+library(vegan)
+library(dplyr)
+library(tidyr)
+library(DataCombine)
+library(plyr)
+library(ggplot2)
+library(ggthemes)
+library(readr)
+library(ggsci)
+library(cowplot)
+library(grid)
+library(reshape2)
+library(pheatmap)
+```
+
+In Excel VIBRANT results files VIBRANT_AMG_individuals_SAMPLE_unmapped_1000_contigs.tsv and VIBRANT_AMG_pathways_contigs_SAMPLE_unmapped_1000_contigs.tsv were manually combined to make ALL_CONTIGS_AMG_taxa_final.csv. 
+
+## Phyloseq Object
+
+```{r}
+AMG_counts<-read.csv("SAMPLE_counts2_bowtie.txt", "\t", header = TRUE, stringsAsFactors = FALSE, row.names = 1)
+AMG_counts<- subset(AMG_counts, select = -c(length))
+AMG_counts2<-AMG_counts
+AMG_counts2[c("HV_001_07_k141_4305_B"),]<-AMG_counts2[c("HV_001_07_k141_4305"),]
+AMG_counts2[c("HV_001_11_k141_2288_B"),]<-AMG_counts2[c("HV_001_11_k141_2288"),]
+AMG_counts2[c("HV_001_12_k141_35077_B"),]<-AMG_counts2[c("HV_001_12_k141_35077"),]
+AMG_counts2[c("HV_002_04_k141_54564_B"),]<-AMG_counts2[c("HV_002_04_k141_54564"),]
+AMG_counts2[c("HV_002_15_k141_30922_B"),]<-AMG_counts2[c("HV_002_15_k141_30922"),]
+AMG_counts2[c("HV_003_05_k141_2845_B"),]<-AMG_counts2[c("HV_003_05_k141_2845"),]
+AMG_counts2[c("HV_004_05_k141_3042_B"),]<-AMG_counts2[c("HV_004_05_k141_3042"),]
+AMG_counts2[c("HV_006_16_k141_19494_B"),]<-AMG_counts2[c("HV_006_16_k141_19494"),]
+AMG_counts2[c("HV_006_16_k141_19494_C"),]<-AMG_counts2[c("HV_006_16_k141_19494"),]
+AMG_counts2[c("HV_006_16_k141_26273_B"),]<-AMG_counts2[c("HV_006_16_k141_26273"),]
+AMG_counts2[c("HV_006_16_k141_26273_C"),]<-AMG_counts2[c("HV_006_16_k141_26273"),]
+AMG_counts2[c("HV_006_16_k141_26273_D"),]<-AMG_counts2[c("HV_006_16_k141_26273"),]
+AMG_counts2[c("HV_007_03_k141_4888_B"),]<-AMG_counts2[c("HV_007_03_k141_4888"),]
+AMG_counts2[c("HV_007_03_k141_4888_C"),]<-AMG_counts2[c("HV_007_03_k141_4888"),]
+AMG_counts2[c("HV_009_05_k141_2643_B"),]<-AMG_counts2[c("HV_009_05_k141_2643"),]
+AMG_counts2[c("HV_009_09_k141_40374_B"),]<-AMG_counts2[c("HV_009_09_k141_40374"),]
+AMG_counts2[c("HV_009_09_k141_92884_B"),]<-AMG_counts2[c("HV_009_09_k141_92884"),]
+AMG_counts2[c("HV_009_14_k141_100809_B"),]<-AMG_counts2[c("HV_009_14_k141_100809"),]
+AMG_counts2[c("HV_009_19_k141_25043_B"),]<-AMG_counts2[c("HV_009_19_k141_25043"),]
+AMG_counts2[c("HV_009_19_k141_25043_C"),]<-AMG_counts2[c("HV_009_19_k141_25043"),]
+AMG_counts2[c("HV_009_19_k141_25043_D"),]<-AMG_counts2[c("HV_009_19_k141_25043"),]
+AMG_counts2[c("HV_010_03_k141_4477_B"),]<-AMG_counts2[c("HV_010_03_k141_4477"),]
+AMG_counts2[c("HV_010_03_k141_4477_C"),]<-AMG_counts2[c("HV_010_03_k141_4477"),]
+AMG_counts2[c("HV_010_05_k141_32866_B"),]<-AMG_counts2[c("HV_010_05_k141_32866"),]
+AMG_counts2[c("HV_010_05_k141_32866_C"),]<-AMG_counts2[c("HV_010_05_k141_32866"),]
+AMG_counts2[c("HV_010_05_k141_33410_B"),]<-AMG_counts2[c("HV_010_05_k141_33410"),]
+AMG_counts2[c("HV_010_06_k141_22075_B"),]<-AMG_counts2[c("HV_010_06_k141_22075"),]
+AMG_counts2[c("HV_010_12_k141_17154_B"),]<-AMG_counts2[c("HV_010_12_k141_17154"),]
+AMG_counts2[c("HV_010_13_k141_48483_B"),]<-AMG_counts2[c("HV_010_13_k141_48483"),]
+AMG_counts2[c("HV_010_14_k141_94175_B"),]<-AMG_counts2[c("HV_010_14_k141_94175"),]
+AMG_counts2[c("HV_010_14_k141_94175_C"),]<-AMG_counts2[c("HV_010_14_k141_94175"),]
+AMG_counts2[c("HV_010_18_k141_11970_B"),]<-AMG_counts2[c("HV_010_18_k141_11970"),]
+AMG_counts2[c("HV_010_18_k141_5602_B"),]<-AMG_counts2[c("HV_010_18_k141_5602"),]
+AMG_counts2[c("HV_010_19_k141_28165_B"),]<-AMG_counts2[c("HV_010_19_k141_28165"),]
+AMG_counts2[c("HV_010_19_k141_4761_B"),]<-AMG_counts2[c("HV_010_19_k141_4761"),]
+AMG_counts2[c("HV_010_19_k141_4761_C"),]<-AMG_counts2[c("HV_010_19_k141_4761"),]
+AMG_counts2[c("HV_011_04_k141_103473_B"),]<-AMG_counts2[c("HV_011_04_k141_103473"),]
+AMG_counts2[c("HV_011_06_k141_28213_B"),]<-AMG_counts2[c("HV_011_06_k141_28213"),]
+AMG_counts2[c("HV_011_06_k141_28213_C"),]<-AMG_counts2[c("HV_011_06_k141_28213"),]
+AMG_counts2[c("HV_011_06_k141_28213_D"),]<-AMG_counts2[c("HV_011_06_k141_28213"),]
+AMG_counts2[c("HV_011_06_k141_28213_E"),]<-AMG_counts2[c("HV_011_06_k141_28213"),]
+AMG_counts2[c("HV_011_06_k141_28213_F"),]<-AMG_counts2[c("HV_011_06_k141_28213"),]
+AMG_counts2[c("HV_011_06_k141_28213_G"),]<-AMG_counts2[c("HV_011_06_k141_28213"),]
+AMG_counts2[c("HV_011_06_k141_28213_H"),]<-AMG_counts2[c("HV_011_06_k141_28213"),]
+AMG_counts2[c("HV_011_06_k141_28213_I"),]<-AMG_counts2[c("HV_011_06_k141_28213"),]
+AMG_counts2[c("HV_011_06_k141_43069_B"),]<-AMG_counts2[c("HV_011_06_k141_43069"),]
+AMG_counts2[c("HV_011_06_k141_43069_C"),]<-AMG_counts2[c("HV_011_06_k141_43069"),]
+AMG_counts2[c("HV_011_06_k141_43069_D"),]<-AMG_counts2[c("HV_011_06_k141_43069"),]
+AMG_counts2[c("HV_011_06_k141_43069_E"),]<-AMG_counts2[c("HV_011_06_k141_43069"),]
+AMG_counts2[c("HV_011_18_k141_1008_B"),]<-AMG_counts2[c("HV_011_18_k141_1008"),]
+AMG_counts2[c("HV_011_21_k141_17321_B"),]<-AMG_counts2[c("HV_011_21_k141_17321"),]
+AMG_counts2[c("HV_012_10_k141_20114_B"),]<-AMG_counts2[c("HV_012_10_k141_20114"),]
+AMG_counts2[c("HV_012_10_k141_20114_2_B"),]<-AMG_counts2[c("HV_012_10_k141_20114"),]
+AMG_counts2[c("HV_013_03_k141_11911_B"),]<-AMG_counts2[c("HV_013_03_k141_11911"),]
+AMG_counts2[c("HV_013_03_k141_11911_C"),]<-AMG_counts2[c("HV_013_03_k141_11911"),]
+AMG_counts2[c("HV_013_09_k141_47717_B"),]<-AMG_counts2[c("HV_013_09_k141_47717"),]
+AMG_counts2[c("HV_013_09_k141_47717_C"),]<-AMG_counts2[c("HV_013_09_k141_47717"),]
+AMG_counts2[c("HV_013_09_k141_60696_B"),]<-AMG_counts2[c("HV_013_09_k141_60696"),]
+AMG_counts2[c("HV_013_09_k141_60696_C"),]<-AMG_counts2[c("HV_013_09_k141_60696"),]
+AMG_counts2[c("HV_013_16_k141_16056_B"),]<-AMG_counts2[c("HV_013_16_k141_16056"),]
+AMG_counts2[c("HV_013_16_k141_1662_B"),]<-AMG_counts2[c("HV_013_16_k141_1662"),]
+AMG_counts2[c("HV_013_16_k141_1662_C"),]<-AMG_counts2[c("HV_013_16_k141_1662"),]
+AMG_counts2[c("HV_013_16_k141_1662_D"),]<-AMG_counts2[c("HV_013_16_k141_1662"),]
+AMG_counts2[c("HV_013_16_k141_1662_E"),]<-AMG_counts2[c("HV_013_16_k141_1662"),]
+AMG_counts2[c("HV_013_16_k141_1662_F"),]<-AMG_counts2[c("HV_013_16_k141_1662"),]
+AMG_counts2[c("HV_013_22_k141_14938_B"),]<-AMG_counts2[c("HV_013_22_k141_14938"),]
+AMG_counts2[c("HV_013_27_k141_1301_B"),]<-AMG_counts2[c("HV_013_27_k141_1301"),]
+AMG_counts2[c("HV_014_06_k141_39429_B"),]<-AMG_counts2[c("HV_014_06_k141_39429"),]
+AMG_counts2[c("HV_014_06_k141_65849_B"),]<-AMG_counts2[c("HV_014_06_k141_65849"),]
+AMG_counts2[c("HV_014_14_k141_27083_B"),]<-AMG_counts2[c("HV_014_14_k141_27083"),]
+AMG_counts2[c("HV_014_15_k141_20559_B"),]<-AMG_counts2[c("HV_014_15_k141_20559"),]
+AMG_counts2[c("HV_014_18_k141_2895_B"),]<-AMG_counts2[c("HV_014_18_k141_2895"),]
+AMG_counts2[c("HV_014_18_k141_8242_B"),]<-AMG_counts2[c("HV_014_18_k141_8242"),]
+AMG_counts2[c("HV_014_19_k141_63925_B"),]<-AMG_counts2[c("HV_014_19_k141_63925"),]
+AMG_counts2[c("HV_015_01_k141_2526_B"),]<-AMG_counts2[c("HV_015_01_k141_2526"),]
+AMG_counts2[c("HV_015_01_k141_2526_C"),]<-AMG_counts2[c("HV_015_01_k141_2526"),]
+AMG_counts2[c("HV_015_12_k141_36033_B"),]<-AMG_counts2[c("HV_015_12_k141_36033"),]
+AMG_counts2[c("HV_015_12_k141_36033_C"),]<-AMG_counts2[c("HV_015_12_k141_36033"),]
+AMG_counts2[c("HV_015_13_k141_19377_B"),]<-AMG_counts2[c("HV_015_13_k141_19377"),]
+AMG_counts2[c("HV_015_13_k141_19377_C"),]<-AMG_counts2[c("HV_015_13_k141_19377"),]
+AMG_counts2[c("HV_015_15_k141_2747_B"),]<-AMG_counts2[c("HV_015_15_k141_2747"),]
+AMG_counts2[c("HV_015_15_k141_44796_B"),]<-AMG_counts2[c("HV_015_15_k141_44796"),]
+AMG_counts2[c("HV_015_15_k141_61467_B"),]<-AMG_counts2[c("HV_015_15_k141_61467"),]
+AMG_counts2[c("HV_015_15_k141_61467_C"),]<-AMG_counts2[c("HV_015_15_k141_61467"),]
+AMG_counts2[c("HV_015_15_k141_61467_D"),]<-AMG_counts2[c("HV_015_15_k141_61467"),]
+AMG_counts2[c("HV_015_19_k141_74547_B"),]<-AMG_counts2[c("HV_015_19_k141_74547"),]
+AMG_counts2[c("HV_016_04_k141_12211_B"),]<-AMG_counts2[c("HV_016_04_k141_12211"),]
+AMG_counts2[c("HV_016_04_k141_12211_C"),]<-AMG_counts2[c("HV_016_04_k141_12211"),]
+AMG_counts2[c("HV_016_04_k141_12211_D"),]<-AMG_counts2[c("HV_016_04_k141_12211"),]
+AMG_counts2[c("HV_016_04_k141_12211_E"),]<-AMG_counts2[c("HV_016_04_k141_12211"),]
+AMG_counts2[c("HV_016_04_k141_6092_B"),]<-AMG_counts2[c("HV_016_04_k141_6092"),]
+AMG_counts2[c("HV_016_04_k141_7163_B"),]<-AMG_counts2[c("HV_016_04_k141_7163"),]
+AMG_counts2[c("HV_016_10_k141_58926_B"),]<-AMG_counts2[c("HV_016_10_k141_58926"),]
+AMG_counts2[c("HV_016_10_k141_58926_C"),]<-AMG_counts2[c("HV_016_10_k141_58926"),]
+AMG_counts2[c("HV_016_10_k141_58926_D"),]<-AMG_counts2[c("HV_016_10_k141_58926"),]
+AMG_counts2[c("HV_016_10_k141_58926_E"),]<-AMG_counts2[c("HV_016_10_k141_58926"),]
+AMG_counts2[c("HV_016_14_k141_1054_B"),]<-AMG_counts2[c("HV_016_14_k141_1054"),]
+AMG_counts2[c("HV_016_14_k141_1054_C"),]<-AMG_counts2[c("HV_016_14_k141_1054"),]
+AMG_counts2[c("HV_016_15_k141_1328_B"),]<-AMG_counts2[c("HV_016_15_k141_1328"),]
+AMG_counts2[c("HV_016_15_k141_1328_C"),]<-AMG_counts2[c("HV_016_15_k141_1328"),]
+AMG_counts2[c("HV_016_21_k141_45049_B"),]<-AMG_counts2[c("HV_016_21_k141_45049"),]
+AMG_counts2[c("HV_016_27_k141_65141_B"),]<-AMG_counts2[c("HV_016_27_k141_65141"),]
+AMG_counts2[c("HV_016_27_k141_65141_C"),]<-AMG_counts2[c("HV_016_27_k141_65141"),]
+AMG_counts2[c("HV_017_02_k141_24048_B"),]<-AMG_counts2[c("HV_017_02_k141_24048"),]
+AMG_counts2[c("HV_017_02_k141_24048_C"),]<-AMG_counts2[c("HV_017_02_k141_24048"),]
+AMG_counts2[c("HV_017_04_k141_719_B"),]<-AMG_counts2[c("HV_017_04_k141_719"),]
+AMG_counts2[c("HV_017_04_k141_719_C"),]<-AMG_counts2[c("HV_017_04_k141_719"),]
+AMG_counts2[c("HV_017_15_k141_67087_B"),]<-AMG_counts2[c("HV_017_15_k141_67087"),]
+AMG_counts2[c("HV_017_15_k141_67087_C"),]<-AMG_counts2[c("HV_017_15_k141_67087"),]
+AMG_counts2[c("HV_017_16_k141_1096_B"),]<-AMG_counts2[c("HV_017_16_k141_1096"),]
+AMG_counts2[c("HV_017_16_k141_1096_C"),]<-AMG_counts2[c("HV_017_16_k141_1096"),]
+AMG_counts2[c("HV_018_01_k141_5074_B"),]<-AMG_counts2[c("HV_018_01_k141_5074"),]
+AMG_counts2[c("HV_018_01_k141_5074_C"),]<-AMG_counts2[c("HV_018_01_k141_5074"),]
+AMG_counts2[c("HV_018_01_k141_5074_D"),]<-AMG_counts2[c("HV_018_01_k141_5074"),]
+AMG_counts2[c("HV_018_01_k141_5074_E"),]<-AMG_counts2[c("HV_018_01_k141_5074"),]
+AMG_counts2[c("HV_018_13_k141_5522_B"),]<-AMG_counts2[c("HV_018_13_k141_5522"),]
+AMG_counts2[c("HV_018_13_k141_8766_B"),]<-AMG_counts2[c("HV_018_13_k141_8766"),]
+AMG_counts2[c("HV_018_15_k141_22412_B"),]<-AMG_counts2[c("HV_018_15_k141_22412"),]
+AMG_counts2[c("HV_018_15_k141_22412_C"),]<-AMG_counts2[c("HV_018_15_k141_22412"),]
+AMG_counts2[c("HV_018_15_k141_22412_D"),]<-AMG_counts2[c("HV_018_15_k141_22412"),]
+AMG_counts2[c("HV_018_16_k141_4859_B"),]<-AMG_counts2[c("HV_018_16_k141_4859"),]
+AMG_counts2[c("HV_018_18_k141_149126_B"),]<-AMG_counts2[c("HV_018_18_k141_149126"),]
+AMG_counts2[c("HV_018_18_k141_61238_B"),]<-AMG_counts2[c("HV_018_18_k141_61238"),]
+AMG_counts2[c("HV_023_04_k141_111049_B"),]<-AMG_counts2[c("HV_023_04_k141_111049"),]
+AMG_counts2[c("HV_023_04_k141_12134_B"),]<-AMG_counts2[c("HV_023_04_k141_12134"),]
+AMG_counts2[c("HV_023_04_k141_12134_5"),]<-AMG_counts2[c("HV_023_04_k141_12134"),]
+AMG_counts2[c("HV_023_04_k141_12134_5_B"),]<-AMG_counts2[c("HV_023_04_k141_12134"),]
+AMG_counts2[c("HV_023_04_k141_143214_B"),]<-AMG_counts2[c("HV_023_04_k141_143214"),]
+AMG_counts2[c("HV_023_04_k141_160285_B"),]<-AMG_counts2[c("HV_023_04_k141_160285"),]
+AMG_counts2[c("HV_023_04_k141_29623_B"),]<-AMG_counts2[c("HV_023_04_k141_29623"),]
+AMG_counts2[c("HV_023_04_k141_29623_C"),]<-AMG_counts2[c("HV_023_04_k141_29623"),]
+AMG_counts2[c("HV_023_04_k141_29623_D"),]<-AMG_counts2[c("HV_023_04_k141_29623"),]
+AMG_counts2[c("HV_023_04_k141_711_B"),]<-AMG_counts2[c("HV_023_04_k141_711"),]
+AMG_counts2[c("HV_023_12_k141_3145_B"),]<-AMG_counts2[c("HV_023_12_k141_3145"),]
+AMG_counts2[c("HV_027_11_k141_25678_B"),]<-AMG_counts2[c("HV_027_11_k141_25678"),]
+AMG_counts2[c("HV_027_14_k141_30770_B"),]<-AMG_counts2[c("HV_027_14_k141_30770"),]
+AMG_counts2[c("HV_027_14_k141_30770_C"),]<-AMG_counts2[c("HV_027_14_k141_30770"),]
+AMG_counts2[c("HV_027_14_k141_30770_D"),]<-AMG_counts2[c("HV_027_14_k141_30770"),]
+AMG_counts2[c("HV_030_14_k141_13654_B"),]<-AMG_counts2[c("HV_030_14_k141_13654"),]
+AMG_counts2[c("HV_002_04_k141_11204_2"),]<-AMG_counts2[c("HV_002_04_k141_11204"),]
+AMG_counts2[c("HV_002_04_k141_11204_3"),]<-AMG_counts2[c("HV_002_04_k141_11204"),]
+AMG_counts2[c("HV_004_04_k141_17325_5"),]<-AMG_counts2[c("HV_004_04_k141_17325"),]
+AMG_counts2[c("HV_004_04_k141_17325_6"),]<-AMG_counts2[c("HV_004_04_k141_17325"),]
+AMG_counts2[c("HV_004_14_k141_3066_4"),]<-AMG_counts2[c("HV_004_14_k141_3066"),]
+AMG_counts2[c("HV_006_10_k141_1069_2"),]<-AMG_counts2[c("HV_006_10_k141_1069"),]
+AMG_counts2[c("HV_006_10_k141_1069_3"),]<-AMG_counts2[c("HV_006_10_k141_1069"),]
+AMG_counts2[c("HV_006_11_k141_434_4"),]<-AMG_counts2[c("HV_006_11_k141_434"),]
+AMG_counts2[c("HV_006_19_k141_116112_2"),]<-AMG_counts2[c("HV_006_19_k141_116112"),]
+AMG_counts2[c("HV_010_01_k141_16893_10"),]<-AMG_counts2[c("HV_010_01_k141_16893"),]
+AMG_counts2[c("HV_010_09_k141_32588_7"),]<-AMG_counts2[c("HV_010_09_k141_32588"),]
+AMG_counts2[c("HV_010_12_k141_13684_3"),]<-AMG_counts2[c("HV_010_12_k141_13684"),]
+AMG_counts2[c("HV_010_12_k141_17154_3"),]<-AMG_counts2[c("HV_010_12_k141_17154"),]
+AMG_counts2[c("HV_010_13_k141_48483_4"),]<-AMG_counts2[c("HV_010_13_k141_48483"),]
+AMG_counts2[c("HV_012_06_k141_6040_12"),]<-AMG_counts2[c("HV_012_06_k141_6040"),]
+AMG_counts2[c("HV_012_10_k141_20114_2"),]<-AMG_counts2[c("HV_012_10_k141_20114"),]
+AMG_counts2[c("HV_012_16_k141_32728_2"),]<-AMG_counts2[c("HV_012_16_k141_32728"),]
+AMG_counts2[c("HV_013_09_k141_47717_3"),]<-AMG_counts2[c("HV_013_09_k141_47717"),]
+AMG_counts2[c("HV_014_06_k141_41035_5"),]<-AMG_counts2[c("HV_014_06_k141_41035"),]
+AMG_counts2[c("HV_014_06_k141_41035_6"),]<-AMG_counts2[c("HV_014_06_k141_41035"),]
+AMG_counts2[c("HV_014_07_k141_1792_4"),]<-AMG_counts2[c("HV_014_07_k141_1792"),]
+AMG_counts2[c("HV_015_15_k141_61467_6"),]<-AMG_counts2[c("HV_015_15_k141_61467"),]
+AMG_counts2[c("HV_015_15_k141_61467_7"),]<-AMG_counts2[c("HV_015_15_k141_61467"),]
+AMG_counts2[c("HV_016_12_k141_3633_2"),]<-AMG_counts2[c("HV_016_12_k141_3633"),]
+AMG_counts2[c("HV_016_12_k141_3633_3"),]<-AMG_counts2[c("HV_016_12_k141_3633"),]
+AMG_counts2[c("HV_016_15_k141_55385_5"),]<-AMG_counts2[c("HV_016_15_k141_55385"),]
+AMG_counts2[c("HV_018_02_k141_8740_3"),]<-AMG_counts2[c("HV_018_02_k141_8740"),]
+AMG_counts2[c("HV_018_02_k141_8740_4"),]<-AMG_counts2[c("HV_018_02_k141_8740"),]
+AMG_counts2[c("HV_018_15_k141_20944_2"),]<-AMG_counts2[c("HV_018_15_k141_20944"),]
+AMG_counts2[c("HV_018_15_k141_22412_7"),]<-AMG_counts2[c("HV_018_15_k141_22412"),]
+AMG_counts2[c("HV_024_12_k141_1265_3"),]<-AMG_counts2[c("HV_024_12_k141_1265"),]
+AMG_counts2[c("HV_027_14_k141_4430_3"),]<-AMG_counts2[c("HV_027_14_k141_4430"),]
+```
+```{r}
+#P33 & P44-P60 were not included due to their missing timepoint sample collections (incomplete due to COVID restrictions shutting down sampling) 
+P01<-c("HV_001_01", "HV_001_02", "HV_001_03", "HV_002_01", "HV_002_02", "HV_002_03", "HV_003_01", "HV_003_02", "HV_003_03", "HV_004_01", "HV_004_02", "HV_004_03", "HV_005_01","HV_005_03") 
+P02<-c("HV_001_04", "HV_001_05", "HV_001_06", "HV_002_04", "HV_002_05", "HV_002_06", "HV_003_04", "HV_003_05", "HV_003_06", "HV_004_04", "HV_004_05", "HV_004_06", "HV_005_04", "HV_005_05","HV_005_06") 
+P03<-c("HV_001_07", "HV_001_08", "HV_001_09", "HV_002_07", "HV_002_08", "HV_002_09", "HV_003_07", "HV_003_08", "HV_003_09", "HV_004_07", "HV_004_08", "HV_004_09", "HV_005_07", "HV_005_08", "HV_005_09")
+P04<-c("HV_001_10", "HV_001_11", "HV_001_12", "HV_002_10", "HV_002_11", "HV_002_12", "HV_003_10", "HV_003_11", "HV_003_12", "HV_004_10", "HV_004_11", "HV_004_12", "HV_005_10", "HV_005_11","HV_005_12")
+P05<-c("HV_001_13", "HV_001_14", "HV_001_15", "HV_002_13", "HV_002_14", "HV_002_15", "HV_003_13", "HV_003_14","HV_003_15", "HV_004_13", "HV_004_14", "HV_004_15", "HV_005_13", "HV_005_14","HV_005_15")
+P06<-c("HV_001_16", "HV_001_18", "HV_001_19", "HV_002_18", "HV_002_19", "HV_003_16", "HV_003_18", "HV_003_19", "HV_004_16", "HV_004_18", "HV_004_19", "HV_005_16", "HV_005_18","HV_005_19") 
+P07<-c("HV_001_20",  "HV_001_21",  "HV_001_22",  "HV_002_20",  "HV_002_21",  "HV_002_22",  "HV_003_20",  "HV_003_21",  "HV_003_22",  "HV_004_20",  "HV_004_21",  "HV_004_22",  "HV_005_20", "HV_005_22") 
+P08<-c("HV_006_01", "HV_006_02", "HV_006_03", "HV_007_01", "HV_007_02", "HV_007_03", "HV_008_01", "HV_008_02", "HV_008_03", "HV_009_01", "HV_009_03", "HV_010_01", "HV_010_02","HV_010_03")
+P09<-c("HV_006_04", "HV_006_05", "HV_006_06", "HV_007_04", "HV_007_05", "HV_007_06", "HV_008_04", "HV_008_05", "HV_008_06", "HV_009_04", "HV_009_05", "HV_009_06", "HV_010_04", "HV_010_05", "HV_010_06")
+P10<-c("HV_006_07", "HV_006_08", "HV_006_09", "HV_007_07", "HV_007_08", "HV_007_09", "HV_008_07", "HV_008_08", "HV_008_09", "HV_009_07", "HV_009_08", "HV_009_09", "HV_010_07", "HV_010_08","HV_010_09")
+P11<-c("HV_006_10", "HV_006_11", "HV_006_12", "HV_007_10", "HV_007_11", "HV_007_12", "HV_008_10", "HV_008_11", "HV_008_12", "HV_009_10", "HV_009_11", "HV_009_12", "HV_010_10", "HV_010_11","HV_010_12")
+P12<-c("HV_006_13", "HV_006_14", "HV_006_15", "HV_007_13", "HV_007_14", "HV_007_15", "HV_008_13", "HV_008_14", "HV_008_15", "HV_009_13", "HV_009_14", "HV_009_15", "HV_010_13", "HV_010_14","HV_010_15")
+P13<-c("HV_006_16", "HV_006_18", "HV_006_19", "HV_007_16", "HV_007_18", "HV_007_19", "HV_008_16", "HV_008_18", "HV_008_19", "HV_009_16", "HV_009_18", "HV_009_19", "HV_010_16", "HV_010_18","HV_010_19")
+P14<-c("HV_006_20", "HV_006_21", "HV_006_22", "HV_007_20", "HV_007_21", "HV_007_22", "HV_008_20", "HV_008_21", "HV_008_22", "HV_009_20", "HV_009_21", "HV_009_22", "HV_010_20", "HV_010_21","HV_010_22")
+P15<-c("HV_011_01", "HV_011_02", "HV_011_03", "HV_012_01", "HV_012_02", "HV_012_03", "HV_013_01", "HV_013_02", "HV_013_03", "HV_014_01", "HV_014_02", "HV_014_03", "HV_015_01", "HV_015_02","HV_015_03")
+P16<-c("HV_011_04", "HV_011_05", "HV_011_06", "HV_012_04", "HV_012_05", "HV_012_06", "HV_013_04", "HV_013_05", "HV_014_04", "HV_014_05", "HV_014_06", "HV_015_04", "HV_015_05","HV_015_06")
+P17<-c("HV_011_07", "HV_011_08", "HV_011_09", "HV_012_07", "HV_012_08", "HV_012_09", "HV_013_07", "HV_013_08", "HV_013_09", "HV_014_07", "HV_014_08", "HV_014_09", "HV_015_07", "HV_015_08","HV_015_09")
+P18<-c("HV_011_10", "HV_011_11", "HV_011_12", "HV_012_10", "HV_012_11", "HV_012_12", "HV_013_10", "HV_013_11", "HV_013_12", "HV_014_10", "HV_014_11", "HV_014_12", "HV_015_10", "HV_015_11", "HV_015_12")
+P19<-c("HV_011_13", "HV_011_14", "HV_011_15", "HV_012_13", "HV_012_14", "HV_012_15", "HV_013_13", "HV_013_14", "HV_013_15", "HV_014_13", "HV_014_14", "HV_014_15", "HV_015_13", "HV_015_14","HV_015_15")
+P20<-c("HV_011_16", "HV_011_18", "HV_011_19", "HV_012_16", "HV_012_18", "HV_012_19", "HV_013_16", "HV_013_18", "HV_013_19", "HV_014_16", "HV_014_18", "HV_014_19", "HV_015_16", "HV_015_18","HV_015_19")
+P21<-c("HV_011_20", "HV_011_21", "HV_011_22", "HV_012_20", "HV_012_21", "HV_012_22", "HV_013_20", "HV_013_21", "HV_013_22", "HV_014_20", "HV_014_21","HV_014_22")
+P22<-c("HV_016_01", "HV_017_01", "HV_018_01", "HV_019_01", "HV_020_01", "HV_021_02", "HV_022_01", "HV_023_01", "HV_024_01", "HV_025_02", "HV_026_01", "HV_027_08", "HV_028_01", "HV_029_01","HV_030_01")
+P23<-c("HV_016_02", "HV_017_02", "HV_018_02", "HV_019_02", "HV_020_02", "HV_021_03", "HV_022_02", "HV_023_02", "HV_024_02", "HV_025_03", "HV_026_02", "HV_027_09", "HV_028_02", "HV_029_02","HV_030_02")
+P24<-c("HV_016_03", "HV_017_03", "HV_018_03", "HV_019_03", "HV_021_01", "HV_021_04", "HV_022_03", "HV_023_03", "HV_024_03", "HV_025_04", "HV_026_03", "HV_027_10", "HV_028_03", "HV_029_03","HV_030_03")
+P25<-c("HV_016_04", "HV_017_04", "HV_018_04", "HV_019_04", "HV_020_03", "HV_021_05", "HV_022_04", "HV_023_04", "HV_024_04", "HV_025_05", "HV_026_04", "HV_027_11", "HV_028_04", "HV_029_04","HV_030_04")
+P26<-c("HV_016_05", "HV_017_05", "HV_018_05", "HV_019_05", "HV_020_04", "HV_021_06", "HV_022_05", "HV_023_05", "HV_024_05", "HV_025_06", "HV_026_05", "HV_027_12", "HV_028_05", "HV_029_05", "HV_030_05")
+P27<-c("HV_016_06", "HV_017_06", "HV_018_06", "HV_019_06", "HV_020_05", "HV_021_07", "HV_022_06", "HV_023_06", "HV_024_06", "HV_025_07", "HV_026_06", "HV_027_13", "HV_028_06", "HV_029_06","HV_030_06")
+P28<-c("HV_016_07", "HV_017_07", "HV_018_07", "HV_019_07", "HV_020_06", "HV_021_08", "HV_022_07", "HV_023_07", "HV_024_07", "HV_025_08", "HV_026_07", "HV_027_14", "HV_028_07", "HV_029_07","HV_030_07")
+P29<-c("HV_016_08", "HV_017_08", "HV_018_08", "HV_019_08", "HV_020_07", "HV_021_09", "HV_022_08", "HV_023_08", "HV_024_08", "HV_025_09", "HV_026_08", "HV_027_15", "HV_028_08", "HV_029_08","HV_030_08")
+P30<-c("HV_016_09", "HV_017_09", "HV_018_09", "HV_019_09", "HV_020_08", "HV_021_10", "HV_022_09", "HV_023_09", "HV_024_09", "HV_025_10", "HV_026_09", "HV_027_16", "HV_028_09", "HV_029_09","HV_030_09")
+P31<-c("HV_016_10", "HV_017_10", "HV_018_10", "HV_019_10", "HV_021_11", "HV_022_10", "HV_023_10", "HV_024_10", "HV_026_10", "HV_027_18", "HV_028_10", "HV_029_10")
+P32<-c("HV_016_11", "HV_017_11", "HV_018_11", "HV_019_11", "HV_020_09", "HV_021_12", "HV_022_11", "HV_023_11", "HV_024_11", "HV_025_11", "HV_026_11", "HV_027_19", "HV_028_11", "HV_029_11","HV_030_10")
+P34<-c("HV_016_12", "HV_017_12", "HV_018_12", "HV_019_12", "HV_020_11", "HV_021_14", "HV_022_12", "HV_023_12", "HV_024_12", "HV_025_12", "HV_026_12", "HV_027_20", "HV_028_12", "HV_029_12","HV_030_11")
+P35<-c("HV_016_13", "HV_017_13", "HV_018_13", "HV_019_13", "HV_020_12", "HV_021_15", "HV_022_13", "HV_023_13", "HV_024_13", "HV_025_13", "HV_026_13", "HV_027_21", "HV_028_13", "HV_029_13","HV_030_12")
+P36<-c("HV_016_14", "HV_017_14", "HV_018_14", "HV_019_14", "HV_020_13", "HV_021_16", "HV_022_14", "HV_023_14", "HV_024_14", "HV_025_14", "HV_026_14", "HV_027_22", "HV_028_14", "HV_029_14","HV_030_13")
+P37<-c("HV_016_15", "HV_017_15", "HV_018_15", "HV_019_15", "HV_020_14", "HV_021_18", "HV_022_15", "HV_023_15", "HV_024_15", "HV_025_15", "HV_026_15", "HV_028_15", "HV_029_15", "HV_030_14","HV_030_22")
+P38<-c("HV_016_16", "HV_017_16", "HV_018_16", "HV_019_16", "HV_020_15", "HV_021_19", "HV_022_16", "HV_023_16", "HV_024_16", "HV_025_16", "HV_026_16", "HV_028_16", "HV_029_16","HV_030_15")
+P39<-c("HV_016_18", "HV_017_18", "HV_018_18", "HV_019_18", "HV_020_16", "HV_021_20", "HV_022_18", "HV_023_18", "HV_024_18", "HV_025_18", "HV_026_18", "HV_028_18", "HV_029_18","HV_030_16")
+P40<-c("HV_016_19", "HV_017_19", "HV_018_19", "HV_019_19", "HV_020_18", "HV_021_21", "HV_022_19", "HV_023_19", "HV_024_19", "HV_025_19", "HV_026_19", "HV_028_19", "HV_029_19","HV_030_18")
+P41<-c("HV_016_20", "HV_017_20", "HV_018_20", "HV_019_20", "HV_020_19", "HV_021_22", "HV_022_20", "HV_023_20", "HV_024_20", "HV_025_20", "HV_026_20", "HV_028_20", "HV_029_20","HV_030_19")
+P42<-c("HV_016_21", "HV_017_21", "HV_018_21", "HV_019_21", "HV_020_20", "HV_022_21", "HV_023_21", "HV_024_21", "HV_025_21", "HV_026_21", "HV_028_21", "HV_029_21", "HV_030_20")
+P43<-c("HV_016_22", "HV_017_22", "HV_018_22", "HV_019_22", "HV_020_21", "HV_022_22", "HV_023_22", "HV_024_22", "HV_025_01", "HV_025_22", "HV_026_22", "HV_028_22", "HV_029_22","HV_030_21")
+```
+```{r}
+AMG_tax <- read.csv("ALL_CONTIGS_AMG_taxa_final.csv", quote = "", header = TRUE, stringsAsFactors = FALSE, row.names = 1)
+AMG_tax <- subset(AMG_tax, select = c(Sample_ID, Metabolism, Pathway, Pfam_name))
+```
+```{r}
+P01_AMG_tax<- subset(AMG_tax, Sample_ID %in% P01)
+#P01 was removed since it did not contain AMGs in virome
+P02_AMG_tax<- subset(AMG_tax, Sample_ID %in% P02)
+P03_AMG_tax<- subset(AMG_tax, Sample_ID %in% P03)
+P04_AMG_tax<- subset(AMG_tax, Sample_ID %in% P04)
+P05_AMG_tax<- subset(AMG_tax, Sample_ID %in% P05)
+P06_AMG_tax<- subset(AMG_tax, Sample_ID %in% P06)
+P07_AMG_tax<- subset(AMG_tax, Sample_ID %in% P07)
+P08_AMG_tax<- subset(AMG_tax, Sample_ID %in% P08)
+P09_AMG_tax<- subset(AMG_tax, Sample_ID %in% P09)
+P10_AMG_tax<- subset(AMG_tax, Sample_ID %in% P10)
+P11_AMG_tax<- subset(AMG_tax, Sample_ID %in% P11)
+P12_AMG_tax<- subset(AMG_tax, Sample_ID %in% P12)
+P13_AMG_tax<- subset(AMG_tax, Sample_ID %in% P13)
+P14_AMG_tax<- subset(AMG_tax, Sample_ID %in% P14)
+P15_AMG_tax<- subset(AMG_tax, Sample_ID %in% P15)
+P16_AMG_tax<- subset(AMG_tax, Sample_ID %in% P16)
+P17_AMG_tax<- subset(AMG_tax, Sample_ID %in% P17)
+P18_AMG_tax<- subset(AMG_tax, Sample_ID %in% P18)
+P19_AMG_tax<- subset(AMG_tax, Sample_ID %in% P19)
+P20_AMG_tax<- subset(AMG_tax, Sample_ID %in% P20)
+P21_AMG_tax<- subset(AMG_tax, Sample_ID %in% P21)
+P22_AMG_tax<- subset(AMG_tax, Sample_ID %in% P22)
+P23_AMG_tax<- subset(AMG_tax, Sample_ID %in% P23)
+P24_AMG_tax<- subset(AMG_tax, Sample_ID %in% P24)
+P25_AMG_tax<- subset(AMG_tax, Sample_ID %in% P25)
+P26_AMG_tax<- subset(AMG_tax, Sample_ID %in% P26)
+P27_AMG_tax<- subset(AMG_tax, Sample_ID %in% P27)
+P28_AMG_tax<- subset(AMG_tax, Sample_ID %in% P28)
+P29_AMG_tax<- subset(AMG_tax, Sample_ID %in% P29)
+P30_AMG_tax<- subset(AMG_tax, Sample_ID %in% P30)
+#P30 was removed since it did not contain AMGs in virome
+P31_AMG_tax<- subset(AMG_tax, Sample_ID %in% P31)
+P32_AMG_tax<- subset(AMG_tax, Sample_ID %in% P32)
+#P32 was removed since it did not contain AMGs in virome
+P34_AMG_tax<- subset(AMG_tax, Sample_ID %in% P34)
+P35_AMG_tax<- subset(AMG_tax, Sample_ID %in% P35)
+P36_AMG_tax<- subset(AMG_tax, Sample_ID %in% P36)
+P37_AMG_tax<- subset(AMG_tax, Sample_ID %in% P37)
+P38_AMG_tax<- subset(AMG_tax, Sample_ID %in% P38)
+P39_AMG_tax<- subset(AMG_tax, Sample_ID %in% P39)
+P40_AMG_tax<- subset(AMG_tax, Sample_ID %in% P40)
+#P40 was removed since it did not contain AMGs in virome
+P41_AMG_tax<- subset(AMG_tax, Sample_ID %in% P41)
+#P41 was removed since it did not contain AMGs in virome
+P42_AMG_tax<- subset(AMG_tax, Sample_ID %in% P42)
+P43_AMG_tax<- subset(AMG_tax, Sample_ID %in% P43)
+#P01,P30,P32,P40,P41 were not used for future analysis since contigs in their virome's did not contain identified AMGs
+```
+```{r}
+P02_AMG_counts<- merge(P02_AMG_tax, AMG_counts2, by.x="row.names", by.y="row.names")
+P03_AMG_counts<- merge(P03_AMG_tax, AMG_counts2, by.x="row.names", by.y="row.names")
+P04_AMG_counts<- merge(P04_AMG_tax, AMG_counts2, by.x="row.names", by.y="row.names")
+P05_AMG_counts<- merge(P05_AMG_tax, AMG_counts2, by.x="row.names", by.y="row.names")
+P06_AMG_counts<- merge(P06_AMG_tax, AMG_counts2, by.x="row.names", by.y="row.names")
+P07_AMG_counts<- merge(P07_AMG_tax, AMG_counts2, by.x="row.names", by.y="row.names")
+P08_AMG_counts<- merge(P08_AMG_tax, AMG_counts2, by.x="row.names", by.y="row.names")
+P09_AMG_counts<- merge(P09_AMG_tax, AMG_counts2, by.x="row.names", by.y="row.names")
+P10_AMG_counts<- merge(P10_AMG_tax, AMG_counts2, by.x="row.names", by.y="row.names")
+P11_AMG_counts<- merge(P11_AMG_tax, AMG_counts2, by.x="row.names", by.y="row.names")
+P12_AMG_counts<- merge(P12_AMG_tax, AMG_counts2, by.x="row.names", by.y="row.names")
+P13_AMG_counts<- merge(P13_AMG_tax, AMG_counts2, by.x="row.names", by.y="row.names")
+P14_AMG_counts<- merge(P14_AMG_tax, AMG_counts2, by.x="row.names", by.y="row.names")
+P15_AMG_counts<- merge(P15_AMG_tax, AMG_counts2, by.x="row.names", by.y="row.names")
+P16_AMG_counts<- merge(P16_AMG_tax, AMG_counts2, by.x="row.names", by.y="row.names")
+P17_AMG_counts<- merge(P17_AMG_tax, AMG_counts2, by.x="row.names", by.y="row.names")
+P18_AMG_counts<- merge(P18_AMG_tax, AMG_counts2, by.x="row.names", by.y="row.names")
+P19_AMG_counts<- merge(P19_AMG_tax, AMG_counts2, by.x="row.names", by.y="row.names")
+P20_AMG_counts<- merge(P20_AMG_tax, AMG_counts2, by.x="row.names", by.y="row.names")
+P21_AMG_counts<- merge(P21_AMG_tax, AMG_counts2, by.x="row.names", by.y="row.names")
+P22_AMG_counts<- merge(P22_AMG_tax, AMG_counts2, by.x="row.names", by.y="row.names")
+P23_AMG_counts<- merge(P23_AMG_tax, AMG_counts2, by.x="row.names", by.y="row.names")
+P24_AMG_counts<- merge(P24_AMG_tax, AMG_counts2, by.x="row.names", by.y="row.names")
+P25_AMG_counts<- merge(P25_AMG_tax, AMG_counts2, by.x="row.names", by.y="row.names")
+P26_AMG_counts<- merge(P26_AMG_tax, AMG_counts2, by.x="row.names", by.y="row.names")
+P27_AMG_counts<- merge(P27_AMG_tax, AMG_counts2, by.x="row.names", by.y="row.names")
+P28_AMG_counts<- merge(P28_AMG_tax, AMG_counts2, by.x="row.names", by.y="row.names")
+P29_AMG_counts<- merge(P29_AMG_tax, AMG_counts2, by.x="row.names", by.y="row.names")
+P31_AMG_counts<- merge(P31_AMG_tax, AMG_counts2, by.x="row.names", by.y="row.names")
+P34_AMG_counts<- merge(P34_AMG_tax, AMG_counts2, by.x="row.names", by.y="row.names")
+P35_AMG_counts<- merge(P35_AMG_tax, AMG_counts2, by.x="row.names", by.y="row.names")
+P36_AMG_counts<- merge(P36_AMG_tax, AMG_counts2, by.x="row.names", by.y="row.names")
+P37_AMG_counts<- merge(P37_AMG_tax, AMG_counts2, by.x="row.names", by.y="row.names")
+P38_AMG_counts<- merge(P38_AMG_tax, AMG_counts2, by.x="row.names", by.y="row.names")
+P39_AMG_counts<- merge(P39_AMG_tax, AMG_counts2, by.x="row.names", by.y="row.names")
+P42_AMG_counts<- merge(P42_AMG_tax, AMG_counts2, by.x="row.names", by.y="row.names")
+P43_AMG_counts<- merge(P43_AMG_tax, AMG_counts2, by.x="row.names", by.y="row.names")
+```
+```{r}
+row.names(P02_AMG_counts)<-P02_AMG_counts$Row.names 
+row.names(P03_AMG_counts)<-P03_AMG_counts$Row.names
+row.names(P04_AMG_counts)<-P04_AMG_counts$Row.names
+row.names(P05_AMG_counts)<-P05_AMG_counts$Row.names
+row.names(P06_AMG_counts)<-P06_AMG_counts$Row.names
+row.names(P07_AMG_counts)<-P07_AMG_counts$Row.names
+row.names(P08_AMG_counts)<-P08_AMG_counts$Row.names
+row.names(P09_AMG_counts)<-P09_AMG_counts$Row.names
+row.names(P10_AMG_counts)<-P10_AMG_counts$Row.names
+row.names(P11_AMG_counts)<-P11_AMG_counts$Row.names
+row.names(P12_AMG_counts)<-P12_AMG_counts$Row.names
+row.names(P13_AMG_counts)<-P13_AMG_counts$Row.names
+row.names(P14_AMG_counts)<-P14_AMG_counts$Row.names
+row.names(P15_AMG_counts)<-P15_AMG_counts$Row.names
+row.names(P16_AMG_counts)<-P16_AMG_counts$Row.names
+row.names(P17_AMG_counts)<-P17_AMG_counts$Row.names
+row.names(P18_AMG_counts)<-P18_AMG_counts$Row.names
+row.names(P19_AMG_counts)<-P19_AMG_counts$Row.names
+row.names(P20_AMG_counts)<-P20_AMG_counts$Row.names
+row.names(P21_AMG_counts)<-P21_AMG_counts$Row.names
+row.names(P22_AMG_counts)<-P22_AMG_counts$Row.names
+row.names(P23_AMG_counts)<-P23_AMG_counts$Row.names
+row.names(P24_AMG_counts)<-P24_AMG_counts$Row.names
+row.names(P25_AMG_counts)<-P25_AMG_counts$Row.names
+row.names(P26_AMG_counts)<-P26_AMG_counts$Row.names
+row.names(P27_AMG_counts)<-P27_AMG_counts$Row.names
+row.names(P28_AMG_counts)<-P28_AMG_counts$Row.names
+row.names(P29_AMG_counts)<-P29_AMG_counts$Row.names
+row.names(P31_AMG_counts)<-P31_AMG_counts$Row.names
+row.names(P34_AMG_counts)<-P34_AMG_counts$Row.names
+row.names(P35_AMG_counts)<-P35_AMG_counts$Row.names
+row.names(P36_AMG_counts)<-P36_AMG_counts$Row.names
+row.names(P37_AMG_counts)<-P37_AMG_counts$Row.names
+row.names(P38_AMG_counts)<-P38_AMG_counts$Row.names
+row.names(P39_AMG_counts)<-P39_AMG_counts$Row.names
+row.names(P42_AMG_counts)<-P42_AMG_counts$Row.names
+row.names(P43_AMG_counts)<-P43_AMG_counts$Row.names
+```
+```{r}
+P02_AMG_counts<- subset(P02_AMG_counts, select = -c(Row.names, Sample_ID, Pfam_name, Metabolism, Pathway))
+P03_AMG_counts<- subset(P03_AMG_counts, select = -c(Row.names, Sample_ID, Pfam_name, Metabolism, Pathway))
+P04_AMG_counts<- subset(P04_AMG_counts, select = -c(Row.names, Sample_ID, Pfam_name, Metabolism, Pathway))
+P05_AMG_counts<- subset(P05_AMG_counts, select = -c(Row.names, Sample_ID, Pfam_name, Metabolism, Pathway))
+P06_AMG_counts<- subset(P06_AMG_counts, select = -c(Row.names, Sample_ID, Pfam_name, Metabolism, Pathway))
+P07_AMG_counts<- subset(P07_AMG_counts, select = -c(Row.names, Sample_ID, Pfam_name, Metabolism, Pathway))
+P08_AMG_counts<- subset(P08_AMG_counts, select = -c(Row.names, Sample_ID, Pfam_name, Metabolism, Pathway))
+P09_AMG_counts<- subset(P09_AMG_counts, select = -c(Row.names, Sample_ID, Pfam_name, Metabolism, Pathway))
+P10_AMG_counts<- subset(P10_AMG_counts, select = -c(Row.names, Sample_ID, Pfam_name, Metabolism, Pathway))
+P11_AMG_counts<- subset(P11_AMG_counts, select = -c(Row.names, Sample_ID, Pfam_name, Metabolism, Pathway))
+P12_AMG_counts<- subset(P12_AMG_counts, select = -c(Row.names, Sample_ID, Pfam_name, Metabolism, Pathway))
+P13_AMG_counts<- subset(P13_AMG_counts, select = -c(Row.names, Sample_ID, Pfam_name, Metabolism, Pathway))
+P14_AMG_counts<- subset(P14_AMG_counts, select = -c(Row.names, Sample_ID, Pfam_name, Metabolism, Pathway))
+P15_AMG_counts<- subset(P15_AMG_counts, select = -c(Row.names, Sample_ID, Pfam_name, Metabolism, Pathway))
+P16_AMG_counts<- subset(P16_AMG_counts, select = -c(Row.names, Sample_ID, Pfam_name, Metabolism, Pathway))
+P17_AMG_counts<- subset(P17_AMG_counts, select = -c(Row.names, Sample_ID, Pfam_name, Metabolism, Pathway))
+P18_AMG_counts<- subset(P18_AMG_counts, select = -c(Row.names, Sample_ID, Pfam_name, Metabolism, Pathway))
+P19_AMG_counts<- subset(P19_AMG_counts, select = -c(Row.names, Sample_ID, Pfam_name, Metabolism, Pathway))
+P20_AMG_counts<- subset(P20_AMG_counts, select = -c(Row.names, Sample_ID, Pfam_name, Metabolism, Pathway))
+P21_AMG_counts<- subset(P21_AMG_counts, select = -c(Row.names, Sample_ID, Pfam_name, Metabolism, Pathway))
+P22_AMG_counts<- subset(P22_AMG_counts, select = -c(Row.names, Sample_ID, Pfam_name, Metabolism, Pathway))
+P23_AMG_counts<- subset(P23_AMG_counts, select = -c(Row.names, Sample_ID, Pfam_name, Metabolism, Pathway))
+P24_AMG_counts<- subset(P24_AMG_counts, select = -c(Row.names, Sample_ID, Pfam_name, Metabolism, Pathway))
+P25_AMG_counts<- subset(P25_AMG_counts, select = -c(Row.names, Sample_ID, Pfam_name, Metabolism, Pathway))
+P26_AMG_counts<- subset(P26_AMG_counts, select = -c(Row.names, Sample_ID, Pfam_name, Metabolism, Pathway))
+P27_AMG_counts<- subset(P27_AMG_counts, select = -c(Row.names, Sample_ID, Pfam_name, Metabolism, Pathway))
+P28_AMG_counts<- subset(P28_AMG_counts, select = -c(Row.names, Sample_ID, Pfam_name, Metabolism, Pathway))
+P29_AMG_counts<- subset(P29_AMG_counts, select = -c(Row.names, Sample_ID, Pfam_name, Metabolism, Pathway))
+P31_AMG_counts<- subset(P31_AMG_counts, select = -c(Row.names, Sample_ID, Pfam_name, Metabolism, Pathway))
+P34_AMG_counts<- subset(P34_AMG_counts, select = -c(Row.names, Sample_ID, Pfam_name, Metabolism, Pathway))
+P35_AMG_counts<- subset(P35_AMG_counts, select = -c(Row.names, Sample_ID, Pfam_name, Metabolism, Pathway))
+P36_AMG_counts<- subset(P36_AMG_counts, select = -c(Row.names, Sample_ID, Pfam_name, Metabolism, Pathway))
+P37_AMG_counts<- subset(P37_AMG_counts, select = -c(Row.names, Sample_ID, Pfam_name, Metabolism, Pathway))
+P38_AMG_counts<- subset(P38_AMG_counts, select = -c(Row.names, Sample_ID, Pfam_name, Metabolism, Pathway))
+P39_AMG_counts<- subset(P39_AMG_counts, select = -c(Row.names, Sample_ID, Pfam_name, Metabolism, Pathway))
+P42_AMG_counts<- subset(P42_AMG_counts, select = -c(Row.names, Sample_ID, Pfam_name, Metabolism, Pathway))
+P43_AMG_counts<- subset(P43_AMG_counts, select = -c(Row.names, Sample_ID, Pfam_name, Metabolism, Pathway))
+```
+```{r}
+P02_AMG_counts<-subset(P02_AMG_counts, select = c(HV_001_04, HV_001_05, HV_001_06, HV_002_04, HV_002_05, HV_002_06, HV_003_04, HV_003_05, HV_003_06, HV_004_04, HV_004_05, HV_004_06, HV_005_04, HV_005_05,HV_005_06)) 
+P03_AMG_counts<-subset(P03_AMG_counts, select = c(HV_001_07, HV_001_08, HV_001_09, HV_002_07, HV_002_08, HV_002_09, HV_003_07, HV_003_08, HV_003_09, HV_004_07, HV_004_08, HV_004_09, HV_005_07, HV_005_08, HV_005_09))
+P04_AMG_counts<-subset(P04_AMG_counts, select = c(HV_001_10, HV_001_11, HV_001_12, HV_002_10, HV_002_11, HV_002_12, HV_003_10, HV_003_11, HV_003_12, HV_004_10, HV_004_11, HV_004_12, HV_005_10, HV_005_11,HV_005_12))
+P05_AMG_counts<-subset(P05_AMG_counts, select = c(HV_001_13, HV_001_14, HV_001_15, HV_002_13, HV_002_14, HV_002_15, HV_003_13, HV_003_14, HV_003_15, HV_004_13, HV_004_14, HV_004_15, HV_005_13, HV_005_14,HV_005_15))
+P06_AMG_counts<-subset(P06_AMG_counts, select = c(HV_001_16, HV_001_18, HV_001_19, HV_002_18, HV_002_19, HV_003_16, HV_003_18, HV_003_19, HV_004_16, HV_004_18, HV_004_19, HV_005_16, HV_005_18, HV_005_19)) 
+P07_AMG_counts<-subset(P07_AMG_counts, select = c(HV_001_20,  HV_001_21,  HV_001_22,  HV_002_20,  HV_002_21,  HV_002_22,  HV_003_20,  HV_003_21,  HV_003_22,  HV_004_20,  HV_004_21,  HV_004_22,  HV_005_20, HV_005_22)) 
+P08_AMG_counts<-subset(P08_AMG_counts, select = c(HV_006_01, HV_006_02, HV_006_03, HV_007_01, HV_007_02, HV_007_03, HV_008_01, HV_008_02, HV_008_03, HV_009_01, HV_009_03, HV_010_01, HV_010_02,HV_010_03))
+P09_AMG_counts<-subset(P09_AMG_counts, select = c(HV_006_04, HV_006_05, HV_006_06, HV_007_04, HV_007_05, HV_007_06, HV_008_04, HV_008_05, HV_008_06, HV_009_04, HV_009_05, HV_009_06, HV_010_04, HV_010_05, HV_010_06))
+P10_AMG_counts<-subset(P10_AMG_counts, select = c(HV_006_07, HV_006_08, HV_006_09, HV_007_07, HV_007_08, HV_007_09, HV_008_07, HV_008_08, HV_008_09, HV_009_07, HV_009_08, HV_009_09, HV_010_07, HV_010_08,HV_010_09))
+P11_AMG_counts<-subset(P11_AMG_counts, select = c(HV_006_10, HV_006_11, HV_006_12, HV_007_10, HV_007_11, HV_007_12, HV_008_10, HV_008_11, HV_008_12, HV_009_10, HV_009_11, HV_009_12, HV_010_10, HV_010_11,HV_010_12))
+P12_AMG_counts<-subset(P12_AMG_counts, select = c(HV_006_13, HV_006_14, HV_006_15, HV_007_13, HV_007_14, HV_007_15, HV_008_13, HV_008_14, HV_008_15, HV_009_13, HV_009_14, HV_009_15, HV_010_13, HV_010_14,HV_010_15))
+P13_AMG_counts<-subset(P13_AMG_counts, select = c(HV_006_16, HV_006_18, HV_006_19, HV_007_16, HV_007_18, HV_007_19, HV_008_16, HV_008_18, HV_008_19, HV_009_16, HV_009_18, HV_009_19, HV_010_16, HV_010_18,HV_010_19))
+P14_AMG_counts<-subset(P14_AMG_counts, select = c(HV_006_20, HV_006_21, HV_006_22, HV_007_20, HV_007_21, HV_007_22, HV_008_20, HV_008_21, HV_008_22, HV_009_20, HV_009_21, HV_009_22, HV_010_20, HV_010_21,HV_010_22))
+P15_AMG_counts<-subset(P15_AMG_counts, select = c(HV_011_01, HV_011_02, HV_011_03, HV_012_01, HV_012_02, HV_012_03, HV_013_01, HV_013_02, HV_013_03, HV_014_01, HV_014_02, HV_014_03, HV_015_01, HV_015_02,HV_015_03))
+P16_AMG_counts<-subset(P16_AMG_counts, select = c(HV_011_04, HV_011_05, HV_011_06, HV_012_04, HV_012_05, HV_012_06, HV_013_04, HV_013_05, HV_014_04, HV_014_05, HV_014_06, HV_015_04, HV_015_05,HV_015_06))
+P17_AMG_counts<-subset(P17_AMG_counts, select = c(HV_011_07, HV_011_08, HV_011_09, HV_012_07, HV_012_08, HV_012_09, HV_013_07, HV_013_08, HV_013_09, HV_014_07, HV_014_08, HV_014_09, HV_015_07, HV_015_08,HV_015_09))
+P18_AMG_counts<-subset(P18_AMG_counts, select = c(HV_011_10, HV_011_11, HV_011_12, HV_012_10, HV_012_11, HV_012_12, HV_013_10, HV_013_11, HV_013_12, HV_014_10, HV_014_11, HV_014_12, HV_015_10, HV_015_11, HV_015_12))
+P19_AMG_counts<-subset(P19_AMG_counts, select = c(HV_011_13, HV_011_14, HV_011_15, HV_012_13, HV_012_14, HV_012_15, HV_013_13, HV_013_14, HV_013_15, HV_014_13, HV_014_14, HV_014_15, HV_015_13, HV_015_14,HV_015_15))
+P20_AMG_counts<-subset(P20_AMG_counts, select = c(HV_011_16, HV_011_18, HV_011_19, HV_012_16, HV_012_18, HV_012_19, HV_013_16, HV_013_18, HV_013_19, HV_014_16, HV_014_18, HV_014_19, HV_015_16, HV_015_18,HV_015_19))
+P21_AMG_counts<-subset(P21_AMG_counts, select = c(HV_011_20, HV_011_21, HV_011_22, HV_012_20, HV_012_21, HV_012_22, HV_013_20, HV_013_21, HV_013_22, HV_014_20, HV_014_21,HV_014_22))
+P22_AMG_counts<-subset(P22_AMG_counts, select = c(HV_016_01, HV_017_01, HV_018_01, HV_019_01, HV_020_01, HV_021_02, HV_022_01, HV_023_01, HV_024_01, HV_025_02, HV_026_01, HV_027_08, HV_028_01, HV_029_01,HV_030_01))
+P23_AMG_counts<-subset(P23_AMG_counts, select = c(HV_016_02, HV_017_02, HV_018_02, HV_019_02, HV_020_02, HV_021_03, HV_022_02, HV_023_02, HV_024_02, HV_025_03, HV_026_02, HV_027_09, HV_028_02, HV_029_02,HV_030_02))
+P24_AMG_counts<-subset(P24_AMG_counts, select = c(HV_016_03, HV_017_03, HV_018_03, HV_019_03, HV_021_01, HV_021_04, HV_022_03, HV_023_03, HV_024_03, HV_025_04, HV_026_03, HV_027_10, HV_028_03, HV_029_03,HV_030_03))
+P25_AMG_counts<-subset(P25_AMG_counts, select = c(HV_016_04, HV_017_04, HV_018_04, HV_019_04, HV_020_03, HV_021_05, HV_022_04, HV_023_04, HV_024_04, HV_025_05, HV_026_04, HV_027_11, HV_028_04, HV_029_04,HV_030_04))
+P26_AMG_counts<-subset(P26_AMG_counts, select = c(HV_016_05, HV_017_05, HV_018_05, HV_019_05, HV_020_04, HV_021_06, HV_022_05, HV_023_05, HV_024_05, HV_025_06, HV_026_05, HV_027_12, HV_028_05, HV_029_05, HV_030_05))
+P27_AMG_counts<-subset(P27_AMG_counts, select = c(HV_016_06, HV_017_06, HV_018_06, HV_019_06, HV_020_05, HV_021_07, HV_022_06, HV_023_06, HV_024_06, HV_025_07, HV_026_06, HV_027_13, HV_028_06, HV_029_06,HV_030_06))
+P28_AMG_counts<-subset(P28_AMG_counts, select = c(HV_016_07, HV_017_07, HV_018_07, HV_019_07, HV_020_06, HV_021_08, HV_022_07, HV_023_07, HV_024_07, HV_025_08, HV_026_07, HV_027_14, HV_028_07, HV_029_07,HV_030_07))
+P29_AMG_counts<-subset(P29_AMG_counts, select = c(HV_016_08, HV_017_08, HV_018_08, HV_019_08, HV_020_07, HV_021_09, HV_022_08, HV_023_08, HV_024_08, HV_025_09, HV_026_08, HV_027_15, HV_028_08, HV_029_08,HV_030_08))
+P31_AMG_counts<-subset(P31_AMG_counts, select = c(HV_016_10, HV_017_10, HV_018_10, HV_019_10, HV_021_11, HV_022_10, HV_023_10, HV_024_10, HV_026_10, HV_027_18, HV_028_10, HV_029_10))
+P34_AMG_counts<-subset(P34_AMG_counts, select = c(HV_016_12, HV_017_12, HV_018_12, HV_019_12, HV_020_11, HV_021_14, HV_022_12, HV_023_12, HV_024_12, HV_025_12, HV_026_12, HV_027_20, HV_028_12, HV_029_12,HV_030_11))
+P35_AMG_counts<-subset(P35_AMG_counts, select = c(HV_016_13, HV_017_13, HV_018_13, HV_019_13, HV_020_12, HV_021_15, HV_022_13, HV_023_13, HV_024_13, HV_025_13, HV_026_13, HV_027_21, HV_028_13, HV_029_13,HV_030_12))
+P36_AMG_counts<-subset(P36_AMG_counts, select = c(HV_016_14, HV_017_14, HV_018_14, HV_019_14, HV_020_13, HV_021_16, HV_022_14, HV_023_14, HV_024_14, HV_025_14, HV_026_14, HV_027_22, HV_028_14, HV_029_14,HV_030_13))
+P37_AMG_counts<-subset(P37_AMG_counts, select = c(HV_016_15, HV_017_15, HV_018_15, HV_019_15, HV_020_14, HV_021_18, HV_022_15, HV_023_15, HV_024_15, HV_025_15, HV_026_15, HV_028_15, HV_029_15, HV_030_14,HV_030_22))
+P38_AMG_counts<-subset(P38_AMG_counts, select = c(HV_016_16, HV_017_16, HV_018_16, HV_019_16, HV_020_15, HV_021_19, HV_022_16, HV_023_16, HV_024_16, HV_025_16, HV_026_16, HV_028_16, HV_029_16,HV_030_15))
+P39_AMG_counts<-subset(P39_AMG_counts, select = c(HV_016_18, HV_017_18, HV_018_18, HV_019_18, HV_020_16, HV_021_20, HV_022_18, HV_023_18, HV_024_18, HV_025_18, HV_026_18, HV_028_18, HV_029_18,HV_030_16))
+P42_AMG_counts<-subset(P42_AMG_counts, select = c(HV_016_21, HV_017_21, HV_018_21, HV_019_21, HV_020_20, HV_022_21, HV_023_21, HV_024_21, HV_025_21, HV_026_21, HV_028_21, HV_029_21, HV_030_20))
+P43_AMG_counts<-subset(P43_AMG_counts, select = c(HV_016_22, HV_017_22, HV_018_22, HV_019_22, HV_020_21, HV_022_22, HV_023_22, HV_024_22, HV_025_01, HV_025_22, HV_026_22, HV_028_22, HV_029_22,HV_030_21))
+```
+```{r}
+Metadata2 <- read_csv("Sequencing_Data_Info_Sheet3.csv")
+Metadata3 <- Metadata2
+Metadata3$Time <- Metadata3$Time_Collected
+Metadata3$Time[which(Metadata3$Time == "T_0")] <- "00_Weeks"
+Metadata3$Time[which(Metadata3$Time == "2_week")] <- "02_Weeks"
+Metadata3$Time[which(Metadata3$Time == "1_month")] <- "04_Weeks"
+Metadata3$Time[which(Metadata3$Time == "3_month")] <- "12_Weeks"
+Metadata3$Time[which(Metadata3$Time == "6_month")] <- "24_Weeks"
+```
+```{r}
+P02_AMG_meta<- subset(Metadata3, SampleID %in% P02)
+P03_AMG_meta<- subset(Metadata3, SampleID %in% P03)
+P04_AMG_meta<- subset(Metadata3, SampleID %in% P04)
+P05_AMG_meta<- subset(Metadata3, SampleID %in% P05)
+P06_AMG_meta<- subset(Metadata3, SampleID %in% P06)
+P07_AMG_meta<- subset(Metadata3, SampleID %in% P07)
+P08_AMG_meta<- subset(Metadata3, SampleID %in% P08)
+P09_AMG_meta<- subset(Metadata3, SampleID %in% P09)
+P10_AMG_meta<- subset(Metadata3, SampleID %in% P10)
+P11_AMG_meta<- subset(Metadata3, SampleID %in% P11)
+P12_AMG_meta<- subset(Metadata3, SampleID %in% P12)
+P13_AMG_meta<- subset(Metadata3, SampleID %in% P13)
+P14_AMG_meta<- subset(Metadata3, SampleID %in% P14)
+P15_AMG_meta<- subset(Metadata3, SampleID %in% P15)
+P16_AMG_meta<- subset(Metadata3, SampleID %in% P16)
+P17_AMG_meta<- subset(Metadata3, SampleID %in% P17)
+P18_AMG_meta<- subset(Metadata3, SampleID %in% P18)
+P19_AMG_meta<- subset(Metadata3, SampleID %in% P19)
+P20_AMG_meta<- subset(Metadata3, SampleID %in% P20)
+P21_AMG_meta<- subset(Metadata3, SampleID %in% P21)
+P22_AMG_meta<- subset(Metadata3, SampleID %in% P22)
+P23_AMG_meta<- subset(Metadata3, SampleID %in% P23)
+P24_AMG_meta<- subset(Metadata3, SampleID %in% P24)
+P25_AMG_meta<- subset(Metadata3, SampleID %in% P25)
+P26_AMG_meta<- subset(Metadata3, SampleID %in% P26)
+P27_AMG_meta<- subset(Metadata3, SampleID %in% P27)
+P28_AMG_meta<- subset(Metadata3, SampleID %in% P28)
+P29_AMG_meta<- subset(Metadata3, SampleID %in% P29)
+P31_AMG_meta<- subset(Metadata3, SampleID %in% P31)
+P34_AMG_meta<- subset(Metadata3, SampleID %in% P34)
+P35_AMG_meta<- subset(Metadata3, SampleID %in% P35)
+P36_AMG_meta<- subset(Metadata3, SampleID %in% P36)
+P37_AMG_meta<- subset(Metadata3, SampleID %in% P37)
+P38_AMG_meta<- subset(Metadata3, SampleID %in% P38)
+P39_AMG_meta<- subset(Metadata3, SampleID %in% P39)
+P42_AMG_meta<- subset(Metadata3, SampleID %in% P42)
+P43_AMG_meta<- subset(Metadata3, SampleID %in% P43)
+```
+```{r}
+as.data.frame(P02_AMG_meta)
+as.data.frame(P03_AMG_meta)
+as.data.frame(P04_AMG_meta)
+as.data.frame(P05_AMG_meta)
+as.data.frame(P06_AMG_meta)
+as.data.frame(P07_AMG_meta)
+as.data.frame(P08_AMG_meta)
+as.data.frame(P09_AMG_meta)
+as.data.frame(P10_AMG_meta)
+as.data.frame(P11_AMG_meta)
+as.data.frame(P12_AMG_meta)
+as.data.frame(P13_AMG_meta)
+as.data.frame(P14_AMG_meta)
+as.data.frame(P15_AMG_meta)
+as.data.frame(P16_AMG_meta)
+as.data.frame(P17_AMG_meta)
+as.data.frame(P18_AMG_meta)
+as.data.frame(P19_AMG_meta)
+as.data.frame(P20_AMG_meta)
+as.data.frame(P21_AMG_meta)
+as.data.frame(P22_AMG_meta)
+as.data.frame(P23_AMG_meta)
+as.data.frame(P24_AMG_meta)
+as.data.frame(P25_AMG_meta)
+as.data.frame(P26_AMG_meta)
+as.data.frame(P27_AMG_meta)
+as.data.frame(P28_AMG_meta)
+as.data.frame(P29_AMG_meta)
+as.data.frame(P31_AMG_meta)
+as.data.frame(P34_AMG_meta)
+as.data.frame(P35_AMG_meta)
+as.data.frame(P36_AMG_meta)
+as.data.frame(P37_AMG_meta)
+as.data.frame(P38_AMG_meta)
+as.data.frame(P39_AMG_meta)
+as.data.frame(P42_AMG_meta)
+as.data.frame(P43_AMG_meta)
+```
+```{r}
+P02_AMG_meta<- sample_data(P02_AMG_meta)
+P03_AMG_meta<- sample_data(P03_AMG_meta)
+P04_AMG_meta<- sample_data(P04_AMG_meta)
+P05_AMG_meta<- sample_data(P05_AMG_meta)
+P06_AMG_meta<- sample_data(P06_AMG_meta)
+P07_AMG_meta<- sample_data(P07_AMG_meta)
+P08_AMG_meta<- sample_data(P08_AMG_meta)
+P09_AMG_meta<- sample_data(P09_AMG_meta)
+P10_AMG_meta<- sample_data(P10_AMG_meta)
+P11_AMG_meta<- sample_data(P11_AMG_meta)
+P12_AMG_meta<- sample_data(P12_AMG_meta)
+P13_AMG_meta<- sample_data(P13_AMG_meta)
+P14_AMG_meta<- sample_data(P14_AMG_meta)
+P15_AMG_meta<- sample_data(P15_AMG_meta)
+P16_AMG_meta<- sample_data(P16_AMG_meta)
+P17_AMG_meta<- sample_data(P17_AMG_meta)
+P18_AMG_meta<- sample_data(P18_AMG_meta)
+P19_AMG_meta<- sample_data(P19_AMG_meta)
+P20_AMG_meta<- sample_data(P20_AMG_meta)
+P21_AMG_meta<- sample_data(P21_AMG_meta)
+P22_AMG_meta<- sample_data(P22_AMG_meta)
+P23_AMG_meta<- sample_data(P23_AMG_meta)
+P24_AMG_meta<- sample_data(P24_AMG_meta)
+P25_AMG_meta<- sample_data(P25_AMG_meta)
+P26_AMG_meta<- sample_data(P26_AMG_meta)
+P27_AMG_meta<- sample_data(P27_AMG_meta)
+P28_AMG_meta<- sample_data(P28_AMG_meta)
+P29_AMG_meta<- sample_data(P29_AMG_meta)
+P31_AMG_meta<- sample_data(P31_AMG_meta)
+P34_AMG_meta<- sample_data(P34_AMG_meta)
+P35_AMG_meta<- sample_data(P35_AMG_meta)
+P36_AMG_meta<- sample_data(P36_AMG_meta)
+P37_AMG_meta<- sample_data(P37_AMG_meta)
+P38_AMG_meta<- sample_data(P38_AMG_meta)
+P39_AMG_meta<- sample_data(P39_AMG_meta)
+P42_AMG_meta<- sample_data(P42_AMG_meta)
+P43_AMG_meta<- sample_data(P43_AMG_meta)
+```
+```{r}
+sample_names(P02_AMG_meta) <- P02_AMG_meta$SampleID
+sample_names(P03_AMG_meta) <- P03_AMG_meta$SampleID
+sample_names(P04_AMG_meta) <- P04_AMG_meta$SampleID
+sample_names(P05_AMG_meta) <- P05_AMG_meta$SampleID
+sample_names(P06_AMG_meta) <- P06_AMG_meta$SampleID
+sample_names(P07_AMG_meta) <- P07_AMG_meta$SampleID
+sample_names(P08_AMG_meta) <- P08_AMG_meta$SampleID
+sample_names(P09_AMG_meta) <- P09_AMG_meta$SampleID
+sample_names(P10_AMG_meta) <- P10_AMG_meta$SampleID
+sample_names(P11_AMG_meta) <- P11_AMG_meta$SampleID
+sample_names(P12_AMG_meta) <- P12_AMG_meta$SampleID
+sample_names(P13_AMG_meta) <- P13_AMG_meta$SampleID
+sample_names(P14_AMG_meta) <- P14_AMG_meta$SampleID
+sample_names(P15_AMG_meta) <- P15_AMG_meta$SampleID
+sample_names(P16_AMG_meta) <- P16_AMG_meta$SampleID
+sample_names(P17_AMG_meta) <- P17_AMG_meta$SampleID
+sample_names(P18_AMG_meta) <- P18_AMG_meta$SampleID
+sample_names(P19_AMG_meta) <- P19_AMG_meta$SampleID
+sample_names(P20_AMG_meta) <- P20_AMG_meta$SampleID
+sample_names(P21_AMG_meta) <- P21_AMG_meta$SampleID
+sample_names(P22_AMG_meta) <- P22_AMG_meta$SampleID
+sample_names(P23_AMG_meta) <- P23_AMG_meta$SampleID
+sample_names(P24_AMG_meta) <- P24_AMG_meta$SampleID
+sample_names(P25_AMG_meta) <- P25_AMG_meta$SampleID
+sample_names(P26_AMG_meta) <- P26_AMG_meta$SampleID
+sample_names(P27_AMG_meta) <- P27_AMG_meta$SampleID
+sample_names(P28_AMG_meta) <- P28_AMG_meta$SampleID
+sample_names(P29_AMG_meta) <- P29_AMG_meta$SampleID
+sample_names(P31_AMG_meta) <- P31_AMG_meta$SampleID
+sample_names(P34_AMG_meta) <- P34_AMG_meta$SampleID
+sample_names(P35_AMG_meta) <- P35_AMG_meta$SampleID
+sample_names(P36_AMG_meta) <- P36_AMG_meta$SampleID
+sample_names(P37_AMG_meta) <- P37_AMG_meta$SampleID
+sample_names(P38_AMG_meta) <- P38_AMG_meta$SampleID
+sample_names(P39_AMG_meta) <- P39_AMG_meta$SampleID
+sample_names(P42_AMG_meta) <- P42_AMG_meta$SampleID
+sample_names(P43_AMG_meta) <- P43_AMG_meta$SampleID
+```
+```{r}
+P02_AMG_tax<- subset(P02_AMG_tax, select = -c(Sample_ID))
+P03_AMG_tax<- subset(P03_AMG_tax, select = -c(Sample_ID))
+P04_AMG_tax<- subset(P04_AMG_tax, select = -c(Sample_ID))
+P05_AMG_tax<- subset(P05_AMG_tax, select = -c(Sample_ID))
+P06_AMG_tax<- subset(P06_AMG_tax, select = -c(Sample_ID))
+P07_AMG_tax<- subset(P07_AMG_tax, select = -c(Sample_ID))
+P08_AMG_tax<- subset(P08_AMG_tax, select = -c(Sample_ID))
+P09_AMG_tax<- subset(P09_AMG_tax, select = -c(Sample_ID))
+P10_AMG_tax<- subset(P10_AMG_tax, select = -c(Sample_ID))
+P11_AMG_tax<- subset(P11_AMG_tax, select = -c(Sample_ID))
+P12_AMG_tax<- subset(P12_AMG_tax, select = -c(Sample_ID))
+P13_AMG_tax<- subset(P13_AMG_tax, select = -c(Sample_ID))
+P14_AMG_tax<- subset(P14_AMG_tax, select = -c(Sample_ID))
+P15_AMG_tax<- subset(P15_AMG_tax, select = -c(Sample_ID))
+P16_AMG_tax<- subset(P16_AMG_tax, select = -c(Sample_ID))
+P17_AMG_tax<- subset(P17_AMG_tax, select = -c(Sample_ID))
+P18_AMG_tax<- subset(P18_AMG_tax, select = -c(Sample_ID))
+P19_AMG_tax<- subset(P19_AMG_tax, select = -c(Sample_ID))
+P20_AMG_tax<- subset(P20_AMG_tax, select = -c(Sample_ID))
+P21_AMG_tax<- subset(P21_AMG_tax, select = -c(Sample_ID))
+P22_AMG_tax<- subset(P22_AMG_tax, select = -c(Sample_ID))
+P23_AMG_tax<- subset(P23_AMG_tax, select = -c(Sample_ID))
+P24_AMG_tax<- subset(P24_AMG_tax, select = -c(Sample_ID))
+P25_AMG_tax<- subset(P25_AMG_tax, select = -c(Sample_ID))
+P26_AMG_tax<- subset(P26_AMG_tax, select = -c(Sample_ID))
+P27_AMG_tax<- subset(P27_AMG_tax, select = -c(Sample_ID))
+P28_AMG_tax<- subset(P28_AMG_tax, select = -c(Sample_ID))
+P29_AMG_tax<- subset(P29_AMG_tax, select = -c(Sample_ID))
+P31_AMG_tax<- subset(P31_AMG_tax, select = -c(Sample_ID))
+P34_AMG_tax<- subset(P34_AMG_tax, select = -c(Sample_ID))
+P35_AMG_tax<- subset(P35_AMG_tax, select = -c(Sample_ID))
+P36_AMG_tax<- subset(P36_AMG_tax, select = -c(Sample_ID))
+P37_AMG_tax<- subset(P37_AMG_tax, select = -c(Sample_ID))
+P38_AMG_tax<- subset(P38_AMG_tax, select = -c(Sample_ID))
+P39_AMG_tax<- subset(P39_AMG_tax, select = -c(Sample_ID))
+P42_AMG_tax<- subset(P42_AMG_tax, select = -c(Sample_ID))
+P43_AMG_tax<- subset(P43_AMG_tax, select = -c(Sample_ID))
+```
+```{r}
+P02_AMG_tax<- as.matrix(P02_AMG_tax)
+P03_AMG_tax<- as.matrix(P03_AMG_tax)
+P04_AMG_tax<- as.matrix(P04_AMG_tax)
+P05_AMG_tax<- as.matrix(P05_AMG_tax)
+P06_AMG_tax<- as.matrix(P06_AMG_tax)
+P07_AMG_tax<- as.matrix(P07_AMG_tax)
+P08_AMG_tax<- as.matrix(P08_AMG_tax)
+P09_AMG_tax<- as.matrix(P09_AMG_tax)
+P10_AMG_tax<- as.matrix(P10_AMG_tax)
+P11_AMG_tax<- as.matrix(P11_AMG_tax)
+P12_AMG_tax<- as.matrix(P12_AMG_tax)
+P13_AMG_tax<- as.matrix(P13_AMG_tax)
+P14_AMG_tax<- as.matrix(P14_AMG_tax)
+P15_AMG_tax<- as.matrix(P15_AMG_tax)
+P16_AMG_tax<- as.matrix(P16_AMG_tax)
+P17_AMG_tax<- as.matrix(P17_AMG_tax)
+P18_AMG_tax<- as.matrix(P18_AMG_tax)
+P19_AMG_tax<- as.matrix(P19_AMG_tax)
+P20_AMG_tax<- as.matrix(P20_AMG_tax)
+P21_AMG_tax<- as.matrix(P21_AMG_tax)
+P22_AMG_tax<- as.matrix(P22_AMG_tax)
+P23_AMG_tax<- as.matrix(P23_AMG_tax)
+P24_AMG_tax<- as.matrix(P24_AMG_tax)
+P25_AMG_tax<- as.matrix(P25_AMG_tax)
+P26_AMG_tax<- as.matrix(P26_AMG_tax)
+P27_AMG_tax<- as.matrix(P27_AMG_tax)
+P28_AMG_tax<- as.matrix(P28_AMG_tax)
+P29_AMG_tax<- as.matrix(P29_AMG_tax)
+P31_AMG_tax<- as.matrix(P31_AMG_tax)
+P34_AMG_tax<- as.matrix(P34_AMG_tax)
+P35_AMG_tax<- as.matrix(P35_AMG_tax)
+P36_AMG_tax<- as.matrix(P36_AMG_tax)
+P37_AMG_tax<- as.matrix(P37_AMG_tax)
+P38_AMG_tax<- as.matrix(P38_AMG_tax)
+P39_AMG_tax<- as.matrix(P39_AMG_tax)
+P42_AMG_tax<- as.matrix(P42_AMG_tax)
+P43_AMG_tax<- as.matrix(P43_AMG_tax)
+```
+```{r}
+P02_AMG_tax<- tax_table(P02_AMG_tax)
+P03_AMG_tax<- tax_table(P03_AMG_tax)
+P04_AMG_tax<- tax_table(P04_AMG_tax)
+P05_AMG_tax<- tax_table(P05_AMG_tax)
+P06_AMG_tax<- tax_table(P06_AMG_tax)
+P07_AMG_tax<- tax_table(P07_AMG_tax)
+P08_AMG_tax<- tax_table(P08_AMG_tax)
+P09_AMG_tax<- tax_table(P09_AMG_tax)
+P10_AMG_tax<- tax_table(P10_AMG_tax)
+P11_AMG_tax<- tax_table(P11_AMG_tax)
+P12_AMG_tax<- tax_table(P12_AMG_tax)
+P13_AMG_tax<- tax_table(P13_AMG_tax)
+P14_AMG_tax<- tax_table(P14_AMG_tax)
+P15_AMG_tax<- tax_table(P15_AMG_tax)
+P16_AMG_tax<- tax_table(P16_AMG_tax)
+P17_AMG_tax<- tax_table(P17_AMG_tax)
+P18_AMG_tax<- tax_table(P18_AMG_tax)
+P19_AMG_tax<- tax_table(P19_AMG_tax)
+P20_AMG_tax<- tax_table(P20_AMG_tax)
+P21_AMG_tax<- tax_table(P21_AMG_tax)
+P22_AMG_tax<- tax_table(P22_AMG_tax)
+P23_AMG_tax<- tax_table(P23_AMG_tax)
+P24_AMG_tax<- tax_table(P24_AMG_tax)
+P25_AMG_tax<- tax_table(P25_AMG_tax)
+P26_AMG_tax<- tax_table(P26_AMG_tax)
+P27_AMG_tax<- tax_table(P27_AMG_tax)
+P28_AMG_tax<- tax_table(P28_AMG_tax)
+P29_AMG_tax<- tax_table(P29_AMG_tax)
+P31_AMG_tax<- tax_table(P31_AMG_tax)
+P34_AMG_tax<- tax_table(P34_AMG_tax)
+P35_AMG_tax<- tax_table(P35_AMG_tax)
+P36_AMG_tax<- tax_table(P36_AMG_tax)
+P37_AMG_tax<- tax_table(P37_AMG_tax)
+P38_AMG_tax<- tax_table(P38_AMG_tax)
+P39_AMG_tax<- tax_table(P39_AMG_tax)
+P42_AMG_tax<- tax_table(P42_AMG_tax)
+P43_AMG_tax<- tax_table(P43_AMG_tax)
+```
+```{r}
+P02_AMG_counts<- otu_table(P02_AMG_counts, taxa_are_rows = TRUE)
+P03_AMG_counts<- otu_table(P03_AMG_counts, taxa_are_rows = TRUE)
+P04_AMG_counts<- otu_table(P04_AMG_counts, taxa_are_rows = TRUE)
+P05_AMG_counts<- otu_table(P05_AMG_counts, taxa_are_rows = TRUE)
+P06_AMG_counts<- otu_table(P06_AMG_counts, taxa_are_rows = TRUE)
+P07_AMG_counts<- otu_table(P07_AMG_counts, taxa_are_rows = TRUE)
+P08_AMG_counts<- otu_table(P08_AMG_counts, taxa_are_rows = TRUE)
+P09_AMG_counts<- otu_table(P09_AMG_counts, taxa_are_rows = TRUE)
+P10_AMG_counts<- otu_table(P10_AMG_counts, taxa_are_rows = TRUE)
+P11_AMG_counts<- otu_table(P11_AMG_counts, taxa_are_rows = TRUE)
+P12_AMG_counts<- otu_table(P12_AMG_counts, taxa_are_rows = TRUE)
+P13_AMG_counts<- otu_table(P13_AMG_counts, taxa_are_rows = TRUE)
+P14_AMG_counts<- otu_table(P14_AMG_counts, taxa_are_rows = TRUE)
+P15_AMG_counts<- otu_table(P15_AMG_counts, taxa_are_rows = TRUE)
+P16_AMG_counts<- otu_table(P16_AMG_counts, taxa_are_rows = TRUE)
+P17_AMG_counts<- otu_table(P17_AMG_counts, taxa_are_rows = TRUE)
+P18_AMG_counts<- otu_table(P18_AMG_counts, taxa_are_rows = TRUE)
+P19_AMG_counts<- otu_table(P19_AMG_counts, taxa_are_rows = TRUE)
+P20_AMG_counts<- otu_table(P20_AMG_counts, taxa_are_rows = TRUE)
+P21_AMG_counts<- otu_table(P21_AMG_counts, taxa_are_rows = TRUE)
+P22_AMG_counts<- otu_table(P22_AMG_counts, taxa_are_rows = TRUE)
+P23_AMG_counts<- otu_table(P23_AMG_counts, taxa_are_rows = TRUE)
+P24_AMG_counts<- otu_table(P24_AMG_counts, taxa_are_rows = TRUE)
+P25_AMG_counts<- otu_table(P25_AMG_counts, taxa_are_rows = TRUE)
+P26_AMG_counts<- otu_table(P26_AMG_counts, taxa_are_rows = TRUE)
+P27_AMG_counts<- otu_table(P27_AMG_counts, taxa_are_rows = TRUE)
+P28_AMG_counts<- otu_table(P28_AMG_counts, taxa_are_rows = TRUE)
+P29_AMG_counts<- otu_table(P29_AMG_counts, taxa_are_rows = TRUE)
+P31_AMG_counts<- otu_table(P31_AMG_counts, taxa_are_rows = TRUE)
+P34_AMG_counts<- otu_table(P34_AMG_counts, taxa_are_rows = TRUE)
+P35_AMG_counts<- otu_table(P35_AMG_counts, taxa_are_rows = TRUE)
+P36_AMG_counts<- otu_table(P36_AMG_counts, taxa_are_rows = TRUE)
+P37_AMG_counts<- otu_table(P37_AMG_counts, taxa_are_rows = TRUE)
+P38_AMG_counts<- otu_table(P38_AMG_counts, taxa_are_rows = TRUE)
+P39_AMG_counts<- otu_table(P39_AMG_counts, taxa_are_rows = TRUE)
+P42_AMG_counts<- otu_table(P42_AMG_counts, taxa_are_rows = TRUE)
+P43_AMG_counts<- otu_table(P43_AMG_counts, taxa_are_rows = TRUE)
+```
+```{r}
+P02_AMG_phyloseq <- phyloseq(P02_AMG_counts, P02_AMG_tax, P02_AMG_meta)
+P03_AMG_phyloseq <- phyloseq(P03_AMG_counts, P03_AMG_tax, P03_AMG_meta)
+P04_AMG_phyloseq <- phyloseq(P04_AMG_counts, P04_AMG_tax, P04_AMG_meta)
+P05_AMG_phyloseq <- phyloseq(P05_AMG_counts, P05_AMG_tax, P05_AMG_meta)
+P06_AMG_phyloseq <- phyloseq(P06_AMG_counts, P06_AMG_tax, P06_AMG_meta)
+P07_AMG_phyloseq <- phyloseq(P07_AMG_counts, P07_AMG_tax, P07_AMG_meta)
+P08_AMG_phyloseq <- phyloseq(P08_AMG_counts, P08_AMG_tax, P08_AMG_meta)
+P09_AMG_phyloseq <- phyloseq(P09_AMG_counts, P09_AMG_tax, P09_AMG_meta)
+P10_AMG_phyloseq <- phyloseq(P10_AMG_counts, P10_AMG_tax, P10_AMG_meta)
+P11_AMG_phyloseq <- phyloseq(P11_AMG_counts, P11_AMG_tax, P11_AMG_meta)
+P12_AMG_phyloseq <- phyloseq(P12_AMG_counts, P12_AMG_tax, P12_AMG_meta)
+P13_AMG_phyloseq <- phyloseq(P13_AMG_counts, P13_AMG_tax, P13_AMG_meta)
+P14_AMG_phyloseq <- phyloseq(P14_AMG_counts, P14_AMG_tax, P14_AMG_meta)
+P15_AMG_phyloseq <- phyloseq(P15_AMG_counts, P15_AMG_tax, P15_AMG_meta)
+P16_AMG_phyloseq <- phyloseq(P16_AMG_counts, P16_AMG_tax, P16_AMG_meta)
+P17_AMG_phyloseq <- phyloseq(P17_AMG_counts, P17_AMG_tax, P17_AMG_meta)
+P18_AMG_phyloseq <- phyloseq(P18_AMG_counts, P18_AMG_tax, P18_AMG_meta)
+P19_AMG_phyloseq <- phyloseq(P19_AMG_counts, P19_AMG_tax, P19_AMG_meta)
+P20_AMG_phyloseq <- phyloseq(P20_AMG_counts, P20_AMG_tax, P20_AMG_meta)
+P21_AMG_phyloseq <- phyloseq(P21_AMG_counts, P21_AMG_tax, P21_AMG_meta)
+P22_AMG_phyloseq <- phyloseq(P22_AMG_counts, P22_AMG_tax, P22_AMG_meta)
+P23_AMG_phyloseq <- phyloseq(P23_AMG_counts, P23_AMG_tax, P23_AMG_meta)
+P24_AMG_phyloseq <- phyloseq(P24_AMG_counts, P24_AMG_tax, P24_AMG_meta)
+P25_AMG_phyloseq <- phyloseq(P25_AMG_counts, P25_AMG_tax, P25_AMG_meta)
+P26_AMG_phyloseq <- phyloseq(P26_AMG_counts, P26_AMG_tax, P26_AMG_meta)
+P27_AMG_phyloseq <- phyloseq(P27_AMG_counts, P27_AMG_tax, P27_AMG_meta)
+P28_AMG_phyloseq <- phyloseq(P28_AMG_counts, P28_AMG_tax, P28_AMG_meta)
+P29_AMG_phyloseq <- phyloseq(P29_AMG_counts, P29_AMG_tax, P29_AMG_meta)
+P31_AMG_phyloseq <- phyloseq(P31_AMG_counts, P31_AMG_tax, P31_AMG_meta)
+P34_AMG_phyloseq <- phyloseq(P34_AMG_counts, P34_AMG_tax, P34_AMG_meta)
+P35_AMG_phyloseq <- phyloseq(P35_AMG_counts, P35_AMG_tax, P35_AMG_meta)
+P36_AMG_phyloseq <- phyloseq(P36_AMG_counts, P36_AMG_tax, P36_AMG_meta)
+P37_AMG_phyloseq <- phyloseq(P37_AMG_counts, P37_AMG_tax, P37_AMG_meta)
+P38_AMG_phyloseq <- phyloseq(P38_AMG_counts, P38_AMG_tax, P38_AMG_meta)
+P39_AMG_phyloseq <- phyloseq(P39_AMG_counts, P39_AMG_tax, P39_AMG_meta)
+P42_AMG_phyloseq <- phyloseq(P42_AMG_counts, P42_AMG_tax, P42_AMG_meta)
+P43_AMG_phyloseq <- phyloseq(P43_AMG_counts, P43_AMG_tax, P43_AMG_meta)
+```
+```{r}
+AMG_Phylo <- merge_phyloseq(P02_AMG_phyloseq, P03_AMG_phyloseq, P04_AMG_phyloseq, P05_AMG_phyloseq, P06_AMG_phyloseq, P07_AMG_phyloseq, P08_AMG_phyloseq, P09_AMG_phyloseq, P10_AMG_phyloseq, P11_AMG_phyloseq, P12_AMG_phyloseq, P13_AMG_phyloseq, P14_AMG_phyloseq, P15_AMG_phyloseq, P16_AMG_phyloseq, P17_AMG_phyloseq, P18_AMG_phyloseq, P19_AMG_phyloseq, P20_AMG_phyloseq, P21_AMG_phyloseq, P22_AMG_phyloseq, P23_AMG_phyloseq, P24_AMG_phyloseq, P25_AMG_phyloseq, P26_AMG_phyloseq, P27_AMG_phyloseq, P28_AMG_phyloseq, P29_AMG_phyloseq, P31_AMG_phyloseq, P34_AMG_phyloseq, P35_AMG_phyloseq, P36_AMG_phyloseq, P37_AMG_phyloseq, P38_AMG_phyloseq, P39_AMG_phyloseq, P42_AMG_phyloseq, P43_AMG_phyloseq)
+```
+
+## Metabolism and Pathway Heatmaps 
+
+```{r}
+AMG_Phylo_Metabolism <- tax_glom(AMG_Phylo, "Metabolism")
+Metabolism_df<-as(tax_table(AMG_Phylo_Metabolism),"matrix")
+TAX_Metabolism_df = as.data.frame(Metabolism_df)
+OTU_Metabolism <- as(otu_table(AMG_Phylo_Metabolism), "matrix")
+OTU_Metabolism_df = as.data.frame(OTU_Metabolism)
+Metabolism_Counts<- merge(TAX_Metabolism_df,OTU_Metabolism_df, by.x="row.names", by.y="row.names")
+Metabolism_Counts<-subset(Metabolism_Counts, select = -c(Row.names,Pathway,Pfam_name))
+
+AMG_Phylo_Pathway <- tax_glom(AMG_Phylo, "Pathway")
+Pathway_df<-as(tax_table(AMG_Phylo_Pathway),"matrix")
+TAX_Pathway_df = as.data.frame(Pathway_df)
+OTU_pathway <- as(otu_table(AMG_Phylo_Pathway), "matrix")
+OTU_pathway_df = as.data.frame(OTU_pathway)
+Pathway_Counts<- merge(TAX_Pathway_df,OTU_pathway_df, by.x="row.names", by.y="row.names")
+Pathway_Counts<-subset(Pathway_Counts, select = -c(Row.names,Metabolism,Pfam_name))
+
+AMG_Phylo_Pfam <- tax_glom(AMG_Phylo, "Pfam_name")
+Pfam_df<-as(tax_table(AMG_Phylo_Pfam),"matrix")
+TAX_Pfam_df = as.data.frame(Pfam_df)
+OTU_Pfam <- as(otu_table(AMG_Phylo_Pfam), "matrix")
+OTU_Pfam_df = as.data.frame(OTU_Pfam)
+Pfam_Counts<- merge(TAX_Pfam_df,OTU_pathway_df, by.x="row.names", by.y="row.names")
+Pfam_Counts<-subset(Funtional_Counts, select = -c(Row.names,Metabolism,Pathway))
+```
+Prevalence Heatmap (Metabolism)
+```{r,message=FALSE,warning=FALSE,results="hide"}
+Metabtable <- Metabolism_Counts %>% mutate_if(is.numeric, ~1 * (. != 0))
+#P02 Left
+Metabtable$P02_LH <- Metabtable$HV_001_04 + Metabtable$HV_002_04 + Metabtable$HV_003_04 + Metabtable$HV_004_04 + Metabtable$HV_005_04
+Metabtable <- subset(Metabtable, select = -c(HV_001_04,HV_002_04,HV_003_04,HV_004_04,HV_005_04 ))
+#P02 Right
+Metabtable$P02_RH <- Metabtable$HV_001_05 + Metabtable$HV_002_05 + Metabtable$HV_003_05 + Metabtable$HV_004_05 + Metabtable$HV_005_05
+Metabtable <- subset(Metabtable, select = -c(HV_001_05,HV_002_05,HV_003_05,HV_004_05,HV_005_05 ))
+#P02 Scalp
+Metabtable$P02_SC <- Metabtable$HV_001_06 + Metabtable$HV_002_06 + Metabtable$HV_003_06 + Metabtable$HV_004_06 + Metabtable$HV_005_06
+Metabtable <- subset(Metabtable, select = -c(HV_001_06,HV_002_06,HV_003_06,HV_004_06,HV_005_06 ))
+#P03 Left
+Metabtable$P03_LH <- Metabtable$HV_001_07 + Metabtable$HV_002_07 + Metabtable$HV_003_07 + Metabtable$HV_004_07 + Metabtable$HV_005_07
+Metabtable <- subset(Metabtable, select = -c(HV_001_07,HV_002_07,HV_003_07,HV_004_07,HV_005_07 ))
+#P03 Right
+Metabtable$P03_RH <- Metabtable$HV_001_08 + Metabtable$HV_002_08 + Metabtable$HV_003_08 + Metabtable$HV_004_08 + Metabtable$HV_005_08
+Metabtable <- subset(Metabtable, select = -c(HV_001_08,HV_002_08,HV_003_08,HV_004_08,HV_005_08 ))
+#P03 Scalp
+Metabtable$P03_SC <- Metabtable$HV_001_09 + Metabtable$HV_002_09 + Metabtable$HV_003_09 + Metabtable$HV_004_09 + Metabtable$HV_005_09
+Metabtable <- subset(Metabtable, select = -c(HV_001_09,HV_002_09,HV_003_09,HV_004_09,HV_005_09 ))
+#P04 Left
+Metabtable$P04_LH <- Metabtable$HV_001_10 + Metabtable$HV_002_10 + Metabtable$HV_003_10 + Metabtable$HV_004_10 + Metabtable$HV_005_10
+Metabtable <- subset(Metabtable, select = -c(HV_001_10,HV_002_10,HV_003_10,HV_004_10,HV_005_10 ))
+#P04 Right
+Metabtable$P04_RH <- Metabtable$HV_001_11 + Metabtable$HV_002_11 + Metabtable$HV_003_11 + Metabtable$HV_004_11 + Metabtable$HV_005_11
+Metabtable <- subset(Metabtable, select = -c(HV_001_11,HV_002_11,HV_003_11,HV_004_11,HV_005_11 ))
+#P04 Scalp
+Metabtable$P04_SC <- Metabtable$HV_001_12 + Metabtable$HV_002_12 + Metabtable$HV_003_12 + Metabtable$HV_004_12 + Metabtable$HV_005_12
+Metabtable <- subset(Metabtable, select = -c(HV_001_12,HV_002_12,HV_003_12,HV_004_12,HV_005_12 ))
+#P05 Left
+Metabtable$P05_LH <- Metabtable$HV_001_13 + Metabtable$HV_002_13 + Metabtable$HV_003_13 + Metabtable$HV_004_13 + Metabtable$HV_005_13
+Metabtable <- subset(Metabtable, select = -c(HV_001_13,HV_002_13,HV_003_13,HV_004_13,HV_005_13 ))
+#P05 Right
+Metabtable$P05_RH <- Metabtable$HV_001_14 + Metabtable$HV_002_14 + Metabtable$HV_003_14 + Metabtable$HV_004_14 + Metabtable$HV_005_14
+Metabtable <- subset(Metabtable, select = -c(HV_001_14,HV_002_14,HV_003_14,HV_004_14,HV_005_14 ))
+#P05 Scalp
+Metabtable$P05_SC <- Metabtable$HV_001_15 + Metabtable$HV_002_15 + Metabtable$HV_003_15  + Metabtable$HV_004_15 + Metabtable$HV_005_15
+Metabtable <- subset(Metabtable, select = -c(HV_001_15,HV_002_15, HV_003_15, HV_004_15,HV_005_15))
+#P06 Left
+Metabtable$P06_LH <- Metabtable$HV_001_16 + Metabtable$HV_003_16 + Metabtable$HV_004_16 + Metabtable$HV_005_16 + Metabtable$HV_005_19
+Metabtable <- subset(Metabtable, select = -c(HV_001_16,HV_003_16,HV_004_16,HV_005_16, HV_005_19 ))
+#P06 Right
+Metabtable$P06_RH <- Metabtable$HV_001_18 + Metabtable$HV_002_18 + Metabtable$HV_003_18 + Metabtable$HV_004_18 + Metabtable$HV_005_18
+Metabtable <- subset(Metabtable, select = -c(HV_001_18,HV_002_18,HV_003_18,HV_004_18,HV_005_18 ))
+#P06 Scalp
+Metabtable$P06_SC <- Metabtable$HV_001_19 + Metabtable$HV_002_19 + Metabtable$HV_003_19 + Metabtable$HV_004_19 
+Metabtable <- subset(Metabtable, select = -c(HV_001_19,HV_002_19,HV_003_19,HV_004_19 ))
+#P07 Left
+Metabtable$P07_LH <- Metabtable$HV_001_20 + Metabtable$HV_002_20 + Metabtable$HV_003_20 + Metabtable$HV_004_20 + Metabtable$HV_005_20
+Metabtable <- subset(Metabtable, select = -c(HV_001_20,HV_002_20,HV_003_20,HV_004_20,HV_005_20 ))
+#P07 Right
+Metabtable$P07_RH <- Metabtable$HV_001_21 + Metabtable$HV_002_21 + Metabtable$HV_003_21 + Metabtable$HV_004_21 
+Metabtable <- subset(Metabtable, select = -c(HV_001_21,HV_002_21,HV_003_21,HV_004_21 ))
+#P07 Scalp
+Metabtable$P07_SC <- Metabtable$HV_001_22 + Metabtable$HV_002_22 + Metabtable$HV_003_22 + Metabtable$HV_004_22 + Metabtable$HV_005_22
+Metabtable <- subset(Metabtable, select = -c(HV_001_22,HV_002_22,HV_003_22,HV_004_22,HV_005_22 ))
+#P08 Left
+Metabtable$P08_LH <- Metabtable$HV_006_01 + Metabtable$HV_007_01 + Metabtable$HV_008_01 + Metabtable$HV_009_01 + Metabtable$HV_010_01
+Metabtable <- subset(Metabtable, select = -c(HV_006_01,HV_007_01,HV_008_01,HV_009_01,HV_010_01))
+#P08 Right
+Metabtable$P08_RH <- Metabtable$HV_006_02 + Metabtable$HV_007_02 + Metabtable$HV_008_02 + Metabtable$HV_010_02
+Metabtable <- subset(Metabtable, select = -c(HV_006_02,HV_007_02,HV_008_02,HV_010_02))
+#P08 Scalp
+Metabtable$P08_SC <- Metabtable$HV_006_03 + Metabtable$HV_007_03 + Metabtable$HV_008_03 + Metabtable$HV_009_03 + Metabtable$HV_010_03
+Metabtable <- subset(Metabtable, select = -c(HV_006_03,HV_007_03,HV_008_03,HV_009_03,HV_010_03))
+#P09 Left
+Metabtable$P09_LH <- Metabtable$HV_006_04 + Metabtable$HV_007_04 + Metabtable$HV_008_04 + Metabtable$HV_009_04 + Metabtable$HV_010_04
+Metabtable <- subset(Metabtable, select = -c(HV_006_04,HV_007_04,HV_008_04,HV_009_04,HV_010_04))
+#P09 Right
+Metabtable$P09_RH <- Metabtable$HV_006_05 + Metabtable$HV_007_05 + Metabtable$HV_008_05 + Metabtable$HV_009_05 + Metabtable$HV_010_05
+Metabtable <- subset(Metabtable, select = -c(HV_006_05,HV_007_05,HV_008_05,HV_009_05,HV_010_05))
+#P09 Scalp
+Metabtable$P09_SC <- Metabtable$HV_006_06 + Metabtable$HV_007_06 + Metabtable$HV_008_06 + Metabtable$HV_009_06 + Metabtable$HV_010_06
+Metabtable <- subset(Metabtable, select = -c(HV_006_06,HV_007_06,HV_008_06,HV_009_06,HV_010_06))
+#P10 Left
+Metabtable$P10_LH <- Metabtable$HV_006_07 + Metabtable$HV_007_07 + Metabtable$HV_008_07 + Metabtable$HV_009_07 + Metabtable$HV_010_07
+Metabtable <- subset(Metabtable, select = -c(HV_006_07,HV_007_07,HV_008_07,HV_009_07,HV_010_07))
+#P10 Right
+Metabtable$P10_RH <- Metabtable$HV_006_08 + Metabtable$HV_007_08 + Metabtable$HV_008_08 + Metabtable$HV_009_08 + Metabtable$HV_010_08
+Metabtable <- subset(Metabtable, select = -c(HV_006_08,HV_007_08,HV_008_08,HV_009_08,HV_010_08))
+#P10 Scalp
+Metabtable$P10_SC <- Metabtable$HV_006_09 + Metabtable$HV_007_09 + Metabtable$HV_008_09 + Metabtable$HV_009_09 + Metabtable$HV_010_09
+Metabtable <- subset(Metabtable, select = -c(HV_006_09,HV_007_09,HV_008_09,HV_009_09,HV_010_09))
+#P11 Left
+Metabtable$P11_LH <- Metabtable$HV_006_10 + Metabtable$HV_007_10 + Metabtable$HV_008_10 + Metabtable$HV_009_10 + Metabtable$HV_010_10
+Metabtable <- subset(Metabtable, select = -c(HV_006_10,HV_007_10,HV_008_10,HV_009_10,HV_010_10))
+#P11 Right
+Metabtable$P11_RH <- Metabtable$HV_006_11 + Metabtable$HV_007_11 + Metabtable$HV_008_11 + Metabtable$HV_009_11 + Metabtable$HV_010_11
+Metabtable <- subset(Metabtable, select = -c(HV_006_11,HV_007_11,HV_008_11,HV_009_11,HV_010_11))
+#P11 Scalp
+Metabtable$P11_SC <- Metabtable$HV_006_12 + Metabtable$HV_007_12 + Metabtable$HV_008_12 + Metabtable$HV_009_12 + Metabtable$HV_010_12
+Metabtable <- subset(Metabtable, select = -c(HV_006_12,HV_007_12,HV_008_12,HV_009_12,HV_010_12))
+#P12 Left
+Metabtable$P12_LH <- Metabtable$HV_006_13 + Metabtable$HV_007_13 + Metabtable$HV_008_13 + Metabtable$HV_009_13 + Metabtable$HV_010_13
+Metabtable <- subset(Metabtable, select = -c(HV_006_13,HV_007_13,HV_008_13,HV_009_13,HV_010_13))
+#P12 Right
+Metabtable$P12_RH <- Metabtable$HV_006_14 + Metabtable$HV_007_14 + Metabtable$HV_008_14 + Metabtable$HV_009_14 + Metabtable$HV_010_14
+Metabtable <- subset(Metabtable, select = -c(HV_006_14,HV_007_14,HV_008_14,HV_009_14,HV_010_14))
+#P12 Scalp
+Metabtable$P12_SC <- Metabtable$HV_006_15 + Metabtable$HV_007_15 + Metabtable$HV_008_15 + Metabtable$HV_009_15 + Metabtable$HV_010_15
+Metabtable <- subset(Metabtable, select = -c(HV_006_15,HV_007_15,HV_008_15,HV_009_15,HV_010_15))
+#P13 Left
+Metabtable$P13_LH <- Metabtable$HV_006_16 + Metabtable$HV_007_16 + Metabtable$HV_008_16 + Metabtable$HV_009_16 + Metabtable$HV_010_16
+Metabtable <- subset(Metabtable, select = -c(HV_006_16,HV_007_16,HV_008_16,HV_009_16,HV_010_16))
+#P13 Right
+Metabtable$P13_RH <- Metabtable$HV_006_18 + Metabtable$HV_007_18 + Metabtable$HV_008_18 + Metabtable$HV_009_18 + Metabtable$HV_010_18
+Metabtable <- subset(Metabtable, select = -c(HV_006_18,HV_007_18,HV_008_18,HV_009_18,HV_010_18))
+#P13 Scalp
+Metabtable$P13_SC <- Metabtable$HV_006_19 + Metabtable$HV_007_19 + Metabtable$HV_008_19 + Metabtable$HV_009_19 + Metabtable$HV_010_19
+Metabtable <- subset(Metabtable, select = -c(HV_006_19,HV_007_19,HV_008_19,HV_009_19,HV_010_19))
+#P14 Left
+Metabtable$P14_LH <- Metabtable$HV_006_20 + Metabtable$HV_007_20 + Metabtable$HV_008_20 + Metabtable$HV_009_20 + Metabtable$HV_010_20
+Metabtable <- subset(Metabtable, select = -c(HV_006_20,HV_007_20,HV_008_20,HV_009_20,HV_010_20))
+#P14 Right
+Metabtable$P14_RH <- Metabtable$HV_006_21 + Metabtable$HV_007_21 + Metabtable$HV_008_21 + Metabtable$HV_009_21 + Metabtable$HV_010_21
+Metabtable <- subset(Metabtable, select = -c(HV_006_21,HV_007_21,HV_008_21,HV_009_21,HV_010_21))
+#P14 Scalp
+Metabtable$P14_SC <- Metabtable$HV_006_22 + Metabtable$HV_007_22 + Metabtable$HV_008_22 + Metabtable$HV_009_22 + Metabtable$HV_010_22
+Metabtable <- subset(Metabtable, select = -c(HV_006_22,HV_007_22,HV_008_22,HV_009_22,HV_010_22))
+#P15 Left
+Metabtable$P15_LH <- Metabtable$HV_011_01 + Metabtable$HV_012_01 + Metabtable$HV_013_01 + Metabtable$HV_014_01 + Metabtable$HV_015_01
+Metabtable <- subset(Metabtable, select = -c(HV_011_01,HV_012_01,HV_013_01,HV_014_01,HV_015_01))
+#P15 Right
+Metabtable$P15_RH <- Metabtable$HV_011_02 + Metabtable$HV_012_02 + Metabtable$HV_013_02 + Metabtable$HV_014_02 + Metabtable$HV_015_02
+Metabtable <- subset(Metabtable, select = -c(HV_011_02,HV_012_02,HV_013_02,HV_014_02,HV_015_02))
+#P15 Scalp
+Metabtable$P15_SC <- Metabtable$HV_011_03 + Metabtable$HV_012_03 + Metabtable$HV_013_03 + Metabtable$HV_014_03 + Metabtable$HV_015_03
+Metabtable <- subset(Metabtable, select = -c(HV_011_03,HV_012_03,HV_013_03,HV_014_03,HV_015_03))
+#P16 Left
+Metabtable$P16_LH <- Metabtable$HV_011_04 + Metabtable$HV_012_04 + Metabtable$HV_013_04 + Metabtable$HV_014_04 + Metabtable$HV_015_04
+Metabtable <- subset(Metabtable, select = -c(HV_011_04,HV_012_04,HV_013_04,HV_014_04,HV_015_04))
+#P16 Right
+Metabtable$P16_RH <- Metabtable$HV_011_05 + Metabtable$HV_012_05 + Metabtable$HV_013_05 + Metabtable$HV_014_05 + Metabtable$HV_015_05
+Metabtable <- subset(Metabtable, select = -c(HV_011_05,HV_012_05,HV_013_05,HV_014_05,HV_015_05))
+#P16 Scalp
+Metabtable$P16_SC <- Metabtable$HV_011_06 + Metabtable$HV_012_06 ++ Metabtable$HV_014_06 + Metabtable$HV_015_06
+Metabtable <- subset(Metabtable, select = -c(HV_011_06,HV_012_06,HV_014_06,HV_015_06))
+#P17 Left
+Metabtable$P17_LH <- Metabtable$HV_011_07 + Metabtable$HV_012_07 + Metabtable$HV_013_07 + Metabtable$HV_014_07 + Metabtable$HV_015_07
+Metabtable <- subset(Metabtable, select = -c(HV_011_07,HV_012_07,HV_013_07,HV_014_07,HV_015_07))
+#P17 Right
+Metabtable$P17_RH <- Metabtable$HV_011_08 + Metabtable$HV_012_08 + Metabtable$HV_013_08 + Metabtable$HV_014_08 + Metabtable$HV_015_08
+Metabtable <- subset(Metabtable, select = -c(HV_011_08,HV_012_08,HV_013_08,HV_014_08,HV_015_08))
+#P17 Scalp
+Metabtable$P17_SC <- Metabtable$HV_011_09 + Metabtable$HV_012_09 + Metabtable$HV_013_09 + Metabtable$HV_014_09 + Metabtable$HV_015_09
+Metabtable <- subset(Metabtable, select = -c(HV_011_09,HV_012_09,HV_013_09,HV_014_09,HV_015_09))
+#P18 Left
+Metabtable$P18_LH <- Metabtable$HV_011_10 + Metabtable$HV_012_10 + Metabtable$HV_013_10 + Metabtable$HV_014_10 + Metabtable$HV_015_10
+Metabtable <- subset(Metabtable, select = -c(HV_011_10,HV_012_10,HV_013_10,HV_014_10,HV_015_10))
+#P18 Right
+Metabtable$P18_RH <- Metabtable$HV_011_11 + Metabtable$HV_012_11 + Metabtable$HV_013_11 + Metabtable$HV_014_11 + Metabtable$HV_015_11
+Metabtable <- subset(Metabtable, select = -c(HV_011_11,HV_012_11,HV_013_11,HV_014_11,HV_015_11))
+#P18 Scalp
+Metabtable$P18_SC <- Metabtable$HV_011_12 + Metabtable$HV_012_12 + Metabtable$HV_013_12 + Metabtable$HV_014_12 + Metabtable$HV_015_12
+Metabtable <- subset(Metabtable, select = -c(HV_011_12,HV_012_12,HV_013_12,HV_014_12,HV_015_12))
+#P19 Left
+Metabtable$P19_LH <- Metabtable$HV_011_13 + Metabtable$HV_012_13 + Metabtable$HV_013_13 + Metabtable$HV_014_13 + Metabtable$HV_015_13
+Metabtable <- subset(Metabtable, select = -c(HV_011_13,HV_012_13,HV_013_13,HV_014_13,HV_015_13))
+#P19 Right
+Metabtable$P19_RH <- Metabtable$HV_011_14 + Metabtable$HV_012_14 + Metabtable$HV_013_14 + Metabtable$HV_014_14 + Metabtable$HV_015_14
+Metabtable <- subset(Metabtable, select = -c(HV_011_14,HV_012_14,HV_013_14,HV_014_14,HV_015_14))
+#P19 Scalp
+Metabtable$P19_SC <- Metabtable$HV_011_15 + Metabtable$HV_012_15 + Metabtable$HV_013_15 + Metabtable$HV_014_15 + Metabtable$HV_015_15
+Metabtable <- subset(Metabtable, select = -c(HV_011_15,HV_012_15,HV_013_15,HV_014_15,HV_015_15))
+#P20 Left
+Metabtable$P20_LH <- Metabtable$HV_011_16 + Metabtable$HV_012_16 + Metabtable$HV_013_16 + Metabtable$HV_014_16 + Metabtable$HV_015_16
+Metabtable <- subset(Metabtable, select = -c(HV_011_16,HV_012_16,HV_013_16,HV_014_16,HV_015_16))
+#P20 Right
+Metabtable$P20_RH <- Metabtable$HV_011_18 + Metabtable$HV_012_18 + Metabtable$HV_013_18 + Metabtable$HV_014_18 + Metabtable$HV_015_18
+Metabtable <- subset(Metabtable, select = -c(HV_011_18,HV_012_18,HV_013_18,HV_014_18,HV_015_18))
+#P20 Scalp
+Metabtable$P20_SC <- Metabtable$HV_011_19 + Metabtable$HV_012_19 + Metabtable$HV_013_19 + Metabtable$HV_014_19 + Metabtable$HV_015_19
+Metabtable <- subset(Metabtable, select = -c(HV_011_19,HV_012_19,HV_013_19,HV_014_19,HV_015_19))
+#P21 Left
+Metabtable$P21_LH <- Metabtable$HV_011_20 + Metabtable$HV_012_20 + Metabtable$HV_013_20 + Metabtable$HV_014_20
+Metabtable <- subset(Metabtable, select = -c(HV_011_20,HV_012_20,HV_013_20,HV_014_20))
+#P21 Right
+Metabtable$P21_RH <- Metabtable$HV_011_21 + Metabtable$HV_012_21 + Metabtable$HV_013_21 + Metabtable$HV_014_21
+Metabtable <- subset(Metabtable, select = -c(HV_011_21,HV_012_21,HV_013_21,HV_014_21))
+#P21 Scalp
+Metabtable$P21_SC <- Metabtable$HV_011_22 + Metabtable$HV_012_22 + Metabtable$HV_013_22 + Metabtable$HV_014_22
+Metabtable <- subset(Metabtable, select = -c(HV_011_22,HV_012_22,HV_013_22,HV_014_22))
+#P22 Left
+Metabtable$P22_LH <- Metabtable$HV_021_02 + Metabtable$HV_022_01 + Metabtable$HV_023_01 + Metabtable$HV_024_01 + Metabtable$HV_025_02
+Metabtable <- subset(Metabtable, select = -c(HV_021_02,HV_022_01,HV_023_01,HV_024_01,HV_025_02))
+#P22 Right
+Metabtable$P22_RH <- Metabtable$HV_026_01 + Metabtable$HV_027_08 + Metabtable$HV_028_01 + Metabtable$HV_029_01 + Metabtable$HV_030_01
+Metabtable <- subset(Metabtable, select = -c(HV_026_01,HV_027_08,HV_028_01,HV_029_01,HV_030_01))
+#P22 Scalp
+Metabtable$P22_SC <- Metabtable$HV_016_01 + Metabtable$HV_017_01 + Metabtable$HV_018_01 + Metabtable$HV_019_01 + Metabtable$HV_020_01
+Metabtable <- subset(Metabtable, select = -c(HV_016_01,HV_017_01,HV_018_01,HV_019_01,HV_020_01))
+#P23 Left
+Metabtable$P23_LH <- Metabtable$HV_021_03 + Metabtable$HV_022_02 + Metabtable$HV_023_02 + Metabtable$HV_024_02 + Metabtable$HV_025_03
+Metabtable <- subset(Metabtable, select = -c(HV_021_03,HV_022_02,HV_023_02,HV_024_02,HV_025_03))
+#P23 Right
+Metabtable$P23_RH <- Metabtable$HV_026_02 + Metabtable$HV_027_09 + Metabtable$HV_028_02 + Metabtable$HV_029_02 + Metabtable$HV_030_02
+Metabtable <- subset(Metabtable, select = -c(HV_026_02,HV_027_09,HV_028_02,HV_029_02,HV_030_02))
+#P23 Scalp
+Metabtable$P23_SC <- Metabtable$HV_016_02 + Metabtable$HV_017_02 + Metabtable$HV_018_02 + Metabtable$HV_019_02 + Metabtable$HV_020_02
+Metabtable <- subset(Metabtable, select = -c(HV_016_02,HV_017_02,HV_018_02,HV_019_02,HV_020_02))
+#P24 Left
+Metabtable$P24_LH <- Metabtable$HV_021_04 + Metabtable$HV_022_03 + Metabtable$HV_023_03 + Metabtable$HV_024_03 + Metabtable$HV_025_04
+Metabtable <- subset(Metabtable, select = -c(HV_021_04,HV_022_03,HV_023_03,HV_024_03,HV_025_04))
+#P24 Right
+Metabtable$P24_RH <- Metabtable$HV_026_03 + Metabtable$HV_027_10 + Metabtable$HV_028_03 + Metabtable$HV_029_03 + Metabtable$HV_030_03
+Metabtable <- subset(Metabtable, select = -c(HV_026_03,HV_027_10,HV_028_03,HV_029_03,HV_030_03))
+#P24 Scalp
+Metabtable$P24_SC <- Metabtable$HV_016_03 + Metabtable$HV_017_03 + Metabtable$HV_018_03 + Metabtable$HV_019_03 + Metabtable$HV_021_01
+Metabtable <- subset(Metabtable, select = -c(HV_016_03,HV_017_03,HV_018_03,HV_019_03,HV_021_01))
+#P25 Left
+Metabtable$P25_LH <- Metabtable$HV_021_05 + Metabtable$HV_022_04 + Metabtable$HV_023_04 + Metabtable$HV_024_04 + Metabtable$HV_025_05
+Metabtable <- subset(Metabtable, select = -c(HV_021_05,HV_022_04,HV_023_04,HV_024_04,HV_025_05))
+#P25 Right
+Metabtable$P25_RH <- Metabtable$HV_026_04 + Metabtable$HV_027_11 + Metabtable$HV_028_04 + Metabtable$HV_029_04 + Metabtable$HV_030_04
+Metabtable <- subset(Metabtable, select = -c(HV_026_04,HV_027_11,HV_028_04,HV_029_04,HV_030_04))
+#P25 Scalp
+Metabtable$P25_SC <- Metabtable$HV_016_04 + Metabtable$HV_017_04 + Metabtable$HV_018_04 + Metabtable$HV_019_04 + Metabtable$HV_020_03
+Metabtable <- subset(Metabtable, select = -c(HV_016_04,HV_017_04,HV_018_04,HV_019_04,HV_020_03))
+#P26 Left
+Metabtable$P26_LH <- Metabtable$HV_021_06 + Metabtable$HV_022_05 + Metabtable$HV_023_05 + Metabtable$HV_024_05 + Metabtable$HV_025_06
+Metabtable <- subset(Metabtable, select = -c(HV_021_06,HV_022_05,HV_023_05,HV_024_05,HV_025_06))
+#P26 Right
+Metabtable$P26_RH <- Metabtable$HV_026_05 + Metabtable$HV_027_12 + Metabtable$HV_028_05 + Metabtable$HV_029_05 + Metabtable$HV_030_05
+Metabtable <- subset(Metabtable, select = -c(HV_026_05,HV_027_12,HV_028_05,HV_029_05,HV_030_05))
+#P26 Scalp
+Metabtable$P26_SC <- Metabtable$HV_016_05 + Metabtable$HV_017_05 + Metabtable$HV_018_05 + Metabtable$HV_019_05 + Metabtable$HV_020_04
+Metabtable <- subset(Metabtable, select = -c(HV_016_05,HV_017_05,HV_018_05,HV_019_05,HV_020_04))
+#P27 Left
+Metabtable$P27_LH <- Metabtable$HV_021_07 + Metabtable$HV_022_06 + Metabtable$HV_023_06 + Metabtable$HV_024_06 + Metabtable$HV_025_07
+Metabtable <- subset(Metabtable, select = -c(HV_021_07,HV_022_06,HV_023_06,HV_024_06,HV_025_07))
+#P27 Right
+Metabtable$P27_RH <- Metabtable$HV_026_06 + Metabtable$HV_027_13 + Metabtable$HV_028_06 + Metabtable$HV_029_06 + Metabtable$HV_030_06
+Metabtable <- subset(Metabtable, select = -c(HV_026_06,HV_027_13,HV_028_06,HV_029_06,HV_030_06))
+#P27 Scalp
+Metabtable$P27_SC <- Metabtable$HV_016_06 + Metabtable$HV_017_06 + Metabtable$HV_018_06 + Metabtable$HV_019_06 + Metabtable$HV_020_05
+Metabtable <- subset(Metabtable, select = -c(HV_016_06,HV_017_06,HV_018_06,HV_019_06,HV_020_05))
+#P28 Left
+Metabtable$P28_LH <- Metabtable$HV_021_08 + Metabtable$HV_022_07 + Metabtable$HV_023_07 + Metabtable$HV_024_07 + Metabtable$HV_025_08
+Metabtable <- subset(Metabtable, select = -c(HV_021_08,HV_022_07,HV_023_07,HV_024_07,HV_025_08))
+#P28 Right
+Metabtable$P28_RH <- Metabtable$HV_026_07 + Metabtable$HV_027_14 + Metabtable$HV_028_07 + Metabtable$HV_029_07 + Metabtable$HV_030_07
+Metabtable <- subset(Metabtable, select = -c(HV_026_07,HV_027_14,HV_028_07,HV_029_07,HV_030_07))
+#P28 Scalp
+Metabtable$P28_SC <- Metabtable$HV_016_07 + Metabtable$HV_017_07 + Metabtable$HV_018_07 + Metabtable$HV_019_07 + Metabtable$HV_020_06
+Metabtable <- subset(Metabtable, select = -c(HV_016_07,HV_017_07,HV_018_07,HV_019_07,HV_020_06))
+#P29 Left
+Metabtable$P29_LH <- Metabtable$HV_021_09 + Metabtable$HV_022_08 + Metabtable$HV_023_08 + Metabtable$HV_024_08 + Metabtable$HV_025_09
+Metabtable <- subset(Metabtable, select = -c(HV_021_09,HV_022_08,HV_023_08,HV_024_08,HV_025_09))
+#P29 Right
+Metabtable$P29_RH <- Metabtable$HV_026_08 + Metabtable$HV_027_15 + Metabtable$HV_028_08 + Metabtable$HV_029_08 + Metabtable$HV_030_08
+Metabtable <- subset(Metabtable, select = -c(HV_026_08,HV_027_15,HV_028_08,HV_029_08,HV_030_08))
+#P29 Scalp
+Metabtable$P29_SC <- Metabtable$HV_016_08 + Metabtable$HV_017_08 + Metabtable$HV_018_08 + Metabtable$HV_019_08 + Metabtable$HV_020_07
+Metabtable <- subset(Metabtable, select = -c(HV_016_08,HV_017_08,HV_018_08,HV_019_08,HV_020_07))
+#P31 Left
+Metabtable$P31_LH <- Metabtable$HV_021_11 + Metabtable$HV_022_10 + Metabtable$HV_023_10 + Metabtable$HV_024_10
+Metabtable <- subset(Metabtable, select = -c(HV_021_11,HV_022_10,HV_023_10,HV_024_10))
+#P31 Right
+Metabtable$P31_RH <- Metabtable$HV_026_10 + Metabtable$HV_027_18 + Metabtable$HV_028_10 + Metabtable$HV_029_10
+Metabtable <- subset(Metabtable, select = -c(HV_026_10,HV_027_18,HV_028_10,HV_029_10))
+#P31 Scalp
+Metabtable$P31_SC <- Metabtable$HV_016_10 + Metabtable$HV_017_10 + Metabtable$HV_018_10 + Metabtable$HV_019_10
+Metabtable <- subset(Metabtable, select = -c(HV_016_10,HV_017_10,HV_018_10,HV_019_10))
+#P34 Left
+Metabtable$P34_LH <- Metabtable$HV_021_14 + Metabtable$HV_022_12 + Metabtable$HV_023_12 + Metabtable$HV_024_12 + Metabtable$HV_025_12
+Metabtable <- subset(Metabtable, select = -c(HV_021_14,HV_022_12,HV_023_12,HV_024_12,HV_025_12))
+#P34 Right
+Metabtable$P34_RH <- Metabtable$HV_026_12 + Metabtable$HV_027_20 + Metabtable$HV_028_12 + Metabtable$HV_029_12 + Metabtable$HV_030_11
+Metabtable <- subset(Metabtable, select = -c(HV_026_12,HV_027_20,HV_028_12,HV_029_12,HV_030_11))
+#P34 Scalp
+Metabtable$P34_SC <- Metabtable$HV_016_12 + Metabtable$HV_017_12 + Metabtable$HV_018_12 + Metabtable$HV_019_12 + Metabtable$HV_020_11
+Metabtable <- subset(Metabtable, select = -c(HV_016_12,HV_017_12,HV_018_12,HV_019_12,HV_020_11))
+#P35 Left
+Metabtable$P35_LH <- Metabtable$HV_021_15 + Metabtable$HV_022_13 + Metabtable$HV_023_13 + Metabtable$HV_024_13 + Metabtable$HV_025_13
+Metabtable <- subset(Metabtable, select = -c(HV_021_15,HV_022_13,HV_023_13,HV_024_13,HV_025_13))
+#P35 Right
+Metabtable$P35_RH <- Metabtable$HV_026_13 + Metabtable$HV_027_21 + Metabtable$HV_028_13 + Metabtable$HV_029_13 + Metabtable$HV_030_12
+Metabtable <- subset(Metabtable, select = -c(HV_026_13,HV_027_21,HV_028_13,HV_029_13,HV_030_12))
+#P35 Scalp
+Metabtable$P35_SC <- Metabtable$HV_016_13 + Metabtable$HV_017_13 + Metabtable$HV_018_13 + Metabtable$HV_019_13 + Metabtable$HV_020_12
+Metabtable <- subset(Metabtable, select = -c(HV_016_13,HV_017_13,HV_018_13,HV_019_13,HV_020_12))
+#P36 Left
+Metabtable$P36_LH <- Metabtable$HV_021_16 + Metabtable$HV_022_14 + Metabtable$HV_023_14 + Metabtable$HV_024_14 + Metabtable$HV_025_14
+Metabtable <- subset(Metabtable, select = -c(HV_021_16,HV_022_14,HV_023_14,HV_024_14,HV_025_14))
+#P36 Right
+Metabtable$P36_RH <- Metabtable$HV_026_14 + Metabtable$HV_027_22 + Metabtable$HV_028_14 + Metabtable$HV_029_14 + Metabtable$HV_030_13
+Metabtable <- subset(Metabtable, select = -c(HV_026_14,HV_027_22,HV_028_14,HV_029_14,HV_030_13))
+#P36 Scalp
+Metabtable$P36_SC <- Metabtable$HV_016_14 + Metabtable$HV_017_14 + Metabtable$HV_018_14 + Metabtable$HV_019_14 + Metabtable$HV_020_13
+Metabtable <- subset(Metabtable, select = -c(HV_016_14,HV_017_14,HV_018_14,HV_019_14,HV_020_13))
+#P37 Left
+Metabtable$P37_LH <- Metabtable$HV_021_18 + Metabtable$HV_022_15 + Metabtable$HV_023_15 + Metabtable$HV_024_15 + Metabtable$HV_025_15
+Metabtable <- subset(Metabtable, select = -c(HV_021_18,HV_022_15,HV_023_15,HV_024_15,HV_025_15))
+#P37 Right
+Metabtable$P37_RH <- Metabtable$HV_026_15 + Metabtable$HV_028_15 + Metabtable$HV_029_15 + Metabtable$HV_030_14 + Metabtable$HV_030_22
+Metabtable <- subset(Metabtable, select = -c(HV_026_15,HV_028_15,HV_029_15,HV_030_14,HV_030_22))
+#P37 Scalp
+Metabtable$P37_SC <- Metabtable$HV_016_15 + Metabtable$HV_017_15 + Metabtable$HV_018_15 + Metabtable$HV_019_15 + Metabtable$HV_020_14
+Metabtable <- subset(Metabtable, select = -c(HV_016_15,HV_017_15,HV_018_15,HV_019_15,HV_020_14))
+#P38 Left
+Metabtable$P38_LH <- Metabtable$HV_021_19 + Metabtable$HV_022_16 + Metabtable$HV_023_16 + Metabtable$HV_024_16 + Metabtable$HV_025_16
+Metabtable <- subset(Metabtable, select = -c(HV_021_19,HV_022_16,HV_023_16,HV_024_16,HV_025_16))
+#P38 Right
+Metabtable$P38_RH <- Metabtable$HV_026_16 + Metabtable$HV_028_16 + Metabtable$HV_029_16 + Metabtable$HV_030_15 
+Metabtable <- subset(Metabtable, select = -c(HV_026_16,HV_028_16,HV_029_16,HV_030_15))
+#P38 Scalp
+Metabtable$P38_SC <- Metabtable$HV_016_16 + Metabtable$HV_017_16 + Metabtable$HV_018_16 + Metabtable$HV_019_16 + Metabtable$HV_020_15
+Metabtable <- subset(Metabtable, select = -c(HV_016_16,HV_017_16,HV_018_16,HV_019_16,HV_020_15))
+#P39 Left
+Metabtable$P39_LH <- Metabtable$HV_021_20 + Metabtable$HV_022_18 + Metabtable$HV_023_18 + Metabtable$HV_024_18 + Metabtable$HV_025_18
+Metabtable <- subset(Metabtable, select = -c(HV_021_20,HV_022_18,HV_023_18,HV_024_18,HV_025_18))
+#P39 Right
+Metabtable$P39_RH <- Metabtable$HV_026_18 + Metabtable$HV_028_18 + Metabtable$HV_029_18 + Metabtable$HV_030_16
+Metabtable <- subset(Metabtable, select = -c(HV_026_18,HV_028_18,HV_029_18,HV_030_16))
+#P39 Scalp
+Metabtable$P39_SC <- Metabtable$HV_016_18 + Metabtable$HV_017_18 + Metabtable$HV_018_18 + Metabtable$HV_019_18 + Metabtable$HV_020_16
+Metabtable <- subset(Metabtable, select = -c(HV_016_18,HV_017_18,HV_018_18,HV_019_18,HV_020_16))
+#P42 Left
+Metabtable$P42_LH <- Metabtable$HV_022_21 + Metabtable$HV_023_21 + Metabtable$HV_024_21 + Metabtable$HV_025_21 
+Metabtable <- subset(Metabtable, select = -c(HV_022_21,HV_023_21,HV_024_21,HV_025_21))
+#P42 Right
+Metabtable$P42_RH <- Metabtable$HV_026_21 + Metabtable$HV_028_21 + Metabtable$HV_029_21 + Metabtable$HV_030_20
+Metabtable <- subset(Metabtable, select = -c(HV_026_21,HV_028_21,HV_029_21,HV_030_20))
+#P42 Scalp
+Metabtable$P42_SC <- Metabtable$HV_016_21 + Metabtable$HV_017_21 + Metabtable$HV_018_21 + Metabtable$HV_019_21 + Metabtable$HV_020_20
+Metabtable <- subset(Metabtable, select = -c(HV_016_21,HV_017_21,HV_018_21,HV_019_21,HV_020_20))
+#P43 Left
+Metabtable$P43_LH <- Metabtable$HV_022_22 + Metabtable$HV_023_22 + Metabtable$HV_024_22 + Metabtable$HV_025_01 + Metabtable$HV_025_22
+Metabtable <- subset(Metabtable, select = -c(HV_022_22,HV_023_22,HV_024_22,HV_025_01,HV_025_22))
+#P43 Right
+Metabtable$P43_RH <- Metabtable$HV_026_22 + Metabtable$HV_028_22 + Metabtable$HV_029_22 + Metabtable$HV_030_21
+Metabtable <- subset(Metabtable, select = -c(HV_026_22,HV_028_22,HV_029_22,HV_030_21))
+#P43 Scalp
+Metabtable$P43_SC <- Metabtable$HV_016_22 + Metabtable$HV_017_22 + Metabtable$HV_018_22 + Metabtable$HV_019_22 + Metabtable$HV_020_21
+Metabtable <- subset(Metabtable, select = -c(HV_016_22,HV_017_22,HV_018_22,HV_019_22,HV_020_21))
+```
+```{r,message=FALSE,warning=FALSE,results="hide"}
+HM_Metabtable<-Metabtable
+row.names(HM_Metabtable)<-HM_Metabtable$Metabolism
+HM_Metabtable<-subset(HM_Metabtable, select = -c(Metabolism))
+HM_Metabtable<-as.matrix(HM_Metabtable)
+pheatmaps.obj<-pheatmap(HM_Metabtable,breaks = max(20000), cluster_cols = FALSE,cellheight = 11,cellwidth = 11,fontsize = 12,gaps_col = c(3,6,9,12,15,18,21,24,27,30,33,36,39,42,45,48,51,54,57,60,63,66,69,72,75,78,81,84,87,90,93,96,99,102,105,108) ,filename = "Heatmap_Metabolism_Prevalence.pdf")
+```
+
+Prevalence Heatmap (Pathway)
+```{r,message=FALSE,warning=FALSE,results="hide"}
+Pathtable <- Pathway_Counts %>% mutate_if(is.numeric, ~1 * (. != 0))
+#P02 Left
+Pathtable$P02_LH <- Pathtable$HV_001_04 + Pathtable$HV_002_04 + Pathtable$HV_003_04 + Pathtable$HV_004_04 + Pathtable$HV_005_04
+Pathtable <- subset(Pathtable, select = -c(HV_001_04,HV_002_04,HV_003_04,HV_004_04,HV_005_04 ))
+#P02 Right
+Pathtable$P02_RH <- Pathtable$HV_001_05 + Pathtable$HV_002_05 + Pathtable$HV_003_05 + Pathtable$HV_004_05 + Pathtable$HV_005_05
+Pathtable <- subset(Pathtable, select = -c(HV_001_05,HV_002_05,HV_003_05,HV_004_05,HV_005_05 ))
+#P02 Scalp
+Pathtable$P02_SC <- Pathtable$HV_001_06 + Pathtable$HV_002_06 + Pathtable$HV_003_06 + Pathtable$HV_004_06 + Pathtable$HV_005_06
+Pathtable <- subset(Pathtable, select = -c(HV_001_06,HV_002_06,HV_003_06,HV_004_06,HV_005_06 ))
+#P03 Left
+Pathtable$P03_LH <- Pathtable$HV_001_07 + Pathtable$HV_002_07 + Pathtable$HV_003_07 + Pathtable$HV_004_07 + Pathtable$HV_005_07
+Pathtable <- subset(Pathtable, select = -c(HV_001_07,HV_002_07,HV_003_07,HV_004_07,HV_005_07 ))
+#P03 Right
+Pathtable$P03_RH <- Pathtable$HV_001_08 + Pathtable$HV_002_08 + Pathtable$HV_003_08 + Pathtable$HV_004_08 + Pathtable$HV_005_08
+Pathtable <- subset(Pathtable, select = -c(HV_001_08,HV_002_08,HV_003_08,HV_004_08,HV_005_08 ))
+#P03 Scalp
+Pathtable$P03_SC <- Pathtable$HV_001_09 + Pathtable$HV_002_09 + Pathtable$HV_003_09 + Pathtable$HV_004_09 + Pathtable$HV_005_09
+Pathtable <- subset(Pathtable, select = -c(HV_001_09,HV_002_09,HV_003_09,HV_004_09,HV_005_09 ))
+#P04 Left
+Pathtable$P04_LH <- Pathtable$HV_001_10 + Pathtable$HV_002_10 + Pathtable$HV_003_10 + Pathtable$HV_004_10 + Pathtable$HV_005_10
+Pathtable <- subset(Pathtable, select = -c(HV_001_10,HV_002_10,HV_003_10,HV_004_10,HV_005_10 ))
+#P04 Right
+Pathtable$P04_RH <- Pathtable$HV_001_11 + Pathtable$HV_002_11 + Pathtable$HV_003_11 + Pathtable$HV_004_11 + Pathtable$HV_005_11
+Pathtable <- subset(Pathtable, select = -c(HV_001_11,HV_002_11,HV_003_11,HV_004_11,HV_005_11 ))
+#P04 Scalp
+Pathtable$P04_SC <- Pathtable$HV_001_12 + Pathtable$HV_002_12 + Pathtable$HV_003_12 + Pathtable$HV_004_12 + Pathtable$HV_005_12
+Pathtable <- subset(Pathtable, select = -c(HV_001_12,HV_002_12,HV_003_12,HV_004_12,HV_005_12 ))
+#P05 Left
+Pathtable$P05_LH <- Pathtable$HV_001_13 + Pathtable$HV_002_13 + Pathtable$HV_003_13 + Pathtable$HV_004_13 + Pathtable$HV_005_13
+Pathtable <- subset(Pathtable, select = -c(HV_001_13,HV_002_13,HV_003_13,HV_004_13,HV_005_13 ))
+#P05 Right
+Pathtable$P05_RH <- Pathtable$HV_001_14 + Pathtable$HV_002_14 + Pathtable$HV_003_14 + Pathtable$HV_004_14 + Pathtable$HV_005_14
+Pathtable <- subset(Pathtable, select = -c(HV_001_14,HV_002_14,HV_003_14,HV_004_14,HV_005_14 ))
+#P05 Scalp
+Pathtable$P05_SC <- Pathtable$HV_001_15 + Pathtable$HV_002_15 + Pathtable$HV_003_15  + Pathtable$HV_004_15 + Pathtable$HV_005_15
+Pathtable <- subset(Pathtable, select = -c(HV_001_15,HV_002_15, HV_003_15, HV_004_15,HV_005_15))
+#P06 Left
+Pathtable$P06_LH <- Pathtable$HV_001_16 + Pathtable$HV_003_16 + Pathtable$HV_004_16 + Pathtable$HV_005_16 + Pathtable$HV_005_19
+Pathtable <- subset(Pathtable, select = -c(HV_001_16,HV_003_16,HV_004_16,HV_005_16, HV_005_19 ))
+#P06 Right
+Pathtable$P06_RH <- Pathtable$HV_001_18 + Pathtable$HV_002_18 + Pathtable$HV_003_18 + Pathtable$HV_004_18 + Pathtable$HV_005_18
+Pathtable <- subset(Pathtable, select = -c(HV_001_18,HV_002_18,HV_003_18,HV_004_18,HV_005_18 ))
+#P06 Scalp
+Pathtable$P06_SC <- Pathtable$HV_001_19 + Pathtable$HV_002_19 + Pathtable$HV_003_19 + Pathtable$HV_004_19 
+Pathtable <- subset(Pathtable, select = -c(HV_001_19,HV_002_19,HV_003_19,HV_004_19 ))
+#P07 Left
+Pathtable$P07_LH <- Pathtable$HV_001_20 + Pathtable$HV_002_20 + Pathtable$HV_003_20 + Pathtable$HV_004_20 + Pathtable$HV_005_20
+Pathtable <- subset(Pathtable, select = -c(HV_001_20,HV_002_20,HV_003_20,HV_004_20,HV_005_20 ))
+#P07 Right
+Pathtable$P07_RH <- Pathtable$HV_001_21 + Pathtable$HV_002_21 + Pathtable$HV_003_21 + Pathtable$HV_004_21 
+Pathtable <- subset(Pathtable, select = -c(HV_001_21,HV_002_21,HV_003_21,HV_004_21 ))
+#P07 Scalp
+Pathtable$P07_SC <- Pathtable$HV_001_22 + Pathtable$HV_002_22 + Pathtable$HV_003_22 + Pathtable$HV_004_22 + Pathtable$HV_005_22
+Pathtable <- subset(Pathtable, select = -c(HV_001_22,HV_002_22,HV_003_22,HV_004_22,HV_005_22 ))
+#P08 Left
+Pathtable$P08_LH <- Pathtable$HV_006_01 + Pathtable$HV_007_01 + Pathtable$HV_008_01 + Pathtable$HV_009_01 + Pathtable$HV_010_01
+Pathtable <- subset(Pathtable, select = -c(HV_006_01,HV_007_01,HV_008_01,HV_009_01,HV_010_01))
+#P08 Right
+Pathtable$P08_RH <- Pathtable$HV_006_02 + Pathtable$HV_007_02 + Pathtable$HV_008_02 + Pathtable$HV_010_02
+Pathtable <- subset(Pathtable, select = -c(HV_006_02,HV_007_02,HV_008_02,HV_010_02))
+#P08 Scalp
+Pathtable$P08_SC <- Pathtable$HV_006_03 + Pathtable$HV_007_03 + Pathtable$HV_008_03 + Pathtable$HV_009_03 + Pathtable$HV_010_03
+Pathtable <- subset(Pathtable, select = -c(HV_006_03,HV_007_03,HV_008_03,HV_009_03,HV_010_03))
+#P09 Left
+Pathtable$P09_LH <- Pathtable$HV_006_04 + Pathtable$HV_007_04 + Pathtable$HV_008_04 + Pathtable$HV_009_04 + Pathtable$HV_010_04
+Pathtable <- subset(Pathtable, select = -c(HV_006_04,HV_007_04,HV_008_04,HV_009_04,HV_010_04))
+#P09 Right
+Pathtable$P09_RH <- Pathtable$HV_006_05 + Pathtable$HV_007_05 + Pathtable$HV_008_05 + Pathtable$HV_009_05 + Pathtable$HV_010_05
+Pathtable <- subset(Pathtable, select = -c(HV_006_05,HV_007_05,HV_008_05,HV_009_05,HV_010_05))
+#P09 Scalp
+Pathtable$P09_SC <- Pathtable$HV_006_06 + Pathtable$HV_007_06 + Pathtable$HV_008_06 + Pathtable$HV_009_06 + Pathtable$HV_010_06
+Pathtable <- subset(Pathtable, select = -c(HV_006_06,HV_007_06,HV_008_06,HV_009_06,HV_010_06))
+#P10 Left
+Pathtable$P10_LH <- Pathtable$HV_006_07 + Pathtable$HV_007_07 + Pathtable$HV_008_07 + Pathtable$HV_009_07 + Pathtable$HV_010_07
+Pathtable <- subset(Pathtable, select = -c(HV_006_07,HV_007_07,HV_008_07,HV_009_07,HV_010_07))
+#P10 Right
+Pathtable$P10_RH <- Pathtable$HV_006_08 + Pathtable$HV_007_08 + Pathtable$HV_008_08 + Pathtable$HV_009_08 + Pathtable$HV_010_08
+Pathtable <- subset(Pathtable, select = -c(HV_006_08,HV_007_08,HV_008_08,HV_009_08,HV_010_08))
+#P10 Scalp
+Pathtable$P10_SC <- Pathtable$HV_006_09 + Pathtable$HV_007_09 + Pathtable$HV_008_09 + Pathtable$HV_009_09 + Pathtable$HV_010_09
+Pathtable <- subset(Pathtable, select = -c(HV_006_09,HV_007_09,HV_008_09,HV_009_09,HV_010_09))
+#P11 Left
+Pathtable$P11_LH <- Pathtable$HV_006_10 + Pathtable$HV_007_10 + Pathtable$HV_008_10 + Pathtable$HV_009_10 + Pathtable$HV_010_10
+Pathtable <- subset(Pathtable, select = -c(HV_006_10,HV_007_10,HV_008_10,HV_009_10,HV_010_10))
+#P11 Right
+Pathtable$P11_RH <- Pathtable$HV_006_11 + Pathtable$HV_007_11 + Pathtable$HV_008_11 + Pathtable$HV_009_11 + Pathtable$HV_010_11
+Pathtable <- subset(Pathtable, select = -c(HV_006_11,HV_007_11,HV_008_11,HV_009_11,HV_010_11))
+#P11 Scalp
+Pathtable$P11_SC <- Pathtable$HV_006_12 + Pathtable$HV_007_12 + Pathtable$HV_008_12 + Pathtable$HV_009_12 + Pathtable$HV_010_12
+Pathtable <- subset(Pathtable, select = -c(HV_006_12,HV_007_12,HV_008_12,HV_009_12,HV_010_12))
+#P12 Left
+Pathtable$P12_LH <- Pathtable$HV_006_13 + Pathtable$HV_007_13 + Pathtable$HV_008_13 + Pathtable$HV_009_13 + Pathtable$HV_010_13
+Pathtable <- subset(Pathtable, select = -c(HV_006_13,HV_007_13,HV_008_13,HV_009_13,HV_010_13))
+#P12 Right
+Pathtable$P12_RH <- Pathtable$HV_006_14 + Pathtable$HV_007_14 + Pathtable$HV_008_14 + Pathtable$HV_009_14 + Pathtable$HV_010_14
+Pathtable <- subset(Pathtable, select = -c(HV_006_14,HV_007_14,HV_008_14,HV_009_14,HV_010_14))
+#P12 Scalp
+Pathtable$P12_SC <- Pathtable$HV_006_15 + Pathtable$HV_007_15 + Pathtable$HV_008_15 + Pathtable$HV_009_15 + Pathtable$HV_010_15
+Pathtable <- subset(Pathtable, select = -c(HV_006_15,HV_007_15,HV_008_15,HV_009_15,HV_010_15))
+#P13 Left
+Pathtable$P13_LH <- Pathtable$HV_006_16 + Pathtable$HV_007_16 + Pathtable$HV_008_16 + Pathtable$HV_009_16 + Pathtable$HV_010_16
+Pathtable <- subset(Pathtable, select = -c(HV_006_16,HV_007_16,HV_008_16,HV_009_16,HV_010_16))
+#P13 Right
+Pathtable$P13_RH <- Pathtable$HV_006_18 + Pathtable$HV_007_18 + Pathtable$HV_008_18 + Pathtable$HV_009_18 + Pathtable$HV_010_18
+Pathtable <- subset(Pathtable, select = -c(HV_006_18,HV_007_18,HV_008_18,HV_009_18,HV_010_18))
+#P13 Scalp
+Pathtable$P13_SC <- Pathtable$HV_006_19 + Pathtable$HV_007_19 + Pathtable$HV_008_19 + Pathtable$HV_009_19 + Pathtable$HV_010_19
+Pathtable <- subset(Pathtable, select = -c(HV_006_19,HV_007_19,HV_008_19,HV_009_19,HV_010_19))
+#P14 Left
+Pathtable$P14_LH <- Pathtable$HV_006_20 + Pathtable$HV_007_20 + Pathtable$HV_008_20 + Pathtable$HV_009_20 + Pathtable$HV_010_20
+Pathtable <- subset(Pathtable, select = -c(HV_006_20,HV_007_20,HV_008_20,HV_009_20,HV_010_20))
+#P14 Right
+Pathtable$P14_RH <- Pathtable$HV_006_21 + Pathtable$HV_007_21 + Pathtable$HV_008_21 + Pathtable$HV_009_21 + Pathtable$HV_010_21
+Pathtable <- subset(Pathtable, select = -c(HV_006_21,HV_007_21,HV_008_21,HV_009_21,HV_010_21))
+#P14 Scalp
+Pathtable$P14_SC <- Pathtable$HV_006_22 + Pathtable$HV_007_22 + Pathtable$HV_008_22 + Pathtable$HV_009_22 + Pathtable$HV_010_22
+Pathtable <- subset(Pathtable, select = -c(HV_006_22,HV_007_22,HV_008_22,HV_009_22,HV_010_22))
+#P15 Left
+Pathtable$P15_LH <- Pathtable$HV_011_01 + Pathtable$HV_012_01 + Pathtable$HV_013_01 + Pathtable$HV_014_01 + Pathtable$HV_015_01
+Pathtable <- subset(Pathtable, select = -c(HV_011_01,HV_012_01,HV_013_01,HV_014_01,HV_015_01))
+#P15 Right
+Pathtable$P15_RH <- Pathtable$HV_011_02 + Pathtable$HV_012_02 + Pathtable$HV_013_02 + Pathtable$HV_014_02 + Pathtable$HV_015_02
+Pathtable <- subset(Pathtable, select = -c(HV_011_02,HV_012_02,HV_013_02,HV_014_02,HV_015_02))
+#P15 Scalp
+Pathtable$P15_SC <- Pathtable$HV_011_03 + Pathtable$HV_012_03 + Pathtable$HV_013_03 + Pathtable$HV_014_03 + Pathtable$HV_015_03
+Pathtable <- subset(Pathtable, select = -c(HV_011_03,HV_012_03,HV_013_03,HV_014_03,HV_015_03))
+#P16 Left
+Pathtable$P16_LH <- Pathtable$HV_011_04 + Pathtable$HV_012_04 + Pathtable$HV_013_04 + Pathtable$HV_014_04 + Pathtable$HV_015_04
+Pathtable <- subset(Pathtable, select = -c(HV_011_04,HV_012_04,HV_013_04,HV_014_04,HV_015_04))
+#P16 Right
+Pathtable$P16_RH <- Pathtable$HV_011_05 + Pathtable$HV_012_05 + Pathtable$HV_013_05 + Pathtable$HV_014_05 + Pathtable$HV_015_05
+Pathtable <- subset(Pathtable, select = -c(HV_011_05,HV_012_05,HV_013_05,HV_014_05,HV_015_05))
+#P16 Scalp
+Pathtable$P16_SC <- Pathtable$HV_011_06 + Pathtable$HV_012_06 ++ Pathtable$HV_014_06 + Pathtable$HV_015_06
+Pathtable <- subset(Pathtable, select = -c(HV_011_06,HV_012_06,HV_014_06,HV_015_06))
+#P17 Left
+Pathtable$P17_LH <- Pathtable$HV_011_07 + Pathtable$HV_012_07 + Pathtable$HV_013_07 + Pathtable$HV_014_07 + Pathtable$HV_015_07
+Pathtable <- subset(Pathtable, select = -c(HV_011_07,HV_012_07,HV_013_07,HV_014_07,HV_015_07))
+#P17 Right
+Pathtable$P17_RH <- Pathtable$HV_011_08 + Pathtable$HV_012_08 + Pathtable$HV_013_08 + Pathtable$HV_014_08 + Pathtable$HV_015_08
+Pathtable <- subset(Pathtable, select = -c(HV_011_08,HV_012_08,HV_013_08,HV_014_08,HV_015_08))
+#P17 Scalp
+Pathtable$P17_SC <- Pathtable$HV_011_09 + Pathtable$HV_012_09 + Pathtable$HV_013_09 + Pathtable$HV_014_09 + Pathtable$HV_015_09
+Pathtable <- subset(Pathtable, select = -c(HV_011_09,HV_012_09,HV_013_09,HV_014_09,HV_015_09))
+#P18 Left
+Pathtable$P18_LH <- Pathtable$HV_011_10 + Pathtable$HV_012_10 + Pathtable$HV_013_10 + Pathtable$HV_014_10 + Pathtable$HV_015_10
+Pathtable <- subset(Pathtable, select = -c(HV_011_10,HV_012_10,HV_013_10,HV_014_10,HV_015_10))
+#P18 Right
+Pathtable$P18_RH <- Pathtable$HV_011_11 + Pathtable$HV_012_11 + Pathtable$HV_013_11 + Pathtable$HV_014_11 + Pathtable$HV_015_11
+Pathtable <- subset(Pathtable, select = -c(HV_011_11,HV_012_11,HV_013_11,HV_014_11,HV_015_11))
+#P18 Scalp
+Pathtable$P18_SC <- Pathtable$HV_011_12 + Pathtable$HV_012_12 + Pathtable$HV_013_12 + Pathtable$HV_014_12 + Pathtable$HV_015_12
+Pathtable <- subset(Pathtable, select = -c(HV_011_12,HV_012_12,HV_013_12,HV_014_12,HV_015_12))
+#P19 Left
+Pathtable$P19_LH <- Pathtable$HV_011_13 + Pathtable$HV_012_13 + Pathtable$HV_013_13 + Pathtable$HV_014_13 + Pathtable$HV_015_13
+Pathtable <- subset(Pathtable, select = -c(HV_011_13,HV_012_13,HV_013_13,HV_014_13,HV_015_13))
+#P19 Right
+Pathtable$P19_RH <- Pathtable$HV_011_14 + Pathtable$HV_012_14 + Pathtable$HV_013_14 + Pathtable$HV_014_14 + Pathtable$HV_015_14
+Pathtable <- subset(Pathtable, select = -c(HV_011_14,HV_012_14,HV_013_14,HV_014_14,HV_015_14))
+#P19 Scalp
+Pathtable$P19_SC <- Pathtable$HV_011_15 + Pathtable$HV_012_15 + Pathtable$HV_013_15 + Pathtable$HV_014_15 + Pathtable$HV_015_15
+Pathtable <- subset(Pathtable, select = -c(HV_011_15,HV_012_15,HV_013_15,HV_014_15,HV_015_15))
+#P20 Left
+Pathtable$P20_LH <- Pathtable$HV_011_16 + Pathtable$HV_012_16 + Pathtable$HV_013_16 + Pathtable$HV_014_16 + Pathtable$HV_015_16
+Pathtable <- subset(Pathtable, select = -c(HV_011_16,HV_012_16,HV_013_16,HV_014_16,HV_015_16))
+#P20 Right
+Pathtable$P20_RH <- Pathtable$HV_011_18 + Pathtable$HV_012_18 + Pathtable$HV_013_18 + Pathtable$HV_014_18 + Pathtable$HV_015_18
+Pathtable <- subset(Pathtable, select = -c(HV_011_18,HV_012_18,HV_013_18,HV_014_18,HV_015_18))
+#P20 Scalp
+Pathtable$P20_SC <- Pathtable$HV_011_19 + Pathtable$HV_012_19 + Pathtable$HV_013_19 + Pathtable$HV_014_19 + Pathtable$HV_015_19
+Pathtable <- subset(Pathtable, select = -c(HV_011_19,HV_012_19,HV_013_19,HV_014_19,HV_015_19))
+#P21 Left
+Pathtable$P21_LH <- Pathtable$HV_011_20 + Pathtable$HV_012_20 + Pathtable$HV_013_20 + Pathtable$HV_014_20
+Pathtable <- subset(Pathtable, select = -c(HV_011_20,HV_012_20,HV_013_20,HV_014_20))
+#P21 Right
+Pathtable$P21_RH <- Pathtable$HV_011_21 + Pathtable$HV_012_21 + Pathtable$HV_013_21 + Pathtable$HV_014_21
+Pathtable <- subset(Pathtable, select = -c(HV_011_21,HV_012_21,HV_013_21,HV_014_21))
+#P21 Scalp
+Pathtable$P21_SC <- Pathtable$HV_011_22 + Pathtable$HV_012_22 + Pathtable$HV_013_22 + Pathtable$HV_014_22
+Pathtable <- subset(Pathtable, select = -c(HV_011_22,HV_012_22,HV_013_22,HV_014_22))
+#P22 Left
+Pathtable$P22_LH <- Pathtable$HV_021_02 + Pathtable$HV_022_01 + Pathtable$HV_023_01 + Pathtable$HV_024_01 + Pathtable$HV_025_02
+Pathtable <- subset(Pathtable, select = -c(HV_021_02,HV_022_01,HV_023_01,HV_024_01,HV_025_02))
+#P22 Right
+Pathtable$P22_RH <- Pathtable$HV_026_01 + Pathtable$HV_027_08 + Pathtable$HV_028_01 + Pathtable$HV_029_01 + Pathtable$HV_030_01
+Pathtable <- subset(Pathtable, select = -c(HV_026_01,HV_027_08,HV_028_01,HV_029_01,HV_030_01))
+#P22 Scalp
+Pathtable$P22_SC <- Pathtable$HV_016_01 + Pathtable$HV_017_01 + Pathtable$HV_018_01 + Pathtable$HV_019_01 + Pathtable$HV_020_01
+Pathtable <- subset(Pathtable, select = -c(HV_016_01,HV_017_01,HV_018_01,HV_019_01,HV_020_01))
+#P23 Left
+Pathtable$P23_LH <- Pathtable$HV_021_03 + Pathtable$HV_022_02 + Pathtable$HV_023_02 + Pathtable$HV_024_02 + Pathtable$HV_025_03
+Pathtable <- subset(Pathtable, select = -c(HV_021_03,HV_022_02,HV_023_02,HV_024_02,HV_025_03))
+#P23 Right
+Pathtable$P23_RH <- Pathtable$HV_026_02 + Pathtable$HV_027_09 + Pathtable$HV_028_02 + Pathtable$HV_029_02 + Pathtable$HV_030_02
+Pathtable <- subset(Pathtable, select = -c(HV_026_02,HV_027_09,HV_028_02,HV_029_02,HV_030_02))
+#P23 Scalp
+Pathtable$P23_SC <- Pathtable$HV_016_02 + Pathtable$HV_017_02 + Pathtable$HV_018_02 + Pathtable$HV_019_02 + Pathtable$HV_020_02
+Pathtable <- subset(Pathtable, select = -c(HV_016_02,HV_017_02,HV_018_02,HV_019_02,HV_020_02))
+#P24 Left
+Pathtable$P24_LH <- Pathtable$HV_021_04 + Pathtable$HV_022_03 + Pathtable$HV_023_03 + Pathtable$HV_024_03 + Pathtable$HV_025_04
+Pathtable <- subset(Pathtable, select = -c(HV_021_04,HV_022_03,HV_023_03,HV_024_03,HV_025_04))
+#P24 Right
+Pathtable$P24_RH <- Pathtable$HV_026_03 + Pathtable$HV_027_10 + Pathtable$HV_028_03 + Pathtable$HV_029_03 + Pathtable$HV_030_03
+Pathtable <- subset(Pathtable, select = -c(HV_026_03,HV_027_10,HV_028_03,HV_029_03,HV_030_03))
+#P24 Scalp
+Pathtable$P24_SC <- Pathtable$HV_016_03 + Pathtable$HV_017_03 + Pathtable$HV_018_03 + Pathtable$HV_019_03 + Pathtable$HV_021_01
+Pathtable <- subset(Pathtable, select = -c(HV_016_03,HV_017_03,HV_018_03,HV_019_03,HV_021_01))
+#P25 Left
+Pathtable$P25_LH <- Pathtable$HV_021_05 + Pathtable$HV_022_04 + Pathtable$HV_023_04 + Pathtable$HV_024_04 + Pathtable$HV_025_05
+Pathtable <- subset(Pathtable, select = -c(HV_021_05,HV_022_04,HV_023_04,HV_024_04,HV_025_05))
+#P25 Right
+Pathtable$P25_RH <- Pathtable$HV_026_04 + Pathtable$HV_027_11 + Pathtable$HV_028_04 + Pathtable$HV_029_04 + Pathtable$HV_030_04
+Pathtable <- subset(Pathtable, select = -c(HV_026_04,HV_027_11,HV_028_04,HV_029_04,HV_030_04))
+#P25 Scalp
+Pathtable$P25_SC <- Pathtable$HV_016_04 + Pathtable$HV_017_04 + Pathtable$HV_018_04 + Pathtable$HV_019_04 + Pathtable$HV_020_03
+Pathtable <- subset(Pathtable, select = -c(HV_016_04,HV_017_04,HV_018_04,HV_019_04,HV_020_03))
+#P26 Left
+Pathtable$P26_LH <- Pathtable$HV_021_06 + Pathtable$HV_022_05 + Pathtable$HV_023_05 + Pathtable$HV_024_05 + Pathtable$HV_025_06
+Pathtable <- subset(Pathtable, select = -c(HV_021_06,HV_022_05,HV_023_05,HV_024_05,HV_025_06))
+#P26 Right
+Pathtable$P26_RH <- Pathtable$HV_026_05 + Pathtable$HV_027_12 + Pathtable$HV_028_05 + Pathtable$HV_029_05 + Pathtable$HV_030_05
+Pathtable <- subset(Pathtable, select = -c(HV_026_05,HV_027_12,HV_028_05,HV_029_05,HV_030_05))
+#P26 Scalp
+Pathtable$P26_SC <- Pathtable$HV_016_05 + Pathtable$HV_017_05 + Pathtable$HV_018_05 + Pathtable$HV_019_05 + Pathtable$HV_020_04
+Pathtable <- subset(Pathtable, select = -c(HV_016_05,HV_017_05,HV_018_05,HV_019_05,HV_020_04))
+#P27 Left
+Pathtable$P27_LH <- Pathtable$HV_021_07 + Pathtable$HV_022_06 + Pathtable$HV_023_06 + Pathtable$HV_024_06 + Pathtable$HV_025_07
+Pathtable <- subset(Pathtable, select = -c(HV_021_07,HV_022_06,HV_023_06,HV_024_06,HV_025_07))
+#P27 Right
+Pathtable$P27_RH <- Pathtable$HV_026_06 + Pathtable$HV_027_13 + Pathtable$HV_028_06 + Pathtable$HV_029_06 + Pathtable$HV_030_06
+Pathtable <- subset(Pathtable, select = -c(HV_026_06,HV_027_13,HV_028_06,HV_029_06,HV_030_06))
+#P27 Scalp
+Pathtable$P27_SC <- Pathtable$HV_016_06 + Pathtable$HV_017_06 + Pathtable$HV_018_06 + Pathtable$HV_019_06 + Pathtable$HV_020_05
+Pathtable <- subset(Pathtable, select = -c(HV_016_06,HV_017_06,HV_018_06,HV_019_06,HV_020_05))
+#P28 Left
+Pathtable$P28_LH <- Pathtable$HV_021_08 + Pathtable$HV_022_07 + Pathtable$HV_023_07 + Pathtable$HV_024_07 + Pathtable$HV_025_08
+Pathtable <- subset(Pathtable, select = -c(HV_021_08,HV_022_07,HV_023_07,HV_024_07,HV_025_08))
+#P28 Right
+Pathtable$P28_RH <- Pathtable$HV_026_07 + Pathtable$HV_027_14 + Pathtable$HV_028_07 + Pathtable$HV_029_07 + Pathtable$HV_030_07
+Pathtable <- subset(Pathtable, select = -c(HV_026_07,HV_027_14,HV_028_07,HV_029_07,HV_030_07))
+#P28 Scalp
+Pathtable$P28_SC <- Pathtable$HV_016_07 + Pathtable$HV_017_07 + Pathtable$HV_018_07 + Pathtable$HV_019_07 + Pathtable$HV_020_06
+Pathtable <- subset(Pathtable, select = -c(HV_016_07,HV_017_07,HV_018_07,HV_019_07,HV_020_06))
+#P29 Left
+Pathtable$P29_LH <- Pathtable$HV_021_09 + Pathtable$HV_022_08 + Pathtable$HV_023_08 + Pathtable$HV_024_08 + Pathtable$HV_025_09
+Pathtable <- subset(Pathtable, select = -c(HV_021_09,HV_022_08,HV_023_08,HV_024_08,HV_025_09))
+#P29 Right
+Pathtable$P29_RH <- Pathtable$HV_026_08 + Pathtable$HV_027_15 + Pathtable$HV_028_08 + Pathtable$HV_029_08 + Pathtable$HV_030_08
+Pathtable <- subset(Pathtable, select = -c(HV_026_08,HV_027_15,HV_028_08,HV_029_08,HV_030_08))
+#P29 Scalp
+Pathtable$P29_SC <- Pathtable$HV_016_08 + Pathtable$HV_017_08 + Pathtable$HV_018_08 + Pathtable$HV_019_08 + Pathtable$HV_020_07
+Pathtable <- subset(Pathtable, select = -c(HV_016_08,HV_017_08,HV_018_08,HV_019_08,HV_020_07))
+#P31 Left
+Pathtable$P31_LH <- Pathtable$HV_021_11 + Pathtable$HV_022_10 + Pathtable$HV_023_10 + Pathtable$HV_024_10
+Pathtable <- subset(Pathtable, select = -c(HV_021_11,HV_022_10,HV_023_10,HV_024_10))
+#P31 Right
+Pathtable$P31_RH <- Pathtable$HV_026_10 + Pathtable$HV_027_18 + Pathtable$HV_028_10 + Pathtable$HV_029_10
+Pathtable <- subset(Pathtable, select = -c(HV_026_10,HV_027_18,HV_028_10,HV_029_10))
+#P31 Scalp
+Pathtable$P31_SC <- Pathtable$HV_016_10 + Pathtable$HV_017_10 + Pathtable$HV_018_10 + Pathtable$HV_019_10
+Pathtable <- subset(Pathtable, select = -c(HV_016_10,HV_017_10,HV_018_10,HV_019_10))
+#P34 Left
+Pathtable$P34_LH <- Pathtable$HV_021_14 + Pathtable$HV_022_12 + Pathtable$HV_023_12 + Pathtable$HV_024_12 + Pathtable$HV_025_12
+Pathtable <- subset(Pathtable, select = -c(HV_021_14,HV_022_12,HV_023_12,HV_024_12,HV_025_12))
+#P34 Right
+Pathtable$P34_RH <- Pathtable$HV_026_12 + Pathtable$HV_027_20 + Pathtable$HV_028_12 + Pathtable$HV_029_12 + Pathtable$HV_030_11
+Pathtable <- subset(Pathtable, select = -c(HV_026_12,HV_027_20,HV_028_12,HV_029_12,HV_030_11))
+#P34 Scalp
+Pathtable$P34_SC <- Pathtable$HV_016_12 + Pathtable$HV_017_12 + Pathtable$HV_018_12 + Pathtable$HV_019_12 + Pathtable$HV_020_11
+Pathtable <- subset(Pathtable, select = -c(HV_016_12,HV_017_12,HV_018_12,HV_019_12,HV_020_11))
+#P35 Left
+Pathtable$P35_LH <- Pathtable$HV_021_15 + Pathtable$HV_022_13 + Pathtable$HV_023_13 + Pathtable$HV_024_13 + Pathtable$HV_025_13
+Pathtable <- subset(Pathtable, select = -c(HV_021_15,HV_022_13,HV_023_13,HV_024_13,HV_025_13))
+#P35 Right
+Pathtable$P35_RH <- Pathtable$HV_026_13 + Pathtable$HV_027_21 + Pathtable$HV_028_13 + Pathtable$HV_029_13 + Pathtable$HV_030_12
+Pathtable <- subset(Pathtable, select = -c(HV_026_13,HV_027_21,HV_028_13,HV_029_13,HV_030_12))
+#P35 Scalp
+Pathtable$P35_SC <- Pathtable$HV_016_13 + Pathtable$HV_017_13 + Pathtable$HV_018_13 + Pathtable$HV_019_13 + Pathtable$HV_020_12
+Pathtable <- subset(Pathtable, select = -c(HV_016_13,HV_017_13,HV_018_13,HV_019_13,HV_020_12))
+#P36 Left
+Pathtable$P36_LH <- Pathtable$HV_021_16 + Pathtable$HV_022_14 + Pathtable$HV_023_14 + Pathtable$HV_024_14 + Pathtable$HV_025_14
+Pathtable <- subset(Pathtable, select = -c(HV_021_16,HV_022_14,HV_023_14,HV_024_14,HV_025_14))
+#P36 Right
+Pathtable$P36_RH <- Pathtable$HV_026_14 + Pathtable$HV_027_22 + Pathtable$HV_028_14 + Pathtable$HV_029_14 + Pathtable$HV_030_13
+Pathtable <- subset(Pathtable, select = -c(HV_026_14,HV_027_22,HV_028_14,HV_029_14,HV_030_13))
+#P36 Scalp
+Pathtable$P36_SC <- Pathtable$HV_016_14 + Pathtable$HV_017_14 + Pathtable$HV_018_14 + Pathtable$HV_019_14 + Pathtable$HV_020_13
+Pathtable <- subset(Pathtable, select = -c(HV_016_14,HV_017_14,HV_018_14,HV_019_14,HV_020_13))
+#P37 Left
+Pathtable$P37_LH <- Pathtable$HV_021_18 + Pathtable$HV_022_15 + Pathtable$HV_023_15 + Pathtable$HV_024_15 + Pathtable$HV_025_15
+Pathtable <- subset(Pathtable, select = -c(HV_021_18,HV_022_15,HV_023_15,HV_024_15,HV_025_15))
+#P37 Right
+Pathtable$P37_RH <- Pathtable$HV_026_15 + Pathtable$HV_028_15 + Pathtable$HV_029_15 + Pathtable$HV_030_14 + Pathtable$HV_030_22
+Pathtable <- subset(Pathtable, select = -c(HV_026_15,HV_028_15,HV_029_15,HV_030_14,HV_030_22))
+#P37 Scalp
+Pathtable$P37_SC <- Pathtable$HV_016_15 + Pathtable$HV_017_15 + Pathtable$HV_018_15 + Pathtable$HV_019_15 + Pathtable$HV_020_14
+Pathtable <- subset(Pathtable, select = -c(HV_016_15,HV_017_15,HV_018_15,HV_019_15,HV_020_14))
+#P38 Left
+Pathtable$P38_LH <- Pathtable$HV_021_19 + Pathtable$HV_022_16 + Pathtable$HV_023_16 + Pathtable$HV_024_16 + Pathtable$HV_025_16
+Pathtable <- subset(Pathtable, select = -c(HV_021_19,HV_022_16,HV_023_16,HV_024_16,HV_025_16))
+#P38 Right
+Pathtable$P38_RH <- Pathtable$HV_026_16 + Pathtable$HV_028_16 + Pathtable$HV_029_16 + Pathtable$HV_030_15 
+Pathtable <- subset(Pathtable, select = -c(HV_026_16,HV_028_16,HV_029_16,HV_030_15))
+#P38 Scalp
+Pathtable$P38_SC <- Pathtable$HV_016_16 + Pathtable$HV_017_16 + Pathtable$HV_018_16 + Pathtable$HV_019_16 + Pathtable$HV_020_15
+Pathtable <- subset(Pathtable, select = -c(HV_016_16,HV_017_16,HV_018_16,HV_019_16,HV_020_15))
+#P39 Left
+Pathtable$P39_LH <- Pathtable$HV_021_20 + Pathtable$HV_022_18 + Pathtable$HV_023_18 + Pathtable$HV_024_18 + Pathtable$HV_025_18
+Pathtable <- subset(Pathtable, select = -c(HV_021_20,HV_022_18,HV_023_18,HV_024_18,HV_025_18))
+#P39 Right
+Pathtable$P39_RH <- Pathtable$HV_026_18 + Pathtable$HV_028_18 + Pathtable$HV_029_18 + Pathtable$HV_030_16
+Pathtable <- subset(Pathtable, select = -c(HV_026_18,HV_028_18,HV_029_18,HV_030_16))
+#P39 Scalp
+Pathtable$P39_SC <- Pathtable$HV_016_18 + Pathtable$HV_017_18 + Pathtable$HV_018_18 + Pathtable$HV_019_18 + Pathtable$HV_020_16
+Pathtable <- subset(Pathtable, select = -c(HV_016_18,HV_017_18,HV_018_18,HV_019_18,HV_020_16))
+#P42 Left
+Pathtable$P42_LH <- Pathtable$HV_022_21 + Pathtable$HV_023_21 + Pathtable$HV_024_21 + Pathtable$HV_025_21 
+Pathtable <- subset(Pathtable, select = -c(HV_022_21,HV_023_21,HV_024_21,HV_025_21))
+#P42 Right
+Pathtable$P42_RH <- Pathtable$HV_026_21 + Pathtable$HV_028_21 + Pathtable$HV_029_21 + Pathtable$HV_030_20
+Pathtable <- subset(Pathtable, select = -c(HV_026_21,HV_028_21,HV_029_21,HV_030_20))
+#P42 Scalp
+Pathtable$P42_SC <- Pathtable$HV_016_21 + Pathtable$HV_017_21 + Pathtable$HV_018_21 + Pathtable$HV_019_21 + Pathtable$HV_020_20
+Pathtable <- subset(Pathtable, select = -c(HV_016_21,HV_017_21,HV_018_21,HV_019_21,HV_020_20))
+#P43 Left
+Pathtable$P43_LH <- Pathtable$HV_022_22 + Pathtable$HV_023_22 + Pathtable$HV_024_22 + Pathtable$HV_025_01 + Pathtable$HV_025_22
+Pathtable <- subset(Pathtable, select = -c(HV_022_22,HV_023_22,HV_024_22,HV_025_01,HV_025_22))
+#P43 Right
+Pathtable$P43_RH <- Pathtable$HV_026_22 + Pathtable$HV_028_22 + Pathtable$HV_029_22 + Pathtable$HV_030_21
+Pathtable <- subset(Pathtable, select = -c(HV_026_22,HV_028_22,HV_029_22,HV_030_21))
+#P43 Scalp
+Pathtable$P43_SC <- Pathtable$HV_016_22 + Pathtable$HV_017_22 + Pathtable$HV_018_22 + Pathtable$HV_019_22 + Pathtable$HV_020_21
+Pathtable <- subset(Pathtable, select = -c(HV_016_22,HV_017_22,HV_018_22,HV_019_22,HV_020_21))
+```
+```{r,message=FALSE,warning=FALSE,results="hide"}
+HM_Pathtable<-Pathtable
+row.names(HM_Pathtable)<-HM_Pathtable$Pathway
+HM_Pathtable<-subset(HM_Pathtable, select = -c(Pathway))
+HM_Pathtable<-as.matrix(HM_Pathtable)
+pheatmaps.obj<-pheatmap(HM_Pathtable, cluster_cols = FALSE,cellheight = 11,cellwidth = 11,fontsize = 12,gaps_col = c(3,6,9,12,15,18,21,24,27,30,33,36,39,42,45,48,51,54,57,60,63,66,69,72,75,78,81,84,87,90,93,96,99,102,105,108) ,filename = "Heatmap_Pathway_Prevalence.pdf")
+```
+Abundance Heatmap (Metabolism)
+```{r,message=FALSE,warning=FALSE,results="hide"}
+Metabtable <- Metabolism_Counts %>% mutate_if(is.numeric, ~1 * (. != 0))
+#P02 Left
+Metabtable$P02_LH <- Metabtable$HV_001_04 + Metabtable$HV_002_04 + Metabtable$HV_003_04 + Metabtable$HV_004_04 + Metabtable$HV_005_04
+Metabtable <- subset(Metabtable, select = -c(HV_001_04,HV_002_04,HV_003_04,HV_004_04,HV_005_04 ))
+#P02 Right
+Metabtable$P02_RH <- Metabtable$HV_001_05 + Metabtable$HV_002_05 + Metabtable$HV_003_05 + Metabtable$HV_004_05 + Metabtable$HV_005_05
+Metabtable <- subset(Metabtable, select = -c(HV_001_05,HV_002_05,HV_003_05,HV_004_05,HV_005_05 ))
+#P02 Scalp
+Metabtable$P02_SC <- Metabtable$HV_001_06 + Metabtable$HV_002_06 + Metabtable$HV_003_06 + Metabtable$HV_004_06 + Metabtable$HV_005_06
+Metabtable <- subset(Metabtable, select = -c(HV_001_06,HV_002_06,HV_003_06,HV_004_06,HV_005_06 ))
+#P03 Left
+Metabtable$P03_LH <- Metabtable$HV_001_07 + Metabtable$HV_002_07 + Metabtable$HV_003_07 + Metabtable$HV_004_07 + Metabtable$HV_005_07
+Metabtable <- subset(Metabtable, select = -c(HV_001_07,HV_002_07,HV_003_07,HV_004_07,HV_005_07 ))
+#P03 Right
+Metabtable$P03_RH <- Metabtable$HV_001_08 + Metabtable$HV_002_08 + Metabtable$HV_003_08 + Metabtable$HV_004_08 + Metabtable$HV_005_08
+Metabtable <- subset(Metabtable, select = -c(HV_001_08,HV_002_08,HV_003_08,HV_004_08,HV_005_08 ))
+#P03 Scalp
+Metabtable$P03_SC <- Metabtable$HV_001_09 + Metabtable$HV_002_09 + Metabtable$HV_003_09 + Metabtable$HV_004_09 + Metabtable$HV_005_09
+Metabtable <- subset(Metabtable, select = -c(HV_001_09,HV_002_09,HV_003_09,HV_004_09,HV_005_09 ))
+#P04 Left
+Metabtable$P04_LH <- Metabtable$HV_001_10 + Metabtable$HV_002_10 + Metabtable$HV_003_10 + Metabtable$HV_004_10 + Metabtable$HV_005_10
+Metabtable <- subset(Metabtable, select = -c(HV_001_10,HV_002_10,HV_003_10,HV_004_10,HV_005_10 ))
+#P04 Right
+Metabtable$P04_RH <- Metabtable$HV_001_11 + Metabtable$HV_002_11 + Metabtable$HV_003_11 + Metabtable$HV_004_11 + Metabtable$HV_005_11
+Metabtable <- subset(Metabtable, select = -c(HV_001_11,HV_002_11,HV_003_11,HV_004_11,HV_005_11 ))
+#P04 Scalp
+Metabtable$P04_SC <- Metabtable$HV_001_12 + Metabtable$HV_002_12 + Metabtable$HV_003_12 + Metabtable$HV_004_12 + Metabtable$HV_005_12
+Metabtable <- subset(Metabtable, select = -c(HV_001_12,HV_002_12,HV_003_12,HV_004_12,HV_005_12 ))
+#P05 Left
+Metabtable$P05_LH <- Metabtable$HV_001_13 + Metabtable$HV_002_13 + Metabtable$HV_003_13 + Metabtable$HV_004_13 + Metabtable$HV_005_13
+Metabtable <- subset(Metabtable, select = -c(HV_001_13,HV_002_13,HV_003_13,HV_004_13,HV_005_13 ))
+#P05 Right
+Metabtable$P05_RH <- Metabtable$HV_001_14 + Metabtable$HV_002_14 + Metabtable$HV_003_14 + Metabtable$HV_004_14 + Metabtable$HV_005_14
+Metabtable <- subset(Metabtable, select = -c(HV_001_14,HV_002_14,HV_003_14,HV_004_14,HV_005_14 ))
+#P05 Scalp
+Metabtable$P05_SC <- Metabtable$HV_001_15 + Metabtable$HV_002_15 + Metabtable$HV_003_15  + Metabtable$HV_004_15 + Metabtable$HV_005_15
+Metabtable <- subset(Metabtable, select = -c(HV_001_15,HV_002_15, HV_003_15, HV_004_15,HV_005_15))
+#P06 Left
+Metabtable$P06_LH <- Metabtable$HV_001_16 + Metabtable$HV_003_16 + Metabtable$HV_004_16 + Metabtable$HV_005_16 + Metabtable$HV_005_19
+Metabtable <- subset(Metabtable, select = -c(HV_001_16,HV_003_16,HV_004_16,HV_005_16, HV_005_19 ))
+#P06 Right
+Metabtable$P06_RH <- Metabtable$HV_001_18 + Metabtable$HV_002_18 + Metabtable$HV_003_18 + Metabtable$HV_004_18 + Metabtable$HV_005_18
+Metabtable <- subset(Metabtable, select = -c(HV_001_18,HV_002_18,HV_003_18,HV_004_18,HV_005_18 ))
+#P06 Scalp
+Metabtable$P06_SC <- Metabtable$HV_001_19 + Metabtable$HV_002_19 + Metabtable$HV_003_19 + Metabtable$HV_004_19 
+Metabtable <- subset(Metabtable, select = -c(HV_001_19,HV_002_19,HV_003_19,HV_004_19 ))
+#P07 Left
+Metabtable$P07_LH <- Metabtable$HV_001_20 + Metabtable$HV_002_20 + Metabtable$HV_003_20 + Metabtable$HV_004_20 + Metabtable$HV_005_20
+Metabtable <- subset(Metabtable, select = -c(HV_001_20,HV_002_20,HV_003_20,HV_004_20,HV_005_20 ))
+#P07 Right
+Metabtable$P07_RH <- Metabtable$HV_001_21 + Metabtable$HV_002_21 + Metabtable$HV_003_21 + Metabtable$HV_004_21 
+Metabtable <- subset(Metabtable, select = -c(HV_001_21,HV_002_21,HV_003_21,HV_004_21 ))
+#P07 Scalp
+Metabtable$P07_SC <- Metabtable$HV_001_22 + Metabtable$HV_002_22 + Metabtable$HV_003_22 + Metabtable$HV_004_22 + Metabtable$HV_005_22
+Metabtable <- subset(Metabtable, select = -c(HV_001_22,HV_002_22,HV_003_22,HV_004_22,HV_005_22 ))
+#P08 Left
+Metabtable$P08_LH <- Metabtable$HV_006_01 + Metabtable$HV_007_01 + Metabtable$HV_008_01 + Metabtable$HV_009_01 + Metabtable$HV_010_01
+Metabtable <- subset(Metabtable, select = -c(HV_006_01,HV_007_01,HV_008_01,HV_009_01,HV_010_01))
+#P08 Right
+Metabtable$P08_RH <- Metabtable$HV_006_02 + Metabtable$HV_007_02 + Metabtable$HV_008_02 + Metabtable$HV_010_02
+Metabtable <- subset(Metabtable, select = -c(HV_006_02,HV_007_02,HV_008_02,HV_010_02))
+#P08 Scalp
+Metabtable$P08_SC <- Metabtable$HV_006_03 + Metabtable$HV_007_03 + Metabtable$HV_008_03 + Metabtable$HV_009_03 + Metabtable$HV_010_03
+Metabtable <- subset(Metabtable, select = -c(HV_006_03,HV_007_03,HV_008_03,HV_009_03,HV_010_03))
+#P09 Left
+Metabtable$P09_LH <- Metabtable$HV_006_04 + Metabtable$HV_007_04 + Metabtable$HV_008_04 + Metabtable$HV_009_04 + Metabtable$HV_010_04
+Metabtable <- subset(Metabtable, select = -c(HV_006_04,HV_007_04,HV_008_04,HV_009_04,HV_010_04))
+#P09 Right
+Metabtable$P09_RH <- Metabtable$HV_006_05 + Metabtable$HV_007_05 + Metabtable$HV_008_05 + Metabtable$HV_009_05 + Metabtable$HV_010_05
+Metabtable <- subset(Metabtable, select = -c(HV_006_05,HV_007_05,HV_008_05,HV_009_05,HV_010_05))
+#P09 Scalp
+Metabtable$P09_SC <- Metabtable$HV_006_06 + Metabtable$HV_007_06 + Metabtable$HV_008_06 + Metabtable$HV_009_06 + Metabtable$HV_010_06
+Metabtable <- subset(Metabtable, select = -c(HV_006_06,HV_007_06,HV_008_06,HV_009_06,HV_010_06))
+#P10 Left
+Metabtable$P10_LH <- Metabtable$HV_006_07 + Metabtable$HV_007_07 + Metabtable$HV_008_07 + Metabtable$HV_009_07 + Metabtable$HV_010_07
+Metabtable <- subset(Metabtable, select = -c(HV_006_07,HV_007_07,HV_008_07,HV_009_07,HV_010_07))
+#P10 Right
+Metabtable$P10_RH <- Metabtable$HV_006_08 + Metabtable$HV_007_08 + Metabtable$HV_008_08 + Metabtable$HV_009_08 + Metabtable$HV_010_08
+Metabtable <- subset(Metabtable, select = -c(HV_006_08,HV_007_08,HV_008_08,HV_009_08,HV_010_08))
+#P10 Scalp
+Metabtable$P10_SC <- Metabtable$HV_006_09 + Metabtable$HV_007_09 + Metabtable$HV_008_09 + Metabtable$HV_009_09 + Metabtable$HV_010_09
+Metabtable <- subset(Metabtable, select = -c(HV_006_09,HV_007_09,HV_008_09,HV_009_09,HV_010_09))
+#P11 Left
+Metabtable$P11_LH <- Metabtable$HV_006_10 + Metabtable$HV_007_10 + Metabtable$HV_008_10 + Metabtable$HV_009_10 + Metabtable$HV_010_10
+Metabtable <- subset(Metabtable, select = -c(HV_006_10,HV_007_10,HV_008_10,HV_009_10,HV_010_10))
+#P11 Right
+Metabtable$P11_RH <- Metabtable$HV_006_11 + Metabtable$HV_007_11 + Metabtable$HV_008_11 + Metabtable$HV_009_11 + Metabtable$HV_010_11
+Metabtable <- subset(Metabtable, select = -c(HV_006_11,HV_007_11,HV_008_11,HV_009_11,HV_010_11))
+#P11 Scalp
+Metabtable$P11_SC <- Metabtable$HV_006_12 + Metabtable$HV_007_12 + Metabtable$HV_008_12 + Metabtable$HV_009_12 + Metabtable$HV_010_12
+Metabtable <- subset(Metabtable, select = -c(HV_006_12,HV_007_12,HV_008_12,HV_009_12,HV_010_12))
+#P12 Left
+Metabtable$P12_LH <- Metabtable$HV_006_13 + Metabtable$HV_007_13 + Metabtable$HV_008_13 + Metabtable$HV_009_13 + Metabtable$HV_010_13
+Metabtable <- subset(Metabtable, select = -c(HV_006_13,HV_007_13,HV_008_13,HV_009_13,HV_010_13))
+#P12 Right
+Metabtable$P12_RH <- Metabtable$HV_006_14 + Metabtable$HV_007_14 + Metabtable$HV_008_14 + Metabtable$HV_009_14 + Metabtable$HV_010_14
+Metabtable <- subset(Metabtable, select = -c(HV_006_14,HV_007_14,HV_008_14,HV_009_14,HV_010_14))
+#P12 Scalp
+Metabtable$P12_SC <- Metabtable$HV_006_15 + Metabtable$HV_007_15 + Metabtable$HV_008_15 + Metabtable$HV_009_15 + Metabtable$HV_010_15
+Metabtable <- subset(Metabtable, select = -c(HV_006_15,HV_007_15,HV_008_15,HV_009_15,HV_010_15))
+#P13 Left
+Metabtable$P13_LH <- Metabtable$HV_006_16 + Metabtable$HV_007_16 + Metabtable$HV_008_16 + Metabtable$HV_009_16 + Metabtable$HV_010_16
+Metabtable <- subset(Metabtable, select = -c(HV_006_16,HV_007_16,HV_008_16,HV_009_16,HV_010_16))
+#P13 Right
+Metabtable$P13_RH <- Metabtable$HV_006_18 + Metabtable$HV_007_18 + Metabtable$HV_008_18 + Metabtable$HV_009_18 + Metabtable$HV_010_18
+Metabtable <- subset(Metabtable, select = -c(HV_006_18,HV_007_18,HV_008_18,HV_009_18,HV_010_18))
+#P13 Scalp
+Metabtable$P13_SC <- Metabtable$HV_006_19 + Metabtable$HV_007_19 + Metabtable$HV_008_19 + Metabtable$HV_009_19 + Metabtable$HV_010_19
+Metabtable <- subset(Metabtable, select = -c(HV_006_19,HV_007_19,HV_008_19,HV_009_19,HV_010_19))
+#P14 Left
+Metabtable$P14_LH <- Metabtable$HV_006_20 + Metabtable$HV_007_20 + Metabtable$HV_008_20 + Metabtable$HV_009_20 + Metabtable$HV_010_20
+Metabtable <- subset(Metabtable, select = -c(HV_006_20,HV_007_20,HV_008_20,HV_009_20,HV_010_20))
+#P14 Right
+Metabtable$P14_RH <- Metabtable$HV_006_21 + Metabtable$HV_007_21 + Metabtable$HV_008_21 + Metabtable$HV_009_21 + Metabtable$HV_010_21
+Metabtable <- subset(Metabtable, select = -c(HV_006_21,HV_007_21,HV_008_21,HV_009_21,HV_010_21))
+#P14 Scalp
+Metabtable$P14_SC <- Metabtable$HV_006_22 + Metabtable$HV_007_22 + Metabtable$HV_008_22 + Metabtable$HV_009_22 + Metabtable$HV_010_22
+Metabtable <- subset(Metabtable, select = -c(HV_006_22,HV_007_22,HV_008_22,HV_009_22,HV_010_22))
+#P15 Left
+Metabtable$P15_LH <- Metabtable$HV_011_01 + Metabtable$HV_012_01 + Metabtable$HV_013_01 + Metabtable$HV_014_01 + Metabtable$HV_015_01
+Metabtable <- subset(Metabtable, select = -c(HV_011_01,HV_012_01,HV_013_01,HV_014_01,HV_015_01))
+#P15 Right
+Metabtable$P15_RH <- Metabtable$HV_011_02 + Metabtable$HV_012_02 + Metabtable$HV_013_02 + Metabtable$HV_014_02 + Metabtable$HV_015_02
+Metabtable <- subset(Metabtable, select = -c(HV_011_02,HV_012_02,HV_013_02,HV_014_02,HV_015_02))
+#P15 Scalp
+Metabtable$P15_SC <- Metabtable$HV_011_03 + Metabtable$HV_012_03 + Metabtable$HV_013_03 + Metabtable$HV_014_03 + Metabtable$HV_015_03
+Metabtable <- subset(Metabtable, select = -c(HV_011_03,HV_012_03,HV_013_03,HV_014_03,HV_015_03))
+#P16 Left
+Metabtable$P16_LH <- Metabtable$HV_011_04 + Metabtable$HV_012_04 + Metabtable$HV_013_04 + Metabtable$HV_014_04 + Metabtable$HV_015_04
+Metabtable <- subset(Metabtable, select = -c(HV_011_04,HV_012_04,HV_013_04,HV_014_04,HV_015_04))
+#P16 Right
+Metabtable$P16_RH <- Metabtable$HV_011_05 + Metabtable$HV_012_05 + Metabtable$HV_013_05 + Metabtable$HV_014_05 + Metabtable$HV_015_05
+Metabtable <- subset(Metabtable, select = -c(HV_011_05,HV_012_05,HV_013_05,HV_014_05,HV_015_05))
+#P16 Scalp
+Metabtable$P16_SC <- Metabtable$HV_011_06 + Metabtable$HV_012_06 ++ Metabtable$HV_014_06 + Metabtable$HV_015_06
+Metabtable <- subset(Metabtable, select = -c(HV_011_06,HV_012_06,HV_014_06,HV_015_06))
+#P17 Left
+Metabtable$P17_LH <- Metabtable$HV_011_07 + Metabtable$HV_012_07 + Metabtable$HV_013_07 + Metabtable$HV_014_07 + Metabtable$HV_015_07
+Metabtable <- subset(Metabtable, select = -c(HV_011_07,HV_012_07,HV_013_07,HV_014_07,HV_015_07))
+#P17 Right
+Metabtable$P17_RH <- Metabtable$HV_011_08 + Metabtable$HV_012_08 + Metabtable$HV_013_08 + Metabtable$HV_014_08 + Metabtable$HV_015_08
+Metabtable <- subset(Metabtable, select = -c(HV_011_08,HV_012_08,HV_013_08,HV_014_08,HV_015_08))
+#P17 Scalp
+Metabtable$P17_SC <- Metabtable$HV_011_09 + Metabtable$HV_012_09 + Metabtable$HV_013_09 + Metabtable$HV_014_09 + Metabtable$HV_015_09
+Metabtable <- subset(Metabtable, select = -c(HV_011_09,HV_012_09,HV_013_09,HV_014_09,HV_015_09))
+#P18 Left
+Metabtable$P18_LH <- Metabtable$HV_011_10 + Metabtable$HV_012_10 + Metabtable$HV_013_10 + Metabtable$HV_014_10 + Metabtable$HV_015_10
+Metabtable <- subset(Metabtable, select = -c(HV_011_10,HV_012_10,HV_013_10,HV_014_10,HV_015_10))
+#P18 Right
+Metabtable$P18_RH <- Metabtable$HV_011_11 + Metabtable$HV_012_11 + Metabtable$HV_013_11 + Metabtable$HV_014_11 + Metabtable$HV_015_11
+Metabtable <- subset(Metabtable, select = -c(HV_011_11,HV_012_11,HV_013_11,HV_014_11,HV_015_11))
+#P18 Scalp
+Metabtable$P18_SC <- Metabtable$HV_011_12 + Metabtable$HV_012_12 + Metabtable$HV_013_12 + Metabtable$HV_014_12 + Metabtable$HV_015_12
+Metabtable <- subset(Metabtable, select = -c(HV_011_12,HV_012_12,HV_013_12,HV_014_12,HV_015_12))
+#P19 Left
+Metabtable$P19_LH <- Metabtable$HV_011_13 + Metabtable$HV_012_13 + Metabtable$HV_013_13 + Metabtable$HV_014_13 + Metabtable$HV_015_13
+Metabtable <- subset(Metabtable, select = -c(HV_011_13,HV_012_13,HV_013_13,HV_014_13,HV_015_13))
+#P19 Right
+Metabtable$P19_RH <- Metabtable$HV_011_14 + Metabtable$HV_012_14 + Metabtable$HV_013_14 + Metabtable$HV_014_14 + Metabtable$HV_015_14
+Metabtable <- subset(Metabtable, select = -c(HV_011_14,HV_012_14,HV_013_14,HV_014_14,HV_015_14))
+#P19 Scalp
+Metabtable$P19_SC <- Metabtable$HV_011_15 + Metabtable$HV_012_15 + Metabtable$HV_013_15 + Metabtable$HV_014_15 + Metabtable$HV_015_15
+Metabtable <- subset(Metabtable, select = -c(HV_011_15,HV_012_15,HV_013_15,HV_014_15,HV_015_15))
+#P20 Left
+Metabtable$P20_LH <- Metabtable$HV_011_16 + Metabtable$HV_012_16 + Metabtable$HV_013_16 + Metabtable$HV_014_16 + Metabtable$HV_015_16
+Metabtable <- subset(Metabtable, select = -c(HV_011_16,HV_012_16,HV_013_16,HV_014_16,HV_015_16))
+#P20 Right
+Metabtable$P20_RH <- Metabtable$HV_011_18 + Metabtable$HV_012_18 + Metabtable$HV_013_18 + Metabtable$HV_014_18 + Metabtable$HV_015_18
+Metabtable <- subset(Metabtable, select = -c(HV_011_18,HV_012_18,HV_013_18,HV_014_18,HV_015_18))
+#P20 Scalp
+Metabtable$P20_SC <- Metabtable$HV_011_19 + Metabtable$HV_012_19 + Metabtable$HV_013_19 + Metabtable$HV_014_19 + Metabtable$HV_015_19
+Metabtable <- subset(Metabtable, select = -c(HV_011_19,HV_012_19,HV_013_19,HV_014_19,HV_015_19))
+#P21 Left
+Metabtable$P21_LH <- Metabtable$HV_011_20 + Metabtable$HV_012_20 + Metabtable$HV_013_20 + Metabtable$HV_014_20
+Metabtable <- subset(Metabtable, select = -c(HV_011_20,HV_012_20,HV_013_20,HV_014_20))
+#P21 Right
+Metabtable$P21_RH <- Metabtable$HV_011_21 + Metabtable$HV_012_21 + Metabtable$HV_013_21 + Metabtable$HV_014_21
+Metabtable <- subset(Metabtable, select = -c(HV_011_21,HV_012_21,HV_013_21,HV_014_21))
+#P21 Scalp
+Metabtable$P21_SC <- Metabtable$HV_011_22 + Metabtable$HV_012_22 + Metabtable$HV_013_22 + Metabtable$HV_014_22
+Metabtable <- subset(Metabtable, select = -c(HV_011_22,HV_012_22,HV_013_22,HV_014_22))
+#P22 Left
+Metabtable$P22_LH <- Metabtable$HV_021_02 + Metabtable$HV_022_01 + Metabtable$HV_023_01 + Metabtable$HV_024_01 + Metabtable$HV_025_02
+Metabtable <- subset(Metabtable, select = -c(HV_021_02,HV_022_01,HV_023_01,HV_024_01,HV_025_02))
+#P22 Right
+Metabtable$P22_RH <- Metabtable$HV_026_01 + Metabtable$HV_027_08 + Metabtable$HV_028_01 + Metabtable$HV_029_01 + Metabtable$HV_030_01
+Metabtable <- subset(Metabtable, select = -c(HV_026_01,HV_027_08,HV_028_01,HV_029_01,HV_030_01))
+#P22 Scalp
+Metabtable$P22_SC <- Metabtable$HV_016_01 + Metabtable$HV_017_01 + Metabtable$HV_018_01 + Metabtable$HV_019_01 + Metabtable$HV_020_01
+Metabtable <- subset(Metabtable, select = -c(HV_016_01,HV_017_01,HV_018_01,HV_019_01,HV_020_01))
+#P23 Left
+Metabtable$P23_LH <- Metabtable$HV_021_03 + Metabtable$HV_022_02 + Metabtable$HV_023_02 + Metabtable$HV_024_02 + Metabtable$HV_025_03
+Metabtable <- subset(Metabtable, select = -c(HV_021_03,HV_022_02,HV_023_02,HV_024_02,HV_025_03))
+#P23 Right
+Metabtable$P23_RH <- Metabtable$HV_026_02 + Metabtable$HV_027_09 + Metabtable$HV_028_02 + Metabtable$HV_029_02 + Metabtable$HV_030_02
+Metabtable <- subset(Metabtable, select = -c(HV_026_02,HV_027_09,HV_028_02,HV_029_02,HV_030_02))
+#P23 Scalp
+Metabtable$P23_SC <- Metabtable$HV_016_02 + Metabtable$HV_017_02 + Metabtable$HV_018_02 + Metabtable$HV_019_02 + Metabtable$HV_020_02
+Metabtable <- subset(Metabtable, select = -c(HV_016_02,HV_017_02,HV_018_02,HV_019_02,HV_020_02))
+#P24 Left
+Metabtable$P24_LH <- Metabtable$HV_021_04 + Metabtable$HV_022_03 + Metabtable$HV_023_03 + Metabtable$HV_024_03 + Metabtable$HV_025_04
+Metabtable <- subset(Metabtable, select = -c(HV_021_04,HV_022_03,HV_023_03,HV_024_03,HV_025_04))
+#P24 Right
+Metabtable$P24_RH <- Metabtable$HV_026_03 + Metabtable$HV_027_10 + Metabtable$HV_028_03 + Metabtable$HV_029_03 + Metabtable$HV_030_03
+Metabtable <- subset(Metabtable, select = -c(HV_026_03,HV_027_10,HV_028_03,HV_029_03,HV_030_03))
+#P24 Scalp
+Metabtable$P24_SC <- Metabtable$HV_016_03 + Metabtable$HV_017_03 + Metabtable$HV_018_03 + Metabtable$HV_019_03 + Metabtable$HV_021_01
+Metabtable <- subset(Metabtable, select = -c(HV_016_03,HV_017_03,HV_018_03,HV_019_03,HV_021_01))
+#P25 Left
+Metabtable$P25_LH <- Metabtable$HV_021_05 + Metabtable$HV_022_04 + Metabtable$HV_023_04 + Metabtable$HV_024_04 + Metabtable$HV_025_05
+Metabtable <- subset(Metabtable, select = -c(HV_021_05,HV_022_04,HV_023_04,HV_024_04,HV_025_05))
+#P25 Right
+Metabtable$P25_RH <- Metabtable$HV_026_04 + Metabtable$HV_027_11 + Metabtable$HV_028_04 + Metabtable$HV_029_04 + Metabtable$HV_030_04
+Metabtable <- subset(Metabtable, select = -c(HV_026_04,HV_027_11,HV_028_04,HV_029_04,HV_030_04))
+#P25 Scalp
+Metabtable$P25_SC <- Metabtable$HV_016_04 + Metabtable$HV_017_04 + Metabtable$HV_018_04 + Metabtable$HV_019_04 + Metabtable$HV_020_03
+Metabtable <- subset(Metabtable, select = -c(HV_016_04,HV_017_04,HV_018_04,HV_019_04,HV_020_03))
+#P26 Left
+Metabtable$P26_LH <- Metabtable$HV_021_06 + Metabtable$HV_022_05 + Metabtable$HV_023_05 + Metabtable$HV_024_05 + Metabtable$HV_025_06
+Metabtable <- subset(Metabtable, select = -c(HV_021_06,HV_022_05,HV_023_05,HV_024_05,HV_025_06))
+#P26 Right
+Metabtable$P26_RH <- Metabtable$HV_026_05 + Metabtable$HV_027_12 + Metabtable$HV_028_05 + Metabtable$HV_029_05 + Metabtable$HV_030_05
+Metabtable <- subset(Metabtable, select = -c(HV_026_05,HV_027_12,HV_028_05,HV_029_05,HV_030_05))
+#P26 Scalp
+Metabtable$P26_SC <- Metabtable$HV_016_05 + Metabtable$HV_017_05 + Metabtable$HV_018_05 + Metabtable$HV_019_05 + Metabtable$HV_020_04
+Metabtable <- subset(Metabtable, select = -c(HV_016_05,HV_017_05,HV_018_05,HV_019_05,HV_020_04))
+#P27 Left
+Metabtable$P27_LH <- Metabtable$HV_021_07 + Metabtable$HV_022_06 + Metabtable$HV_023_06 + Metabtable$HV_024_06 + Metabtable$HV_025_07
+Metabtable <- subset(Metabtable, select = -c(HV_021_07,HV_022_06,HV_023_06,HV_024_06,HV_025_07))
+#P27 Right
+Metabtable$P27_RH <- Metabtable$HV_026_06 + Metabtable$HV_027_13 + Metabtable$HV_028_06 + Metabtable$HV_029_06 + Metabtable$HV_030_06
+Metabtable <- subset(Metabtable, select = -c(HV_026_06,HV_027_13,HV_028_06,HV_029_06,HV_030_06))
+#P27 Scalp
+Metabtable$P27_SC <- Metabtable$HV_016_06 + Metabtable$HV_017_06 + Metabtable$HV_018_06 + Metabtable$HV_019_06 + Metabtable$HV_020_05
+Metabtable <- subset(Metabtable, select = -c(HV_016_06,HV_017_06,HV_018_06,HV_019_06,HV_020_05))
+#P28 Left
+Metabtable$P28_LH <- Metabtable$HV_021_08 + Metabtable$HV_022_07 + Metabtable$HV_023_07 + Metabtable$HV_024_07 + Metabtable$HV_025_08
+Metabtable <- subset(Metabtable, select = -c(HV_021_08,HV_022_07,HV_023_07,HV_024_07,HV_025_08))
+#P28 Right
+Metabtable$P28_RH <- Metabtable$HV_026_07 + Metabtable$HV_027_14 + Metabtable$HV_028_07 + Metabtable$HV_029_07 + Metabtable$HV_030_07
+Metabtable <- subset(Metabtable, select = -c(HV_026_07,HV_027_14,HV_028_07,HV_029_07,HV_030_07))
+#P28 Scalp
+Metabtable$P28_SC <- Metabtable$HV_016_07 + Metabtable$HV_017_07 + Metabtable$HV_018_07 + Metabtable$HV_019_07 + Metabtable$HV_020_06
+Metabtable <- subset(Metabtable, select = -c(HV_016_07,HV_017_07,HV_018_07,HV_019_07,HV_020_06))
+#P29 Left
+Metabtable$P29_LH <- Metabtable$HV_021_09 + Metabtable$HV_022_08 + Metabtable$HV_023_08 + Metabtable$HV_024_08 + Metabtable$HV_025_09
+Metabtable <- subset(Metabtable, select = -c(HV_021_09,HV_022_08,HV_023_08,HV_024_08,HV_025_09))
+#P29 Right
+Metabtable$P29_RH <- Metabtable$HV_026_08 + Metabtable$HV_027_15 + Metabtable$HV_028_08 + Metabtable$HV_029_08 + Metabtable$HV_030_08
+Metabtable <- subset(Metabtable, select = -c(HV_026_08,HV_027_15,HV_028_08,HV_029_08,HV_030_08))
+#P29 Scalp
+Metabtable$P29_SC <- Metabtable$HV_016_08 + Metabtable$HV_017_08 + Metabtable$HV_018_08 + Metabtable$HV_019_08 + Metabtable$HV_020_07
+Metabtable <- subset(Metabtable, select = -c(HV_016_08,HV_017_08,HV_018_08,HV_019_08,HV_020_07))
+#P31 Left
+Metabtable$P31_LH <- Metabtable$HV_021_11 + Metabtable$HV_022_10 + Metabtable$HV_023_10 + Metabtable$HV_024_10
+Metabtable <- subset(Metabtable, select = -c(HV_021_11,HV_022_10,HV_023_10,HV_024_10))
+#P31 Right
+Metabtable$P31_RH <- Metabtable$HV_026_10 + Metabtable$HV_027_18 + Metabtable$HV_028_10 + Metabtable$HV_029_10
+Metabtable <- subset(Metabtable, select = -c(HV_026_10,HV_027_18,HV_028_10,HV_029_10))
+#P31 Scalp
+Metabtable$P31_SC <- Metabtable$HV_016_10 + Metabtable$HV_017_10 + Metabtable$HV_018_10 + Metabtable$HV_019_10
+Metabtable <- subset(Metabtable, select = -c(HV_016_10,HV_017_10,HV_018_10,HV_019_10))
+#P34 Left
+Metabtable$P34_LH <- Metabtable$HV_021_14 + Metabtable$HV_022_12 + Metabtable$HV_023_12 + Metabtable$HV_024_12 + Metabtable$HV_025_12
+Metabtable <- subset(Metabtable, select = -c(HV_021_14,HV_022_12,HV_023_12,HV_024_12,HV_025_12))
+#P34 Right
+Metabtable$P34_RH <- Metabtable$HV_026_12 + Metabtable$HV_027_20 + Metabtable$HV_028_12 + Metabtable$HV_029_12 + Metabtable$HV_030_11
+Metabtable <- subset(Metabtable, select = -c(HV_026_12,HV_027_20,HV_028_12,HV_029_12,HV_030_11))
+#P34 Scalp
+Metabtable$P34_SC <- Metabtable$HV_016_12 + Metabtable$HV_017_12 + Metabtable$HV_018_12 + Metabtable$HV_019_12 + Metabtable$HV_020_11
+Metabtable <- subset(Metabtable, select = -c(HV_016_12,HV_017_12,HV_018_12,HV_019_12,HV_020_11))
+#P35 Left
+Metabtable$P35_LH <- Metabtable$HV_021_15 + Metabtable$HV_022_13 + Metabtable$HV_023_13 + Metabtable$HV_024_13 + Metabtable$HV_025_13
+Metabtable <- subset(Metabtable, select = -c(HV_021_15,HV_022_13,HV_023_13,HV_024_13,HV_025_13))
+#P35 Right
+Metabtable$P35_RH <- Metabtable$HV_026_13 + Metabtable$HV_027_21 + Metabtable$HV_028_13 + Metabtable$HV_029_13 + Metabtable$HV_030_12
+Metabtable <- subset(Metabtable, select = -c(HV_026_13,HV_027_21,HV_028_13,HV_029_13,HV_030_12))
+#P35 Scalp
+Metabtable$P35_SC <- Metabtable$HV_016_13 + Metabtable$HV_017_13 + Metabtable$HV_018_13 + Metabtable$HV_019_13 + Metabtable$HV_020_12
+Metabtable <- subset(Metabtable, select = -c(HV_016_13,HV_017_13,HV_018_13,HV_019_13,HV_020_12))
+#P36 Left
+Metabtable$P36_LH <- Metabtable$HV_021_16 + Metabtable$HV_022_14 + Metabtable$HV_023_14 + Metabtable$HV_024_14 + Metabtable$HV_025_14
+Metabtable <- subset(Metabtable, select = -c(HV_021_16,HV_022_14,HV_023_14,HV_024_14,HV_025_14))
+#P36 Right
+Metabtable$P36_RH <- Metabtable$HV_026_14 + Metabtable$HV_027_22 + Metabtable$HV_028_14 + Metabtable$HV_029_14 + Metabtable$HV_030_13
+Metabtable <- subset(Metabtable, select = -c(HV_026_14,HV_027_22,HV_028_14,HV_029_14,HV_030_13))
+#P36 Scalp
+Metabtable$P36_SC <- Metabtable$HV_016_14 + Metabtable$HV_017_14 + Metabtable$HV_018_14 + Metabtable$HV_019_14 + Metabtable$HV_020_13
+Metabtable <- subset(Metabtable, select = -c(HV_016_14,HV_017_14,HV_018_14,HV_019_14,HV_020_13))
+#P37 Left
+Metabtable$P37_LH <- Metabtable$HV_021_18 + Metabtable$HV_022_15 + Metabtable$HV_023_15 + Metabtable$HV_024_15 + Metabtable$HV_025_15
+Metabtable <- subset(Metabtable, select = -c(HV_021_18,HV_022_15,HV_023_15,HV_024_15,HV_025_15))
+#P37 Right
+Metabtable$P37_RH <- Metabtable$HV_026_15 + Metabtable$HV_028_15 + Metabtable$HV_029_15 + Metabtable$HV_030_14 + Metabtable$HV_030_22
+Metabtable <- subset(Metabtable, select = -c(HV_026_15,HV_028_15,HV_029_15,HV_030_14,HV_030_22))
+#P37 Scalp
+Metabtable$P37_SC <- Metabtable$HV_016_15 + Metabtable$HV_017_15 + Metabtable$HV_018_15 + Metabtable$HV_019_15 + Metabtable$HV_020_14
+Metabtable <- subset(Metabtable, select = -c(HV_016_15,HV_017_15,HV_018_15,HV_019_15,HV_020_14))
+#P38 Left
+Metabtable$P38_LH <- Metabtable$HV_021_19 + Metabtable$HV_022_16 + Metabtable$HV_023_16 + Metabtable$HV_024_16 + Metabtable$HV_025_16
+Metabtable <- subset(Metabtable, select = -c(HV_021_19,HV_022_16,HV_023_16,HV_024_16,HV_025_16))
+#P38 Right
+Metabtable$P38_RH <- Metabtable$HV_026_16 + Metabtable$HV_028_16 + Metabtable$HV_029_16 + Metabtable$HV_030_15 
+Metabtable <- subset(Metabtable, select = -c(HV_026_16,HV_028_16,HV_029_16,HV_030_15))
+#P38 Scalp
+Metabtable$P38_SC <- Metabtable$HV_016_16 + Metabtable$HV_017_16 + Metabtable$HV_018_16 + Metabtable$HV_019_16 + Metabtable$HV_020_15
+Metabtable <- subset(Metabtable, select = -c(HV_016_16,HV_017_16,HV_018_16,HV_019_16,HV_020_15))
+#P39 Left
+Metabtable$P39_LH <- Metabtable$HV_021_20 + Metabtable$HV_022_18 + Metabtable$HV_023_18 + Metabtable$HV_024_18 + Metabtable$HV_025_18
+Metabtable <- subset(Metabtable, select = -c(HV_021_20,HV_022_18,HV_023_18,HV_024_18,HV_025_18))
+#P39 Right
+Metabtable$P39_RH <- Metabtable$HV_026_18 + Metabtable$HV_028_18 + Metabtable$HV_029_18 + Metabtable$HV_030_16
+Metabtable <- subset(Metabtable, select = -c(HV_026_18,HV_028_18,HV_029_18,HV_030_16))
+#P39 Scalp
+Metabtable$P39_SC <- Metabtable$HV_016_18 + Metabtable$HV_017_18 + Metabtable$HV_018_18 + Metabtable$HV_019_18 + Metabtable$HV_020_16
+Metabtable <- subset(Metabtable, select = -c(HV_016_18,HV_017_18,HV_018_18,HV_019_18,HV_020_16))
+#P42 Left
+Metabtable$P42_LH <- Metabtable$HV_022_21 + Metabtable$HV_023_21 + Metabtable$HV_024_21 + Metabtable$HV_025_21 
+Metabtable <- subset(Metabtable, select = -c(HV_022_21,HV_023_21,HV_024_21,HV_025_21))
+#P42 Right
+Metabtable$P42_RH <- Metabtable$HV_026_21 + Metabtable$HV_028_21 + Metabtable$HV_029_21 + Metabtable$HV_030_20
+Metabtable <- subset(Metabtable, select = -c(HV_026_21,HV_028_21,HV_029_21,HV_030_20))
+#P42 Scalp
+Metabtable$P42_SC <- Metabtable$HV_016_21 + Metabtable$HV_017_21 + Metabtable$HV_018_21 + Metabtable$HV_019_21 + Metabtable$HV_020_20
+Metabtable <- subset(Metabtable, select = -c(HV_016_21,HV_017_21,HV_018_21,HV_019_21,HV_020_20))
+#P43 Left
+Metabtable$P43_LH <- Metabtable$HV_022_22 + Metabtable$HV_023_22 + Metabtable$HV_024_22 + Metabtable$HV_025_01 + Metabtable$HV_025_22
+Metabtable <- subset(Metabtable, select = -c(HV_022_22,HV_023_22,HV_024_22,HV_025_01,HV_025_22))
+#P43 Right
+Metabtable$P43_RH <- Metabtable$HV_026_22 + Metabtable$HV_028_22 + Metabtable$HV_029_22 + Metabtable$HV_030_21
+Metabtable <- subset(Metabtable, select = -c(HV_026_22,HV_028_22,HV_029_22,HV_030_21))
+#P43 Scalp
+Metabtable$P43_SC <- Metabtable$HV_016_22 + Metabtable$HV_017_22 + Metabtable$HV_018_22 + Metabtable$HV_019_22 + Metabtable$HV_020_21
+Metabtable <- subset(Metabtable, select = -c(HV_016_22,HV_017_22,HV_018_22,HV_019_22,HV_020_21))
+```
+```{r,message=FALSE,warning=FALSE,results="hide"}
+HM_Metabtable<-Metabtable
+row.names(HM_Metabtable)<-HM_Metabtable$Metabolism
+HM_Metabtable<-subset(HM_Metabtable, select = -c(Metabolism))
+HM_Metabtable<-as.matrix(HM_Metabtable)
+pheatmaps.obj<-pheatmap(HM_Metabtable,breaks = max(20000), cluster_cols = FALSE,cellheight = 11,cellwidth = 11,fontsize = 12,gaps_col = c(3,6,9,12,15,18,21,24,27,30,33,36,39,42,45,48,51,54,57,60,63,66,69,72,75,78,81,84,87,90,93,96,99,102,105,108) ,filename = "Heatmap_Metabolism_Abundance.pdf")
+```
+Abundance Heatmap (Pathway)
+```{r,message=FALSE,warning=FALSE,results="hide"}
+#P02 Left
+Pathtable$P02_LH <- Pathtable$HV_001_04 + Pathtable$HV_002_04 + Pathtable$HV_003_04 + Pathtable$HV_004_04 + Pathtable$HV_005_04
+Pathtable <- subset(Pathtable, select = -c(HV_001_04,HV_002_04,HV_003_04,HV_004_04,HV_005_04 ))
+#P02 Right
+Pathtable$P02_RH <- Pathtable$HV_001_05 + Pathtable$HV_002_05 + Pathtable$HV_003_05 + Pathtable$HV_004_05 + Pathtable$HV_005_05
+Pathtable <- subset(Pathtable, select = -c(HV_001_05,HV_002_05,HV_003_05,HV_004_05,HV_005_05 ))
+#P02 Scalp
+Pathtable$P02_SC <- Pathtable$HV_001_06 + Pathtable$HV_002_06 + Pathtable$HV_003_06 + Pathtable$HV_004_06 + Pathtable$HV_005_06
+Pathtable <- subset(Pathtable, select = -c(HV_001_06,HV_002_06,HV_003_06,HV_004_06,HV_005_06 ))
+#P03 Left
+Pathtable$P03_LH <- Pathtable$HV_001_07 + Pathtable$HV_002_07 + Pathtable$HV_003_07 + Pathtable$HV_004_07 + Pathtable$HV_005_07
+Pathtable <- subset(Pathtable, select = -c(HV_001_07,HV_002_07,HV_003_07,HV_004_07,HV_005_07 ))
+#P03 Right
+Pathtable$P03_RH <- Pathtable$HV_001_08 + Pathtable$HV_002_08 + Pathtable$HV_003_08 + Pathtable$HV_004_08 + Pathtable$HV_005_08
+Pathtable <- subset(Pathtable, select = -c(HV_001_08,HV_002_08,HV_003_08,HV_004_08,HV_005_08 ))
+#P03 Scalp
+Pathtable$P03_SC <- Pathtable$HV_001_09 + Pathtable$HV_002_09 + Pathtable$HV_003_09 + Pathtable$HV_004_09 + Pathtable$HV_005_09
+Pathtable <- subset(Pathtable, select = -c(HV_001_09,HV_002_09,HV_003_09,HV_004_09,HV_005_09 ))
+#P04 Left
+Pathtable$P04_LH <- Pathtable$HV_001_10 + Pathtable$HV_002_10 + Pathtable$HV_003_10 + Pathtable$HV_004_10 + Pathtable$HV_005_10
+Pathtable <- subset(Pathtable, select = -c(HV_001_10,HV_002_10,HV_003_10,HV_004_10,HV_005_10 ))
+#P04 Right
+Pathtable$P04_RH <- Pathtable$HV_001_11 + Pathtable$HV_002_11 + Pathtable$HV_003_11 + Pathtable$HV_004_11 + Pathtable$HV_005_11
+Pathtable <- subset(Pathtable, select = -c(HV_001_11,HV_002_11,HV_003_11,HV_004_11,HV_005_11 ))
+#P04 Scalp
+Pathtable$P04_SC <- Pathtable$HV_001_12 + Pathtable$HV_002_12 + Pathtable$HV_003_12 + Pathtable$HV_004_12 + Pathtable$HV_005_12
+Pathtable <- subset(Pathtable, select = -c(HV_001_12,HV_002_12,HV_003_12,HV_004_12,HV_005_12 ))
+#P05 Left
+Pathtable$P05_LH <- Pathtable$HV_001_13 + Pathtable$HV_002_13 + Pathtable$HV_003_13 + Pathtable$HV_004_13 + Pathtable$HV_005_13
+Pathtable <- subset(Pathtable, select = -c(HV_001_13,HV_002_13,HV_003_13,HV_004_13,HV_005_13 ))
+#P05 Right
+Pathtable$P05_RH <- Pathtable$HV_001_14 + Pathtable$HV_002_14 + Pathtable$HV_003_14 + Pathtable$HV_004_14 + Pathtable$HV_005_14
+Pathtable <- subset(Pathtable, select = -c(HV_001_14,HV_002_14,HV_003_14,HV_004_14,HV_005_14 ))
+#P05 Scalp
+Pathtable$P05_SC <- Pathtable$HV_001_15 + Pathtable$HV_002_15 + Pathtable$HV_003_15  + Pathtable$HV_004_15 + Pathtable$HV_005_15
+Pathtable <- subset(Pathtable, select = -c(HV_001_15,HV_002_15, HV_003_15, HV_004_15,HV_005_15))
+#P06 Left
+Pathtable$P06_LH <- Pathtable$HV_001_16 + Pathtable$HV_003_16 + Pathtable$HV_004_16 + Pathtable$HV_005_16 + Pathtable$HV_005_19
+Pathtable <- subset(Pathtable, select = -c(HV_001_16,HV_003_16,HV_004_16,HV_005_16, HV_005_19 ))
+#P06 Right
+Pathtable$P06_RH <- Pathtable$HV_001_18 + Pathtable$HV_002_18 + Pathtable$HV_003_18 + Pathtable$HV_004_18 + Pathtable$HV_005_18
+Pathtable <- subset(Pathtable, select = -c(HV_001_18,HV_002_18,HV_003_18,HV_004_18,HV_005_18 ))
+#P06 Scalp
+Pathtable$P06_SC <- Pathtable$HV_001_19 + Pathtable$HV_002_19 + Pathtable$HV_003_19 + Pathtable$HV_004_19 
+Pathtable <- subset(Pathtable, select = -c(HV_001_19,HV_002_19,HV_003_19,HV_004_19 ))
+#P07 Left
+Pathtable$P07_LH <- Pathtable$HV_001_20 + Pathtable$HV_002_20 + Pathtable$HV_003_20 + Pathtable$HV_004_20 + Pathtable$HV_005_20
+Pathtable <- subset(Pathtable, select = -c(HV_001_20,HV_002_20,HV_003_20,HV_004_20,HV_005_20 ))
+#P07 Right
+Pathtable$P07_RH <- Pathtable$HV_001_21 + Pathtable$HV_002_21 + Pathtable$HV_003_21 + Pathtable$HV_004_21 
+Pathtable <- subset(Pathtable, select = -c(HV_001_21,HV_002_21,HV_003_21,HV_004_21 ))
+#P07 Scalp
+Pathtable$P07_SC <- Pathtable$HV_001_22 + Pathtable$HV_002_22 + Pathtable$HV_003_22 + Pathtable$HV_004_22 + Pathtable$HV_005_22
+Pathtable <- subset(Pathtable, select = -c(HV_001_22,HV_002_22,HV_003_22,HV_004_22,HV_005_22 ))
+#P08 Left
+Pathtable$P08_LH <- Pathtable$HV_006_01 + Pathtable$HV_007_01 + Pathtable$HV_008_01 + Pathtable$HV_009_01 + Pathtable$HV_010_01
+Pathtable <- subset(Pathtable, select = -c(HV_006_01,HV_007_01,HV_008_01,HV_009_01,HV_010_01))
+#P08 Right
+Pathtable$P08_RH <- Pathtable$HV_006_02 + Pathtable$HV_007_02 + Pathtable$HV_008_02 + Pathtable$HV_010_02
+Pathtable <- subset(Pathtable, select = -c(HV_006_02,HV_007_02,HV_008_02,HV_010_02))
+#P08 Scalp
+Pathtable$P08_SC <- Pathtable$HV_006_03 + Pathtable$HV_007_03 + Pathtable$HV_008_03 + Pathtable$HV_009_03 + Pathtable$HV_010_03
+Pathtable <- subset(Pathtable, select = -c(HV_006_03,HV_007_03,HV_008_03,HV_009_03,HV_010_03))
+#P09 Left
+Pathtable$P09_LH <- Pathtable$HV_006_04 + Pathtable$HV_007_04 + Pathtable$HV_008_04 + Pathtable$HV_009_04 + Pathtable$HV_010_04
+Pathtable <- subset(Pathtable, select = -c(HV_006_04,HV_007_04,HV_008_04,HV_009_04,HV_010_04))
+#P09 Right
+Pathtable$P09_RH <- Pathtable$HV_006_05 + Pathtable$HV_007_05 + Pathtable$HV_008_05 + Pathtable$HV_009_05 + Pathtable$HV_010_05
+Pathtable <- subset(Pathtable, select = -c(HV_006_05,HV_007_05,HV_008_05,HV_009_05,HV_010_05))
+#P09 Scalp
+Pathtable$P09_SC <- Pathtable$HV_006_06 + Pathtable$HV_007_06 + Pathtable$HV_008_06 + Pathtable$HV_009_06 + Pathtable$HV_010_06
+Pathtable <- subset(Pathtable, select = -c(HV_006_06,HV_007_06,HV_008_06,HV_009_06,HV_010_06))
+#P10 Left
+Pathtable$P10_LH <- Pathtable$HV_006_07 + Pathtable$HV_007_07 + Pathtable$HV_008_07 + Pathtable$HV_009_07 + Pathtable$HV_010_07
+Pathtable <- subset(Pathtable, select = -c(HV_006_07,HV_007_07,HV_008_07,HV_009_07,HV_010_07))
+#P10 Right
+Pathtable$P10_RH <- Pathtable$HV_006_08 + Pathtable$HV_007_08 + Pathtable$HV_008_08 + Pathtable$HV_009_08 + Pathtable$HV_010_08
+Pathtable <- subset(Pathtable, select = -c(HV_006_08,HV_007_08,HV_008_08,HV_009_08,HV_010_08))
+#P10 Scalp
+Pathtable$P10_SC <- Pathtable$HV_006_09 + Pathtable$HV_007_09 + Pathtable$HV_008_09 + Pathtable$HV_009_09 + Pathtable$HV_010_09
+Pathtable <- subset(Pathtable, select = -c(HV_006_09,HV_007_09,HV_008_09,HV_009_09,HV_010_09))
+#P11 Left
+Pathtable$P11_LH <- Pathtable$HV_006_10 + Pathtable$HV_007_10 + Pathtable$HV_008_10 + Pathtable$HV_009_10 + Pathtable$HV_010_10
+Pathtable <- subset(Pathtable, select = -c(HV_006_10,HV_007_10,HV_008_10,HV_009_10,HV_010_10))
+#P11 Right
+Pathtable$P11_RH <- Pathtable$HV_006_11 + Pathtable$HV_007_11 + Pathtable$HV_008_11 + Pathtable$HV_009_11 + Pathtable$HV_010_11
+Pathtable <- subset(Pathtable, select = -c(HV_006_11,HV_007_11,HV_008_11,HV_009_11,HV_010_11))
+#P11 Scalp
+Pathtable$P11_SC <- Pathtable$HV_006_12 + Pathtable$HV_007_12 + Pathtable$HV_008_12 + Pathtable$HV_009_12 + Pathtable$HV_010_12
+Pathtable <- subset(Pathtable, select = -c(HV_006_12,HV_007_12,HV_008_12,HV_009_12,HV_010_12))
+#P12 Left
+Pathtable$P12_LH <- Pathtable$HV_006_13 + Pathtable$HV_007_13 + Pathtable$HV_008_13 + Pathtable$HV_009_13 + Pathtable$HV_010_13
+Pathtable <- subset(Pathtable, select = -c(HV_006_13,HV_007_13,HV_008_13,HV_009_13,HV_010_13))
+#P12 Right
+Pathtable$P12_RH <- Pathtable$HV_006_14 + Pathtable$HV_007_14 + Pathtable$HV_008_14 + Pathtable$HV_009_14 + Pathtable$HV_010_14
+Pathtable <- subset(Pathtable, select = -c(HV_006_14,HV_007_14,HV_008_14,HV_009_14,HV_010_14))
+#P12 Scalp
+Pathtable$P12_SC <- Pathtable$HV_006_15 + Pathtable$HV_007_15 + Pathtable$HV_008_15 + Pathtable$HV_009_15 + Pathtable$HV_010_15
+Pathtable <- subset(Pathtable, select = -c(HV_006_15,HV_007_15,HV_008_15,HV_009_15,HV_010_15))
+#P13 Left
+Pathtable$P13_LH <- Pathtable$HV_006_16 + Pathtable$HV_007_16 + Pathtable$HV_008_16 + Pathtable$HV_009_16 + Pathtable$HV_010_16
+Pathtable <- subset(Pathtable, select = -c(HV_006_16,HV_007_16,HV_008_16,HV_009_16,HV_010_16))
+#P13 Right
+Pathtable$P13_RH <- Pathtable$HV_006_18 + Pathtable$HV_007_18 + Pathtable$HV_008_18 + Pathtable$HV_009_18 + Pathtable$HV_010_18
+Pathtable <- subset(Pathtable, select = -c(HV_006_18,HV_007_18,HV_008_18,HV_009_18,HV_010_18))
+#P13 Scalp
+Pathtable$P13_SC <- Pathtable$HV_006_19 + Pathtable$HV_007_19 + Pathtable$HV_008_19 + Pathtable$HV_009_19 + Pathtable$HV_010_19
+Pathtable <- subset(Pathtable, select = -c(HV_006_19,HV_007_19,HV_008_19,HV_009_19,HV_010_19))
+#P14 Left
+Pathtable$P14_LH <- Pathtable$HV_006_20 + Pathtable$HV_007_20 + Pathtable$HV_008_20 + Pathtable$HV_009_20 + Pathtable$HV_010_20
+Pathtable <- subset(Pathtable, select = -c(HV_006_20,HV_007_20,HV_008_20,HV_009_20,HV_010_20))
+#P14 Right
+Pathtable$P14_RH <- Pathtable$HV_006_21 + Pathtable$HV_007_21 + Pathtable$HV_008_21 + Pathtable$HV_009_21 + Pathtable$HV_010_21
+Pathtable <- subset(Pathtable, select = -c(HV_006_21,HV_007_21,HV_008_21,HV_009_21,HV_010_21))
+#P14 Scalp
+Pathtable$P14_SC <- Pathtable$HV_006_22 + Pathtable$HV_007_22 + Pathtable$HV_008_22 + Pathtable$HV_009_22 + Pathtable$HV_010_22
+Pathtable <- subset(Pathtable, select = -c(HV_006_22,HV_007_22,HV_008_22,HV_009_22,HV_010_22))
+#P15 Left
+Pathtable$P15_LH <- Pathtable$HV_011_01 + Pathtable$HV_012_01 + Pathtable$HV_013_01 + Pathtable$HV_014_01 + Pathtable$HV_015_01
+Pathtable <- subset(Pathtable, select = -c(HV_011_01,HV_012_01,HV_013_01,HV_014_01,HV_015_01))
+#P15 Right
+Pathtable$P15_RH <- Pathtable$HV_011_02 + Pathtable$HV_012_02 + Pathtable$HV_013_02 + Pathtable$HV_014_02 + Pathtable$HV_015_02
+Pathtable <- subset(Pathtable, select = -c(HV_011_02,HV_012_02,HV_013_02,HV_014_02,HV_015_02))
+#P15 Scalp
+Pathtable$P15_SC <- Pathtable$HV_011_03 + Pathtable$HV_012_03 + Pathtable$HV_013_03 + Pathtable$HV_014_03 + Pathtable$HV_015_03
+Pathtable <- subset(Pathtable, select = -c(HV_011_03,HV_012_03,HV_013_03,HV_014_03,HV_015_03))
+#P16 Left
+Pathtable$P16_LH <- Pathtable$HV_011_04 + Pathtable$HV_012_04 + Pathtable$HV_013_04 + Pathtable$HV_014_04 + Pathtable$HV_015_04
+Pathtable <- subset(Pathtable, select = -c(HV_011_04,HV_012_04,HV_013_04,HV_014_04,HV_015_04))
+#P16 Right
+Pathtable$P16_RH <- Pathtable$HV_011_05 + Pathtable$HV_012_05 + Pathtable$HV_013_05 + Pathtable$HV_014_05 + Pathtable$HV_015_05
+Pathtable <- subset(Pathtable, select = -c(HV_011_05,HV_012_05,HV_013_05,HV_014_05,HV_015_05))
+#P16 Scalp
+Pathtable$P16_SC <- Pathtable$HV_011_06 + Pathtable$HV_012_06 ++ Pathtable$HV_014_06 + Pathtable$HV_015_06
+Pathtable <- subset(Pathtable, select = -c(HV_011_06,HV_012_06,HV_014_06,HV_015_06))
+#P17 Left
+Pathtable$P17_LH <- Pathtable$HV_011_07 + Pathtable$HV_012_07 + Pathtable$HV_013_07 + Pathtable$HV_014_07 + Pathtable$HV_015_07
+Pathtable <- subset(Pathtable, select = -c(HV_011_07,HV_012_07,HV_013_07,HV_014_07,HV_015_07))
+#P17 Right
+Pathtable$P17_RH <- Pathtable$HV_011_08 + Pathtable$HV_012_08 + Pathtable$HV_013_08 + Pathtable$HV_014_08 + Pathtable$HV_015_08
+Pathtable <- subset(Pathtable, select = -c(HV_011_08,HV_012_08,HV_013_08,HV_014_08,HV_015_08))
+#P17 Scalp
+Pathtable$P17_SC <- Pathtable$HV_011_09 + Pathtable$HV_012_09 + Pathtable$HV_013_09 + Pathtable$HV_014_09 + Pathtable$HV_015_09
+Pathtable <- subset(Pathtable, select = -c(HV_011_09,HV_012_09,HV_013_09,HV_014_09,HV_015_09))
+#P18 Left
+Pathtable$P18_LH <- Pathtable$HV_011_10 + Pathtable$HV_012_10 + Pathtable$HV_013_10 + Pathtable$HV_014_10 + Pathtable$HV_015_10
+Pathtable <- subset(Pathtable, select = -c(HV_011_10,HV_012_10,HV_013_10,HV_014_10,HV_015_10))
+#P18 Right
+Pathtable$P18_RH <- Pathtable$HV_011_11 + Pathtable$HV_012_11 + Pathtable$HV_013_11 + Pathtable$HV_014_11 + Pathtable$HV_015_11
+Pathtable <- subset(Pathtable, select = -c(HV_011_11,HV_012_11,HV_013_11,HV_014_11,HV_015_11))
+#P18 Scalp
+Pathtable$P18_SC <- Pathtable$HV_011_12 + Pathtable$HV_012_12 + Pathtable$HV_013_12 + Pathtable$HV_014_12 + Pathtable$HV_015_12
+Pathtable <- subset(Pathtable, select = -c(HV_011_12,HV_012_12,HV_013_12,HV_014_12,HV_015_12))
+#P19 Left
+Pathtable$P19_LH <- Pathtable$HV_011_13 + Pathtable$HV_012_13 + Pathtable$HV_013_13 + Pathtable$HV_014_13 + Pathtable$HV_015_13
+Pathtable <- subset(Pathtable, select = -c(HV_011_13,HV_012_13,HV_013_13,HV_014_13,HV_015_13))
+#P19 Right
+Pathtable$P19_RH <- Pathtable$HV_011_14 + Pathtable$HV_012_14 + Pathtable$HV_013_14 + Pathtable$HV_014_14 + Pathtable$HV_015_14
+Pathtable <- subset(Pathtable, select = -c(HV_011_14,HV_012_14,HV_013_14,HV_014_14,HV_015_14))
+#P19 Scalp
+Pathtable$P19_SC <- Pathtable$HV_011_15 + Pathtable$HV_012_15 + Pathtable$HV_013_15 + Pathtable$HV_014_15 + Pathtable$HV_015_15
+Pathtable <- subset(Pathtable, select = -c(HV_011_15,HV_012_15,HV_013_15,HV_014_15,HV_015_15))
+#P20 Left
+Pathtable$P20_LH <- Pathtable$HV_011_16 + Pathtable$HV_012_16 + Pathtable$HV_013_16 + Pathtable$HV_014_16 + Pathtable$HV_015_16
+Pathtable <- subset(Pathtable, select = -c(HV_011_16,HV_012_16,HV_013_16,HV_014_16,HV_015_16))
+#P20 Right
+Pathtable$P20_RH <- Pathtable$HV_011_18 + Pathtable$HV_012_18 + Pathtable$HV_013_18 + Pathtable$HV_014_18 + Pathtable$HV_015_18
+Pathtable <- subset(Pathtable, select = -c(HV_011_18,HV_012_18,HV_013_18,HV_014_18,HV_015_18))
+#P20 Scalp
+Pathtable$P20_SC <- Pathtable$HV_011_19 + Pathtable$HV_012_19 + Pathtable$HV_013_19 + Pathtable$HV_014_19 + Pathtable$HV_015_19
+Pathtable <- subset(Pathtable, select = -c(HV_011_19,HV_012_19,HV_013_19,HV_014_19,HV_015_19))
+#P21 Left
+Pathtable$P21_LH <- Pathtable$HV_011_20 + Pathtable$HV_012_20 + Pathtable$HV_013_20 + Pathtable$HV_014_20
+Pathtable <- subset(Pathtable, select = -c(HV_011_20,HV_012_20,HV_013_20,HV_014_20))
+#P21 Right
+Pathtable$P21_RH <- Pathtable$HV_011_21 + Pathtable$HV_012_21 + Pathtable$HV_013_21 + Pathtable$HV_014_21
+Pathtable <- subset(Pathtable, select = -c(HV_011_21,HV_012_21,HV_013_21,HV_014_21))
+#P21 Scalp
+Pathtable$P21_SC <- Pathtable$HV_011_22 + Pathtable$HV_012_22 + Pathtable$HV_013_22 + Pathtable$HV_014_22
+Pathtable <- subset(Pathtable, select = -c(HV_011_22,HV_012_22,HV_013_22,HV_014_22))
+#P22 Left
+Pathtable$P22_LH <- Pathtable$HV_021_02 + Pathtable$HV_022_01 + Pathtable$HV_023_01 + Pathtable$HV_024_01 + Pathtable$HV_025_02
+Pathtable <- subset(Pathtable, select = -c(HV_021_02,HV_022_01,HV_023_01,HV_024_01,HV_025_02))
+#P22 Right
+Pathtable$P22_RH <- Pathtable$HV_026_01 + Pathtable$HV_027_08 + Pathtable$HV_028_01 + Pathtable$HV_029_01 + Pathtable$HV_030_01
+Pathtable <- subset(Pathtable, select = -c(HV_026_01,HV_027_08,HV_028_01,HV_029_01,HV_030_01))
+#P22 Scalp
+Pathtable$P22_SC <- Pathtable$HV_016_01 + Pathtable$HV_017_01 + Pathtable$HV_018_01 + Pathtable$HV_019_01 + Pathtable$HV_020_01
+Pathtable <- subset(Pathtable, select = -c(HV_016_01,HV_017_01,HV_018_01,HV_019_01,HV_020_01))
+#P23 Left
+Pathtable$P23_LH <- Pathtable$HV_021_03 + Pathtable$HV_022_02 + Pathtable$HV_023_02 + Pathtable$HV_024_02 + Pathtable$HV_025_03
+Pathtable <- subset(Pathtable, select = -c(HV_021_03,HV_022_02,HV_023_02,HV_024_02,HV_025_03))
+#P23 Right
+Pathtable$P23_RH <- Pathtable$HV_026_02 + Pathtable$HV_027_09 + Pathtable$HV_028_02 + Pathtable$HV_029_02 + Pathtable$HV_030_02
+Pathtable <- subset(Pathtable, select = -c(HV_026_02,HV_027_09,HV_028_02,HV_029_02,HV_030_02))
+#P23 Scalp
+Pathtable$P23_SC <- Pathtable$HV_016_02 + Pathtable$HV_017_02 + Pathtable$HV_018_02 + Pathtable$HV_019_02 + Pathtable$HV_020_02
+Pathtable <- subset(Pathtable, select = -c(HV_016_02,HV_017_02,HV_018_02,HV_019_02,HV_020_02))
+#P24 Left
+Pathtable$P24_LH <- Pathtable$HV_021_04 + Pathtable$HV_022_03 + Pathtable$HV_023_03 + Pathtable$HV_024_03 + Pathtable$HV_025_04
+Pathtable <- subset(Pathtable, select = -c(HV_021_04,HV_022_03,HV_023_03,HV_024_03,HV_025_04))
+#P24 Right
+Pathtable$P24_RH <- Pathtable$HV_026_03 + Pathtable$HV_027_10 + Pathtable$HV_028_03 + Pathtable$HV_029_03 + Pathtable$HV_030_03
+Pathtable <- subset(Pathtable, select = -c(HV_026_03,HV_027_10,HV_028_03,HV_029_03,HV_030_03))
+#P24 Scalp
+Pathtable$P24_SC <- Pathtable$HV_016_03 + Pathtable$HV_017_03 + Pathtable$HV_018_03 + Pathtable$HV_019_03 + Pathtable$HV_021_01
+Pathtable <- subset(Pathtable, select = -c(HV_016_03,HV_017_03,HV_018_03,HV_019_03,HV_021_01))
+#P25 Left
+Pathtable$P25_LH <- Pathtable$HV_021_05 + Pathtable$HV_022_04 + Pathtable$HV_023_04 + Pathtable$HV_024_04 + Pathtable$HV_025_05
+Pathtable <- subset(Pathtable, select = -c(HV_021_05,HV_022_04,HV_023_04,HV_024_04,HV_025_05))
+#P25 Right
+Pathtable$P25_RH <- Pathtable$HV_026_04 + Pathtable$HV_027_11 + Pathtable$HV_028_04 + Pathtable$HV_029_04 + Pathtable$HV_030_04
+Pathtable <- subset(Pathtable, select = -c(HV_026_04,HV_027_11,HV_028_04,HV_029_04,HV_030_04))
+#P25 Scalp
+Pathtable$P25_SC <- Pathtable$HV_016_04 + Pathtable$HV_017_04 + Pathtable$HV_018_04 + Pathtable$HV_019_04 + Pathtable$HV_020_03
+Pathtable <- subset(Pathtable, select = -c(HV_016_04,HV_017_04,HV_018_04,HV_019_04,HV_020_03))
+#P26 Left
+Pathtable$P26_LH <- Pathtable$HV_021_06 + Pathtable$HV_022_05 + Pathtable$HV_023_05 + Pathtable$HV_024_05 + Pathtable$HV_025_06
+Pathtable <- subset(Pathtable, select = -c(HV_021_06,HV_022_05,HV_023_05,HV_024_05,HV_025_06))
+#P26 Right
+Pathtable$P26_RH <- Pathtable$HV_026_05 + Pathtable$HV_027_12 + Pathtable$HV_028_05 + Pathtable$HV_029_05 + Pathtable$HV_030_05
+Pathtable <- subset(Pathtable, select = -c(HV_026_05,HV_027_12,HV_028_05,HV_029_05,HV_030_05))
+#P26 Scalp
+Pathtable$P26_SC <- Pathtable$HV_016_05 + Pathtable$HV_017_05 + Pathtable$HV_018_05 + Pathtable$HV_019_05 + Pathtable$HV_020_04
+Pathtable <- subset(Pathtable, select = -c(HV_016_05,HV_017_05,HV_018_05,HV_019_05,HV_020_04))
+#P27 Left
+Pathtable$P27_LH <- Pathtable$HV_021_07 + Pathtable$HV_022_06 + Pathtable$HV_023_06 + Pathtable$HV_024_06 + Pathtable$HV_025_07
+Pathtable <- subset(Pathtable, select = -c(HV_021_07,HV_022_06,HV_023_06,HV_024_06,HV_025_07))
+#P27 Right
+Pathtable$P27_RH <- Pathtable$HV_026_06 + Pathtable$HV_027_13 + Pathtable$HV_028_06 + Pathtable$HV_029_06 + Pathtable$HV_030_06
+Pathtable <- subset(Pathtable, select = -c(HV_026_06,HV_027_13,HV_028_06,HV_029_06,HV_030_06))
+#P27 Scalp
+Pathtable$P27_SC <- Pathtable$HV_016_06 + Pathtable$HV_017_06 + Pathtable$HV_018_06 + Pathtable$HV_019_06 + Pathtable$HV_020_05
+Pathtable <- subset(Pathtable, select = -c(HV_016_06,HV_017_06,HV_018_06,HV_019_06,HV_020_05))
+#P28 Left
+Pathtable$P28_LH <- Pathtable$HV_021_08 + Pathtable$HV_022_07 + Pathtable$HV_023_07 + Pathtable$HV_024_07 + Pathtable$HV_025_08
+Pathtable <- subset(Pathtable, select = -c(HV_021_08,HV_022_07,HV_023_07,HV_024_07,HV_025_08))
+#P28 Right
+Pathtable$P28_RH <- Pathtable$HV_026_07 + Pathtable$HV_027_14 + Pathtable$HV_028_07 + Pathtable$HV_029_07 + Pathtable$HV_030_07
+Pathtable <- subset(Pathtable, select = -c(HV_026_07,HV_027_14,HV_028_07,HV_029_07,HV_030_07))
+#P28 Scalp
+Pathtable$P28_SC <- Pathtable$HV_016_07 + Pathtable$HV_017_07 + Pathtable$HV_018_07 + Pathtable$HV_019_07 + Pathtable$HV_020_06
+Pathtable <- subset(Pathtable, select = -c(HV_016_07,HV_017_07,HV_018_07,HV_019_07,HV_020_06))
+#P29 Left
+Pathtable$P29_LH <- Pathtable$HV_021_09 + Pathtable$HV_022_08 + Pathtable$HV_023_08 + Pathtable$HV_024_08 + Pathtable$HV_025_09
+Pathtable <- subset(Pathtable, select = -c(HV_021_09,HV_022_08,HV_023_08,HV_024_08,HV_025_09))
+#P29 Right
+Pathtable$P29_RH <- Pathtable$HV_026_08 + Pathtable$HV_027_15 + Pathtable$HV_028_08 + Pathtable$HV_029_08 + Pathtable$HV_030_08
+Pathtable <- subset(Pathtable, select = -c(HV_026_08,HV_027_15,HV_028_08,HV_029_08,HV_030_08))
+#P29 Scalp
+Pathtable$P29_SC <- Pathtable$HV_016_08 + Pathtable$HV_017_08 + Pathtable$HV_018_08 + Pathtable$HV_019_08 + Pathtable$HV_020_07
+Pathtable <- subset(Pathtable, select = -c(HV_016_08,HV_017_08,HV_018_08,HV_019_08,HV_020_07))
+#P31 Left
+Pathtable$P31_LH <- Pathtable$HV_021_11 + Pathtable$HV_022_10 + Pathtable$HV_023_10 + Pathtable$HV_024_10
+Pathtable <- subset(Pathtable, select = -c(HV_021_11,HV_022_10,HV_023_10,HV_024_10))
+#P31 Right
+Pathtable$P31_RH <- Pathtable$HV_026_10 + Pathtable$HV_027_18 + Pathtable$HV_028_10 + Pathtable$HV_029_10
+Pathtable <- subset(Pathtable, select = -c(HV_026_10,HV_027_18,HV_028_10,HV_029_10))
+#P31 Scalp
+Pathtable$P31_SC <- Pathtable$HV_016_10 + Pathtable$HV_017_10 + Pathtable$HV_018_10 + Pathtable$HV_019_10
+Pathtable <- subset(Pathtable, select = -c(HV_016_10,HV_017_10,HV_018_10,HV_019_10))
+#P34 Left
+Pathtable$P34_LH <- Pathtable$HV_021_14 + Pathtable$HV_022_12 + Pathtable$HV_023_12 + Pathtable$HV_024_12 + Pathtable$HV_025_12
+Pathtable <- subset(Pathtable, select = -c(HV_021_14,HV_022_12,HV_023_12,HV_024_12,HV_025_12))
+#P34 Right
+Pathtable$P34_RH <- Pathtable$HV_026_12 + Pathtable$HV_027_20 + Pathtable$HV_028_12 + Pathtable$HV_029_12 + Pathtable$HV_030_11
+Pathtable <- subset(Pathtable, select = -c(HV_026_12,HV_027_20,HV_028_12,HV_029_12,HV_030_11))
+#P34 Scalp
+Pathtable$P34_SC <- Pathtable$HV_016_12 + Pathtable$HV_017_12 + Pathtable$HV_018_12 + Pathtable$HV_019_12 + Pathtable$HV_020_11
+Pathtable <- subset(Pathtable, select = -c(HV_016_12,HV_017_12,HV_018_12,HV_019_12,HV_020_11))
+#P35 Left
+Pathtable$P35_LH <- Pathtable$HV_021_15 + Pathtable$HV_022_13 + Pathtable$HV_023_13 + Pathtable$HV_024_13 + Pathtable$HV_025_13
+Pathtable <- subset(Pathtable, select = -c(HV_021_15,HV_022_13,HV_023_13,HV_024_13,HV_025_13))
+#P35 Right
+Pathtable$P35_RH <- Pathtable$HV_026_13 + Pathtable$HV_027_21 + Pathtable$HV_028_13 + Pathtable$HV_029_13 + Pathtable$HV_030_12
+Pathtable <- subset(Pathtable, select = -c(HV_026_13,HV_027_21,HV_028_13,HV_029_13,HV_030_12))
+#P35 Scalp
+Pathtable$P35_SC <- Pathtable$HV_016_13 + Pathtable$HV_017_13 + Pathtable$HV_018_13 + Pathtable$HV_019_13 + Pathtable$HV_020_12
+Pathtable <- subset(Pathtable, select = -c(HV_016_13,HV_017_13,HV_018_13,HV_019_13,HV_020_12))
+#P36 Left
+Pathtable$P36_LH <- Pathtable$HV_021_16 + Pathtable$HV_022_14 + Pathtable$HV_023_14 + Pathtable$HV_024_14 + Pathtable$HV_025_14
+Pathtable <- subset(Pathtable, select = -c(HV_021_16,HV_022_14,HV_023_14,HV_024_14,HV_025_14))
+#P36 Right
+Pathtable$P36_RH <- Pathtable$HV_026_14 + Pathtable$HV_027_22 + Pathtable$HV_028_14 + Pathtable$HV_029_14 + Pathtable$HV_030_13
+Pathtable <- subset(Pathtable, select = -c(HV_026_14,HV_027_22,HV_028_14,HV_029_14,HV_030_13))
+#P36 Scalp
+Pathtable$P36_SC <- Pathtable$HV_016_14 + Pathtable$HV_017_14 + Pathtable$HV_018_14 + Pathtable$HV_019_14 + Pathtable$HV_020_13
+Pathtable <- subset(Pathtable, select = -c(HV_016_14,HV_017_14,HV_018_14,HV_019_14,HV_020_13))
+#P37 Left
+Pathtable$P37_LH <- Pathtable$HV_021_18 + Pathtable$HV_022_15 + Pathtable$HV_023_15 + Pathtable$HV_024_15 + Pathtable$HV_025_15
+Pathtable <- subset(Pathtable, select = -c(HV_021_18,HV_022_15,HV_023_15,HV_024_15,HV_025_15))
+#P37 Right
+Pathtable$P37_RH <- Pathtable$HV_026_15 + Pathtable$HV_028_15 + Pathtable$HV_029_15 + Pathtable$HV_030_14 + Pathtable$HV_030_22
+Pathtable <- subset(Pathtable, select = -c(HV_026_15,HV_028_15,HV_029_15,HV_030_14,HV_030_22))
+#P37 Scalp
+Pathtable$P37_SC <- Pathtable$HV_016_15 + Pathtable$HV_017_15 + Pathtable$HV_018_15 + Pathtable$HV_019_15 + Pathtable$HV_020_14
+Pathtable <- subset(Pathtable, select = -c(HV_016_15,HV_017_15,HV_018_15,HV_019_15,HV_020_14))
+#P38 Left
+Pathtable$P38_LH <- Pathtable$HV_021_19 + Pathtable$HV_022_16 + Pathtable$HV_023_16 + Pathtable$HV_024_16 + Pathtable$HV_025_16
+Pathtable <- subset(Pathtable, select = -c(HV_021_19,HV_022_16,HV_023_16,HV_024_16,HV_025_16))
+#P38 Right
+Pathtable$P38_RH <- Pathtable$HV_026_16 + Pathtable$HV_028_16 + Pathtable$HV_029_16 + Pathtable$HV_030_15 
+Pathtable <- subset(Pathtable, select = -c(HV_026_16,HV_028_16,HV_029_16,HV_030_15))
+#P38 Scalp
+Pathtable$P38_SC <- Pathtable$HV_016_16 + Pathtable$HV_017_16 + Pathtable$HV_018_16 + Pathtable$HV_019_16 + Pathtable$HV_020_15
+Pathtable <- subset(Pathtable, select = -c(HV_016_16,HV_017_16,HV_018_16,HV_019_16,HV_020_15))
+#P39 Left
+Pathtable$P39_LH <- Pathtable$HV_021_20 + Pathtable$HV_022_18 + Pathtable$HV_023_18 + Pathtable$HV_024_18 + Pathtable$HV_025_18
+Pathtable <- subset(Pathtable, select = -c(HV_021_20,HV_022_18,HV_023_18,HV_024_18,HV_025_18))
+#P39 Right
+Pathtable$P39_RH <- Pathtable$HV_026_18 + Pathtable$HV_028_18 + Pathtable$HV_029_18 + Pathtable$HV_030_16
+Pathtable <- subset(Pathtable, select = -c(HV_026_18,HV_028_18,HV_029_18,HV_030_16))
+#P39 Scalp
+Pathtable$P39_SC <- Pathtable$HV_016_18 + Pathtable$HV_017_18 + Pathtable$HV_018_18 + Pathtable$HV_019_18 + Pathtable$HV_020_16
+Pathtable <- subset(Pathtable, select = -c(HV_016_18,HV_017_18,HV_018_18,HV_019_18,HV_020_16))
+#P42 Left
+Pathtable$P42_LH <- Pathtable$HV_022_21 + Pathtable$HV_023_21 + Pathtable$HV_024_21 + Pathtable$HV_025_21 
+Pathtable <- subset(Pathtable, select = -c(HV_022_21,HV_023_21,HV_024_21,HV_025_21))
+#P42 Right
+Pathtable$P42_RH <- Pathtable$HV_026_21 + Pathtable$HV_028_21 + Pathtable$HV_029_21 + Pathtable$HV_030_20
+Pathtable <- subset(Pathtable, select = -c(HV_026_21,HV_028_21,HV_029_21,HV_030_20))
+#P42 Scalp
+Pathtable$P42_SC <- Pathtable$HV_016_21 + Pathtable$HV_017_21 + Pathtable$HV_018_21 + Pathtable$HV_019_21 + Pathtable$HV_020_20
+Pathtable <- subset(Pathtable, select = -c(HV_016_21,HV_017_21,HV_018_21,HV_019_21,HV_020_20))
+#P43 Left
+Pathtable$P43_LH <- Pathtable$HV_022_22 + Pathtable$HV_023_22 + Pathtable$HV_024_22 + Pathtable$HV_025_01 + Pathtable$HV_025_22
+Pathtable <- subset(Pathtable, select = -c(HV_022_22,HV_023_22,HV_024_22,HV_025_01,HV_025_22))
+#P43 Right
+Pathtable$P43_RH <- Pathtable$HV_026_22 + Pathtable$HV_028_22 + Pathtable$HV_029_22 + Pathtable$HV_030_21
+Pathtable <- subset(Pathtable, select = -c(HV_026_22,HV_028_22,HV_029_22,HV_030_21))
+#P43 Scalp
+Pathtable$P43_SC <- Pathtable$HV_016_22 + Pathtable$HV_017_22 + Pathtable$HV_018_22 + Pathtable$HV_019_22 + Pathtable$HV_020_21
+Pathtable <- subset(Pathtable, select = -c(HV_016_22,HV_017_22,HV_018_22,HV_019_22,HV_020_21))
+```
+```{r,message=FALSE,warning=FALSE,results="hide"}
+HM_Pathtable<-Pathtable
+row.names(HM_Pathtable)<-HM_Pathtable$Pathway
+HM_Pathtable<-subset(HM_Pathtable, select = -c(Pathway))
+HM_Pathtable<-as.matrix(HM_Pathtable)
+pheatmaps.obj<-pheatmap(HM_Pathtable, cluster_cols = FALSE,cellheight = 11,cellwidth = 11,fontsize = 12,gaps_col = c(3,6,9,12,15,18,21,24,27,30,33,36,39,42,45,48,51,54,57,60,63,66,69,72,75,78,81,84,87,90,93,96,99,102,105,108) ,filename = "Heatmap_Pathway_Abundance.pdf")
+```
+
+Heatmaps were combined together in Adobe Illustrator to make Supplementary Figures 1 & 2
