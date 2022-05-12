@@ -1,4 +1,4 @@
-### Title: 04_Phage_Annotation.sh ###
+### Title: 05_Phage_Annotation.sh ###
 ### Author: Ema H Graham ###
 ### For Questions Email: ema.graham@huskers.unl.edu ###
 
@@ -9,13 +9,13 @@
 ############################################
 
 #Input Notes:
-#This is the third step of this pipeline is designed to be used after completing 02_Virome_Assembly.sh
+#This is the fifth step of this pipeline is designed to be used after completing step 3. Identification of Phage Contigs
 #This pipeline should begin using the fasta files META_unmapped_1000_contigs.phages_combined.fna generated using 03_Identify_Phage.sh
 #The meta-assembly was used (i.e., META_unmapped_1000_contigs.phages_combined.fna) for this initial assessment of taxonomy.
 
 #Output Notes:
 #This pipeline will annotate and taxonomically classify bacteriophage from your viral genome assembles 
-#The next step in this pipeline is the next step in pipeline is 4. Phage_Annotation (04_Phage_Annotation.sh)
+#The next step in this pipeline is the next step in pipeline is 6. Phage_Annotation (04_Phage_Mapping.sh)
 
 #General Notes:
 #This pipeline is designed to be run using the Holland Computing Center at the University of Nebraska. Some tool commands may differ depending on installation of the tool. Please refer to the listed Githubs for each tool used as mentioned in script for further information if issues arise 
