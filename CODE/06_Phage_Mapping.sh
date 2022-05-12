@@ -11,7 +11,7 @@
 #Input Notes:
 #This is the sixth step of this pipeline is designed to be used after completing 05_Phage_Annotation.sh but can be used after completing 03_Identify_Phage.sh
 #This pipeline should begin using the fasta files META_unmapped_1000_contigs.phages_combined.fna generated using 03_Identify_Phage.sh
-#The meta-assembly was used (i.e., META_unmapped_1000_contigs.phages_combined.fna) for this initial assessment of taxonomy.
+#The meta-assembly was used (i.e., META_unmapped_1000_contigs.phages_combined.fna) pipeline example. Repeat this pipeline for SAMPLE_unmapped_1000_contigs.phages_combined.fna and ALL_unmapped_1000_contigs.phages_combined.fna
 
 #Output Notes:
 #This pipeline will map sample reads to the phage contigs to get count data that can be used for downstream diversity analysis
@@ -61,3 +61,6 @@ samtools idxstats HV_001_01.sorted.bam > HV_001_01.sorted.bam.idxstats.txt
 
 python2 get_count_table.py *.idxstats.txt > counts_bowtie.txt
 sed 's/.idxstats.txt//g' counts_bowtie.txt > counts2_bowtie.txt
+
+#This pipeline was repeated using SAMPLE_unmapped_1000_contigs.phages_combined.fna which resulted in the file SAMPLE_counts2_bowtie.txt
+#This pipeline was repeated using ALL_unmapped_1000_contigs.phages_combined.fna which resulted in the file ALL_counts2_bowtie.txt
