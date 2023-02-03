@@ -1,0 +1,39 @@
+---
+title: "AMR"
+output: html_document
+---
+```{r}
+library(ALDEx2)
+?numFeatures
+
+install.packages("glmnet", dependencies=TRUE)
+install.packages("Rcpp", dependencies=TRUE)
+```
+
+?
+```{r}
+library(readr)
+library(phyloseq)
+library(tidyr)
+```
+```{r}
+
+OTU <- read.table("~/Desktop/Current_work/AMR/AMR_counts_Counts.txt", sep = "\t" , quote = "", header = TRUE, stringsAsFactors = FALSE, row.names = 1)
+META <- read.table("~/Desktop/Current_work/AMR/meta.txt", sep = "\t" , quote = "", header = TRUE, stringsAsFactors = FALSE)
+TAX <- read.table("~/Desktop/Current_work/AMR/AMR_counts_OTU.txt", sep = "\t" , quote = "", header = TRUE, stringsAsFactors = FALSE, row.names = 1)
+```
+```{r}
+OTUphy <- otu_table(OTU, taxa_are_rows = TRUE)
+sample_names(META)= META$SampleID
+METAphy <- sample_data(META)
+TAX <- as.matrix(TAX)
+TAXphy <- tax_table(TAX)
+physeq <- phyloseq(TAXphy, OTUphy)
+physeq2<- filter_taxa(physeq, function(x) sum(x > 0) >= 1, TRUE)
+```
+```{r}
+plot_bar(physeq3, x="gene")
+plot_bar(physeq2, x="gene")
+physeq3 <- subset_taxa(physeq2, gene!="erm(C)" )
+
+```
