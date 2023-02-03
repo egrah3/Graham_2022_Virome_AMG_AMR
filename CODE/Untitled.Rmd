@@ -1,0 +1,42 @@
+---
+title: "virfinder"
+output: html_document
+---
+
+```{r}
+library(glmnet)
+library(Rcpp)
+library(BiocManager)
+library(qvalue)
+library(VirFinder)
+```
+```{r}
+## specify the directory of the new model file "VF.modEPV_k8.rda", and load the new model to the work space
+modFile <- "/Users/eh2/Desktop/AMR/VF.modEPV_k8.rda"
+load(modFile)
+```
+\
+```{r}
+## predict the contigs using the new model
+predResult <- VF.pred("/Users/eh2/Desktop/AMR/unmapped_1000_contigs.fa")
+
+```
+
+```{r}
+#sort sequences by p-value in ascending order
+predResult[order(predResult$pvalue),]
+#### (2.2) estimate q-values (false discovery rates) based on p-values
+predResult$qvalue <- VF.qvalue(predResult$pvalue)
+#### (2.3) sort sequences by q-value in ascending order
+final <- predResult[order(predResult$qvalue),]
+View(final)
+```
+```{r}
+modFile <- "/Users/eh2/Desktop/AMR/VF.modEPV_k8.rda"
+load(modFile)
+
+inFaFile <- system.file("data", "/Users/eh2/Desktop/AMR/unmapped_1000_contigs.fa", package="VirFinder")
+
+predResultUser <- VF.pred.user(inFaFile, modEPV)
+```
+/Users/eh2/Desktop/AMR/
