@@ -1,0 +1,51 @@
+---
+title: "Paper_AMR"
+output: html_document
+---
+#Bar Graph for AMGs
+```{r}
+#library(ggthemes)
+#library(ggplot2)
+#library(readr)
+library(ggsci)
+library(cowplot)
+
+VIBRANT_AMG_pathways_unmapped_contigs <- read_delim("~/Desktop/VIBRANT_results_unmapped_1000_contigs/VIBRANT_AMG_pathways_unmapped_1000_contigs.tsv", 
+    "\t", escape_double = FALSE, trim_ws = TRUE)
+
+VIBRANT_AMG_pathways_unmapped_contigs <- VIBRANT_AMG_pathways_unmapped_contigs[order(VIBRANT_AMG_pathways_unmapped_contigs$Metabolism),]
+#Turn your 'treatment' column into a character vector
+VIBRANT_AMG_pathways_unmapped_contigs$Pathway <- as.character(VIBRANT_AMG_pathways_unmapped_contigs$Pathway)
+#Then turn it back into a factor with the levels in the correct order
+VIBRANT_AMG_pathways_unmapped_contigs$Pathway <- factor(VIBRANT_AMG_pathways_unmapped_contigs$Pathway, levels=unique(VIBRANT_AMG_pathways_unmapped_contigs$Pathway))
+
+k<-ggplot(data=VIBRANT_AMG_pathways_unmapped_contigs, aes(x=Pathway, y=Total_AMGs, fill=Metabolism)) +
+  geom_bar(position = "dodge", stat="identity") + 
+  theme(axis.text.x = element_text(angle = 90, vjust = 0, hjust=1),plot.title = element_blank())+ 
+  ylab("Total AMGs")+
+  theme(panel.background = element_blank())+
+  theme(plot.title = element_text(face = "bold",
+                                         size = rel(1.2), hjust = 0.5))+
+  theme(axis.text = element_text(colour="black"), 
+               axis.line = element_line(colour="black"),
+               axis.ticks = element_line())+
+    scale_y_continuous(
+    # don't expand y scale at the lower end
+    expand = expansion(mult = c(0, 0.05))
+  )
+          
+
+k + coord_flip()+theme_minimal_vgrid()
+
+```
+
+```{r}
+
+VIBRANT_AMG_individuals_contigs <- read_delim("~/Desktop/VIBRANT_results_unmapped_1000_contigs/VIBRANT_AMG_individuals_unmapped_1000_contigs.tsv", 
+    "\t", escape_double = FALSE, trim_ws = TRUE)
+#in VIBRANT_AMG_pathways_contigs Present_AMG_KOs were edited in text editor to add "" to each entry
+VIBRANT_AMG_pathways_contigs <- read_delim("~/Desktop/VIBRANT_results_unmapped_1000_contigs/VIBRANT_AMG_pathways_unmapped_1000_contigs.tsv", 
+    "\t", escape_double = FALSE, trim_ws = TRUE)
+
+
+```
