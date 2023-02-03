@@ -1,0 +1,452 @@
+---
+title: "Forensic_paper"
+output: html_document
+---
+
+
+```{r}
+ALL_COUNTS_FIN <- read_delim("~/Desktop/ALL_COUNTS_FIN.txt", 
+    "\t", escape_double = FALSE, trim_ws = TRUE)
+counts_virome_final <- read_delim("~/Desktop/counts_virome_final.txt", 
+    "\t", escape_double = FALSE, trim_ws = TRUE)
+```
+
+```{r}
+taxe2 <- ALL_COUNTS_FIN
+taxe2$contig_id <- taxe2$ContigID
+tax2 <- subset(taxe2, select = c(ContigID,contig_id))
+write_csv(tax2, 'VCAnntations.csv')
+VCTAX_pre <- read.csv("VCAnntations.csv", quote = "", header = TRUE, stringsAsFactors = FALSE, row.names = 1)
+VCTAX_pre<- as.matrix(VCTAX_pre)
+VCTAX <- tax_table(VCTAX_pre)
+```
+
+```{r}
+counts2 <- ALL_COUNTS_FIN
+write_csv(counts2, 'VCcounts.csv')
+VCOTU_counts <- read.csv("VCcounts.csv", quote = "", header = TRUE, stringsAsFactors = FALSE, row.names = 1)
+VCOTU <- otu_table(VCOTU_counts, taxa_are_rows = TRUE)
+```
+
+```{r}
+Metadata2 <- read_csv("~/Desktop/Current_work/OTU_Builber/Sequencing_Data_Info_Sheet3.csv")
+Metadata3 <- Metadata2
+Metadata3$Time <- Metadata3$Time_Collected
+Metadata3$Time[which(Metadata3$Time == "T_0")] <- "00_Weeks"
+Metadata3$Time[which(Metadata3$Time == "2_week")] <- "02_Weeks"
+Metadata3$Time[which(Metadata3$Time == "1_month")] <- "04_Weeks"
+Metadata3$Time[which(Metadata3$Time == "3_month")] <- "12_Weeks"
+Metadata3$Time[which(Metadata3$Time == "6_month")] <- "24_Weeks"
+
+META <- sample_data(Metadata3)
+sample_names(META)= META$SampleID
+```
+```{r}
+VCPHY <- phyloseq(VCOTU, VCTAX, META)
+
+Samples_toRemove <- c("HV_001_27", "HV_002_27", "HV_003_27", "HV_004_27", "HV_005_27", "HV_006_27", "HV_007_27", "HV_008_27",
+                      "HV_009_27", "HV_010_27", "HV_011_27", "HV_012_27", "HV_013_27", "HV_014_27", "HV_015_27", "HV_016_27",
+                      "HV_017_27", "HV_018_27", "HV_019_27", "HV_020_27", "HV_021_27", "HV_022_27", "HV_023_27", "HV_024_27",
+                      "HV_025_27", "HV_026_27", "HV_027_27", "HV_028_27", "HV_029_27", "HV_030_27", "HV_015_20", "HV_015_21", 
+                      "HV_020_22", "HV_027_02", "HV_027_03", "HV_027_04", "HV_027_05", "HV_027_06", "HV_027_07", "HV_020_10",
+                      "HV_021_13", "HV_027_01")
+
+VCPHY1 <- subset_samples(VCPHY, !(SampleID %in% Samples_toRemove))
+
+```
+
+```{r}
+prevdf_ps= apply(X = otu_table(VCPHY1), 
+                       MARGIN = ifelse(taxa_are_rows(VCPHY1), yes = 1, no = 2), 
+                       FUN = function(x){sum(x > 0)})
+prevdf_ps <- data.frame(Prevalence= prevdf_ps, TotalAbundance=taxa_sums(VCPHY1))
+#View(prevdf_ps)
+ps_virome_run <- rownames(prevdf_ps)[prevdf_ps$Prevalence > 1]
+ps_virome_run
+ps_virome_analyze <- prune_taxa(ps_virome_run, VCPHY1)
+ps_virome_analyze
+sum(otu_table(ps_virome_analyze))/sum(otu_table(VCPHY1)) 
+save(ps_virome_analyze, file = "ps_virome_analyze.rds")
+load("ps_virome_analyze.rds")
+sum(otu_table(ps_virome_analyze)) 
+ps_rarefy <- rarefy_even_depth(ps_virome_analyze, sample.size = min(sample_sums(ps_virome_analyze)), rngseed = T, replace = TRUE, trimOTUs = TRUE, verbose = TRUE)
+
+Chao1_obser_rarefy= estimate_richness(ps_rarefy, split = TRUE, measures = c("Chao1"))
+head(Chao1_obser_rarefy)
+obser_rarefy= estimate_richness(ps_rarefy, split = TRUE, measures = c("Observed"))
+head(obser_rarefy)
+shannon_obser_rarefy= estimate_richness(ps_rarefy, split = TRUE, measures = c("Shannon"))
+Chao1_obser_rarefy_metadata= merge(META,Chao1_obser_rarefy, by= "row.names")
+head(Chao1_obser_rarefy_metadata)
+shannon_obser_rarefy_metadata= merge(META,shannon_obser_rarefy, by= "row.names")
+```
+
+```{r}
+# Extract abundance matrix from the phyloseq object
+Total_OTU = as(otu_table(VCPHY1), "matrix")
+# transpose if necessary
+Total_OTU <- t(Total_OTU)
+# Coerce to data.frame
+Total_OTUdf = as.data.frame(Total_OTU)
+
+#merge metadata file with alpha diversity measures:
+
+#Remove samples from metadatafile that were removed from your phyloseq object (ie control samples, repeated samples, and other samples that are of other persons you are not using in this data set (P33, >P43))
+Samples_toRemove <- c("HV_001_27", "HV_002_27", "HV_003_27", "HV_004_27", "HV_005_27", "HV_006_27", "HV_007_27", "HV_008_27",
+                      "HV_009_27", "HV_010_27", "HV_011_27", "HV_012_27", "HV_013_27", "HV_014_27", "HV_015_27", "HV_016_27",
+                      "HV_017_27", "HV_018_27", "HV_019_27", "HV_020_27", "HV_021_27", "HV_022_27", "HV_023_27", "HV_024_27",
+                      "HV_025_27", "HV_026_27", "HV_027_27", "HV_028_27", "HV_029_27", "HV_030_27", "HV_015_20", "HV_015_21", 
+                      "HV_020_22", "HV_027_02", "HV_027_03", "HV_027_04", "HV_027_05", "HV_027_06", "HV_027_07", "HV_020_10",
+                      "HV_021_13", "HV_027_01")
+
+Metadata_stat <- Metadata2[!grepl("HV_001_27", Metadata2$SampleID),]
+Metadata_stat <- Metadata_stat[!grepl("HV_002_27", Metadata_stat$SampleID),]
+Metadata_stat <- Metadata_stat[!grepl("HV_027_03", Metadata_stat$SampleID),]
+Metadata_stat <- Metadata_stat[!grepl("HV_027_04", Metadata_stat$SampleID),]
+Metadata_stat <- Metadata_stat[!grepl("HV_027_06", Metadata_stat$SampleID),]
+Metadata_stat <- Metadata_stat[!grepl("HV_027_07", Metadata_stat$SampleID),]
+Metadata_stat <- Metadata_stat[!grepl("HV_021_13", Metadata_stat$SampleID),]
+Metadata_stat <- Metadata_stat[!grepl("HV_027_01", Metadata_stat$SampleID),]
+Metadata_stat <- Metadata_stat[!grepl("HV_020_10", Metadata_stat$SampleID),]
+Metadata_stat <- Metadata_stat[!grepl("HV_015_21", Metadata_stat$SampleID),]
+Metadata_stat <- Metadata_stat[!grepl("HV_027_05", Metadata_stat$SampleID),]
+Metadata_stat <- Metadata_stat[!grepl("HV_020_22", Metadata_stat$SampleID),]
+Metadata_stat <- Metadata_stat[!grepl("HV_027_02", Metadata_stat$SampleID),]
+Metadata_stat <- Metadata_stat[!grepl("HV_015_20", Metadata_stat$SampleID),]
+Metadata_stat <- Metadata_stat[!grepl("HV_003_27", Metadata_stat$SampleID),]
+Metadata_stat <- Metadata_stat[!grepl("HV_004_27", Metadata_stat$SampleID),]
+Metadata_stat <- Metadata_stat[!grepl("HV_005_27", Metadata_stat$SampleID),]
+Metadata_stat <- Metadata_stat[!grepl("HV_006_27", Metadata_stat$SampleID),]
+Metadata_stat <- Metadata_stat[!grepl("HV_007_27", Metadata_stat$SampleID),]
+Metadata_stat <- Metadata_stat[!grepl("HV_008_27", Metadata_stat$SampleID),]
+Metadata_stat <- Metadata_stat[!grepl("HV_009_27", Metadata_stat$SampleID),]
+Metadata_stat <- Metadata_stat[!grepl("HV_010_27", Metadata_stat$SampleID),]
+Metadata_stat <- Metadata_stat[!grepl("HV_011_27", Metadata_stat$SampleID),]
+Metadata_stat <- Metadata_stat[!grepl("HV_012_27", Metadata_stat$SampleID),]
+Metadata_stat <- Metadata_stat[!grepl("HV_013_27", Metadata_stat$SampleID),]
+Metadata_stat <- Metadata_stat[!grepl("HV_014_27", Metadata_stat$SampleID),]
+Metadata_stat <- Metadata_stat[!grepl("HV_015_27", Metadata_stat$SampleID),]
+Metadata_stat <- Metadata_stat[!grepl("HV_016_27", Metadata_stat$SampleID),]
+Metadata_stat <- Metadata_stat[!grepl("HV_017_27", Metadata_stat$SampleID),]
+Metadata_stat <- Metadata_stat[!grepl("HV_018_27", Metadata_stat$SampleID),]
+Metadata_stat <- Metadata_stat[!grepl("HV_019_27", Metadata_stat$SampleID),]
+Metadata_stat <- Metadata_stat[!grepl("HV_020_27", Metadata_stat$SampleID),]
+Metadata_stat <- Metadata_stat[!grepl("HV_021_27", Metadata_stat$SampleID),]
+Metadata_stat <- Metadata_stat[!grepl("HV_022_27", Metadata_stat$SampleID),]
+Metadata_stat <- Metadata_stat[!grepl("HV_023_27", Metadata_stat$SampleID),]
+Metadata_stat <- Metadata_stat[!grepl("HV_024_27", Metadata_stat$SampleID),]
+Metadata_stat <- Metadata_stat[!grepl("HV_025_27", Metadata_stat$SampleID),]
+Metadata_stat <- Metadata_stat[!grepl("HV_026_27", Metadata_stat$SampleID),]
+Metadata_stat <- Metadata_stat[!grepl("HV_027_27", Metadata_stat$SampleID),]
+Metadata_stat <- Metadata_stat[!grepl("HV_028_27", Metadata_stat$SampleID),]
+Metadata_stat <- Metadata_stat[!grepl("HV_029_27", Metadata_stat$SampleID),]
+Metadata_stat <- Metadata_stat[!grepl("HV_030_27", Metadata_stat$SampleID),]
+#Metadata_stat <- Metadata_stat[!grepl("HV_003_15", Metadata_stat$SampleID),]
+
+
+#Total_OTUdf2<- Total_OTUdf
+#Total_OTUdf2$SampleID <- row.names(Total_OTUdf2)
+#Total_OTUdf2 <- subset(Total_OTUdf2, select = c(SampleID))
+#Metadata_stat2 <- subset(Metadata_stat, select = c(SampleID))
+#anti_join(Metadata_stat2, Total_OTUdf2)
+
+#alpha diversity measures:
+Metadata_stat$shannon.vegan <- diversity(Total_OTUdf, index = "shannon")
+Metadata_stat$simpson.vegan <- diversity(Total_OTUdf, index = "simpson")
+Metadata_stat$invsimpson.vegan <- diversity(Total_OTUdf, index = "invsimpson")
+```
+```{r}
+model_AOV <- aov(shannon.vegan~Gender+Subject/Location+ Subject, data = Metadata_stat)
+summary(model_AOV)
+```
+
+```{r}
+ps <- prune_samples(sample_sums(VCPHY1) >1, VCPHY1)
+ps <-prune_taxa(taxa_sums(ps) > 1, ps) 
+norm_groups <- transform_sample_counts(ps, function(x) x / sum(x) )
+ord.core_groups.pcoa <- ordinate(norm_groups, method="PCoA", distance="bray", na.rm = TRUE)
+plot_ordination(norm_groups, ord.core_groups.pcoa, color = "Subject", shape = "Time_Collected") +
+  geom_point(size=1)
+```
+
+```{r}
+metadata <- as(sample_data(norm_groups ), "data.frame")
+adonis(phyloseq::distance(norm_groups, method="jaccard") ~  Gender+Subject/Location+Subject,
+       data = metadata)
+```
+
+```{r}
+#Subset by person 01
+P_01 <- subset_samples(VCPHY1, Subject=="P01")
+#Subset person 01 by locations
+P_01_LH<- subset_samples(P_01, Location=="left")
+P_01_RH<- subset_samples(P_01, Location=="right")
+P_01_SC<- subset_samples(P_01, Location=="scalp")
+
+prevelancedf <- apply(X = otu_table(P_01_LH),
+                     MARGIN = 1,
+                     FUN = function(x){sum(x > 0)})
+# Add taxonomy and total read counts to this data.frame
+prevelancedf <- data.frame(Prevalence = prevelancedf,
+                          TotalAbundance = taxa_sums(P_01_LH),
+                          tax_table(P_01_LH))
+prevelancedf_stable <- subset(prevelancedf, prevelancedf$Prevalence >= 3)  
+```
+
+```{r}
+#Subset by person 01
+P_01 <- subset_samples(VCPHY1, Subject=="P01")
+P_01_RH<- subset_samples(P_01, Location=="right")
+
+prevelancedf_P_01_RH <- apply(X = otu_table(P_01_RH),
+                     MARGIN = 1,
+                     FUN = function(x){sum(x > 0)})
+# Add taxonomy and total read counts to this data.frame
+prevelancedf_P_01_RH <- data.frame(Prevalence = prevelancedf_P_01_RH,
+                          TotalAbundance = taxa_sums(P_01_RH),
+                          tax_table(P_01_RH))
+prevelancedf_P_01_RH_stable <- subset(prevelancedf_P_01_RH, prevelancedf_P_01_RH$Prevalence >= 3)  
+```
+#P02
+```{r}
+#Subset by person 01
+P_02 <- subset_samples(VCPHY1, Subject=="P02")
+P_02_LH<- subset_samples(P_02, Location=="left")
+
+prevelancedf_P_02_LH <- apply(X = otu_table(P_02_LH),
+                     MARGIN = 1,
+                     FUN = function(x){sum(x > 0)})
+# Add taxonomy and total read counts to this data.frame
+prevelancedf_P_02_LH <- data.frame(Prevalence = prevelancedf_P_02_LH,
+                          TotalAbundance = taxa_sums(P_02_LH),
+                          tax_table(P_02_LH))
+prevelancedf_P_02_LH_stable <- subset(prevelancedf_P_02_LH, prevelancedf_P_02_LH$Prevalence >= 3)  
+```
+```{r}
+#Subset by person 02
+P_02 <- subset_samples(VCPHY1, Subject=="P02")
+P_02_RH<- subset_samples(P_02, Location=="right")
+
+prevelancedf_P_02_RH <- apply(X = otu_table(P_02_RH),
+                     MARGIN = 1,
+                     FUN = function(x){sum(x > 0)})
+# Add taxonomy and total read counts to this data.frame
+prevelancedf_P_02_RH <- data.frame(Prevalence = prevelancedf_P_02_RH,
+                          TotalAbundance = taxa_sums(P_02_RH),
+                          tax_table(P_02_RH)) 
+prevelancedf_P_02_RH_stable <- subset(prevelancedf_P_02_RH, prevelancedf_P_02_RH$Prevalence >= 3)  
+```
+#P03
+```{r}
+#Subset by person 03
+P_03 <- subset_samples(VCPHY1, Subject=="P03")
+P_03_LH<- subset_samples(P_03, Location=="left")
+
+prevelancedf_P_03_LH <- apply(X = otu_table(P_03_LH),
+                     MARGIN = 1,
+                     FUN = function(x){sum(x > 0)})
+# Add taxonomy and total read counts to this data.frame
+prevelancedf_P_03_LH <- data.frame(Prevalence = prevelancedf_P_03_LH,
+                          TotalAbundance = taxa_sums(P_03_LH),
+                          tax_table(P_03_LH))
+prevelancedf_P_03_LH_stable <- subset(prevelancedf_P_03_LH, prevelancedf_P_03_LH$Prevalence >= 4)  
+```
+
+```{r}
+#Subset by person 03
+P_03 <- subset_samples(VCPHY1, Subject=="P03")
+P_03_RH<- subset_samples(P_03, Location=="right")
+
+prevelancedf_P_03_RH <- apply(X = otu_table(P_03_RH),
+                     MARGIN = 1,
+                     FUN = function(x){sum(x > 0)})
+# Add taxonomy and total read counts to this data.frame
+prevelancedf_P_03_RH <- data.frame(Prevalence = prevelancedf_P_03_RH,
+                          TotalAbundance = taxa_sums(P_03_RH),
+                          tax_table(P_03_RH)) 
+prevelancedf_P_03_RH_stable <- subset(prevelancedf_P_03_RH, prevelancedf_P_03_RH$Prevalence >= 4)  
+```
+#P04
+```{r}
+#Subset by person 04
+P_04 <- subset_samples(VCPHY1, Subject=="P04")
+P_04_LH<- subset_samples(P_04, Location=="left")
+
+prevelancedf_P_04_LH <- apply(X = otu_table(P_04_LH),
+                     MARGIN = 1,
+                     FUN = function(x){sum(x > 0)})
+# Add taxonomy and total read counts to this data.frame
+prevelancedf_P_04_LH <- data.frame(Prevalence = prevelancedf_P_04_LH,
+                          TotalAbundance = taxa_sums(P_04_LH),
+                          tax_table(P_04_LH))
+prevelancedf_P_04_LH_stable <- subset(prevelancedf_P_04_LH, prevelancedf_P_04_LH$Prevalence >= 4)  
+```
+
+```{r}
+#Subset by person 04
+P_04 <- subset_samples(VCPHY1, Subject=="P04")
+P_04_RH<- subset_samples(P_04, Location=="right")
+
+prevelancedf_P_04_RH <- apply(X = otu_table(P_04_RH),
+                     MARGIN = 1,
+                     FUN = function(x){sum(x > 0)})
+# Add taxonomy and total read counts to this data.frame
+prevelancedf_P_04_RH <- data.frame(Prevalence = prevelancedf_P_04_RH,
+                          TotalAbundance = taxa_sums(P_04_RH),
+                          tax_table(P_04_RH)) 
+prevelancedf_P_04_RH_stable <- subset(prevelancedf_P_04_RH, prevelancedf_P_04_RH$Prevalence >= 4)  
+```
+#P05
+```{r}
+#Subset by person 05
+P_05 <- subset_samples(VCPHY1, Subject=="P05")
+P_05_LH<- subset_samples(P_05, Location=="left")
+
+prevelancedf_P_05_LH <- apply(X = otu_table(P_05_LH),
+                     MARGIN = 1,
+                     FUN = function(x){sum(x > 0)})
+# Add taxonomy and total read counts to this data.frame
+prevelancedf_P_05_LH <- data.frame(Prevalence = prevelancedf_P_05_LH,
+                          TotalAbundance = taxa_sums(P_05_LH),
+                          tax_table(P_05_LH))
+prevelancedf_P_05_LH_stable <- subset(prevelancedf_P_05_LH, prevelancedf_P_05_LH$Prevalence >= 4)  
+```
+
+```{r}
+#Subset by person 05
+P_05 <- subset_samples(VCPHY1, Subject=="P05")
+P_05_RH<- subset_samples(P_05, Location=="right")
+
+prevelancedf_P_05_RH <- apply(X = otu_table(P_05_RH),
+                     MARGIN = 1,
+                     FUN = function(x){sum(x > 0)})
+# Add taxonomy and total read counts to this data.frame
+prevelancedf_P_05_RH <- data.frame(Prevalence = prevelancedf_P_05_RH,
+                          TotalAbundance = taxa_sums(P_05_RH),
+                          tax_table(P_05_RH)) 
+prevelancedf_P_05_RH_stable <- subset(prevelancedf_P_05_RH, prevelancedf_P_05_RH$Prevalence >= 4)  
+```
+
+#P06
+```{r}
+#Subset by person 06
+P_06 <- subset_samples(VCPHY1, Subject=="P06")
+P_06_LH<- subset_samples(P_06, Location=="left")
+
+prevelancedf_P_06_LH <- apply(X = otu_table(P_06_LH),
+                     MARGIN = 1,
+                     FUN = function(x){sum(x > 0)})
+# Add taxonomy and total read counts to this data.frame
+prevelancedf_P_06_LH <- data.frame(Prevalence = prevelancedf_P_06_LH,
+                          TotalAbundance = taxa_sums(P_06_LH),
+                          tax_table(P_06_LH))
+prevelancedf_P_06_LH_stable <- subset(prevelancedf_P_06_LH, prevelancedf_P_06_LH$Prevalence >= 4)  
+```
+
+```{r}
+#Subset by person 06
+P_06 <- subset_samples(VCPHY1, Subject=="P06")
+P_06_RH<- subset_samples(P_06, Location=="right")
+
+prevelancedf_P_06_RH <- apply(X = otu_table(P_06_RH),
+                     MARGIN = 1,
+                     FUN = function(x){sum(x > 0)})
+# Add taxonomy and total read counts to this data.frame
+prevelancedf_P_06_RH <- data.frame(Prevalence = prevelancedf_P_06_RH,
+                          TotalAbundance = taxa_sums(P_06_RH),
+                          tax_table(P_06_RH)) 
+prevelancedf_P_06_RH_stable <- subset(prevelancedf_P_06_RH, prevelancedf_P_06_RH$Prevalence >= 4)  
+```
+
+#P07
+```{r}
+#Subset by person 07
+P_07 <- subset_samples(VCPHY1, Subject=="P07")
+P_07_LH<- subset_samples(P_07, Location=="left")
+
+prevelancedf_P_07_LH <- apply(X = otu_table(P_07_LH),
+                     MARGIN = 1,
+                     FUN = function(x){sum(x > 0)})
+# Add taxonomy and total read counts to this data.frame
+prevelancedf_P_07_LH <- data.frame(Prevalence = prevelancedf_P_07_LH,
+                          TotalAbundance = taxa_sums(P_07_LH),
+                          tax_table(P_07_LH))
+prevelancedf_P_07_LH_stable <- subset(prevelancedf_P_07_LH, prevelancedf_P_07_LH$Prevalence >= 4)  
+```
+
+```{r}
+#Subset by person 07
+P_07 <- subset_samples(VCPHY1, Subject=="P07")
+P_07_RH<- subset_samples(P_07, Location=="right")
+
+prevelancedf_P_07_RH <- apply(X = otu_table(P_07_RH),
+                     MARGIN = 1,
+                     FUN = function(x){sum(x > 0)})
+# Add taxonomy and total read counts to this data.frame
+prevelancedf_P_07_RH <- data.frame(Prevalence = prevelancedf_P_07_RH,
+                          TotalAbundance = taxa_sums(P_07_RH),
+                          tax_table(P_07_RH)) 
+prevelancedf_P_07_RH_stable <- subset(prevelancedf_P_07_RH, prevelancedf_P_07_RH$Prevalence >= 4)  
+```
+
+#P08
+```{r}
+#Subset by person 08
+P_08 <- subset_samples(VCPHY1, Subject=="P08")
+P_08_LH<- subset_samples(P_08, Location=="left")
+
+prevelancedf_P_08_LH <- apply(X = otu_table(P_08_LH),
+                     MARGIN = 1,
+                     FUN = function(x){sum(x > 0)})
+# Add taxonomy and total read counts to this data.frame
+prevelancedf_P_08_LH <- data.frame(Prevalence = prevelancedf_P_08_LH,
+                          TotalAbundance = taxa_sums(P_08_LH),
+                          tax_table(P_08_LH))
+prevelancedf_P_08_LH_stable <- subset(prevelancedf_P_08_LH, prevelancedf_P_08_LH$Prevalence >= 4)  
+```
+
+```{r}
+#Subset by person 08
+P_08 <- subset_samples(VCPHY1, Subject=="P08")
+P_08_RH<- subset_samples(P_08, Location=="right")
+
+prevelancedf_P_08_RH <- apply(X = otu_table(P_08_RH),
+                     MARGIN = 1,
+                     FUN = function(x){sum(x > 0)})
+# Add taxonomy and total read counts to this data.frame
+prevelancedf_P_08_RH <- data.frame(Prevalence = prevelancedf_P_08_RH,
+                          TotalAbundance = taxa_sums(P_08_RH),
+                          tax_table(P_08_RH)) 
+prevelancedf_P_08_RH_stable <- subset(prevelancedf_P_08_RH, prevelancedf_P_08_RH$Prevalence >= 4)  
+```
+
+#P09
+```{r}
+#Subset by person 09
+P_09 <- subset_samples(VCPHY1, Subject=="P09")
+P_09_LH<- subset_samples(P_09, Location=="left")
+
+prevelancedf_P_09_LH <- apply(X = otu_table(P_09_LH),
+                     MARGIN = 1,
+                     FUN = function(x){sum(x > 0)})
+# Add taxonomy and total read counts to this data.frame
+prevelancedf_P_09_LH <- data.frame(Prevalence = prevelancedf_P_09_LH,
+                          TotalAbundance = taxa_sums(P_09_LH),
+                          tax_table(P_09_LH))
+prevelancedf_P_09_LH_stable <- subset(prevelancedf_P_09_LH, prevelancedf_P_09_LH$Prevalence >= 4)  
+```
+
+```{r}
+#Subset by person 09
+P_09 <- subset_samples(VCPHY1, Subject=="P09")
+P_09_RH<- subset_samples(P_09, Location=="right")
+
+prevelancedf_P_09_RH <- apply(X = otu_table(P_09_RH),
+                     MARGIN = 1,
+                     FUN = function(x){sum(x > 0)})
+# Add taxonomy and total read counts to this data.frame
+prevelancedf_P_09_RH <- data.frame(Prevalence = prevelancedf_P_09_RH,
+                          TotalAbundance = taxa_sums(P_09_RH),
+                          tax_table(P_09_RH)) 
+prevelancedf_P_09_RH_stable <- subset(prevelancedf_P_09_RH, prevelancedf_P_09_RH$Prevalence >= 4)  
+```

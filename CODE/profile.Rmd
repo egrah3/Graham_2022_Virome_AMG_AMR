@@ -1,0 +1,1415 @@
+---
+title: "Profile"
+output: html_document
+---
+```{r setup, include=FALSE}
+library(NRES803)
+library(plyr)
+library(tidyverse)
+library(GGally)
+library(readr)
+library(mgcv)
+library(broom)
+library(gridExtra)
+library(lme4)
+library(lmerTest)
+library(broom.mixed)
+library(readr)
+library(phyloseq)
+library(dplyr)
+library(tidyr)
+library(ggplot2)
+library(phyloseq)
+library(tidyverse)
+library(microbiome)
+library(readr)
+library("ggpubr")
+library("tidyverse")
+library(vegan)
+library(ComplexHeatmap)
+library(gridBase)
+library(metagenomeSeq)
+library(bbmle)
+library(glmmTMB)
+library(circlize)
+```
+
+```{r}
+Metadata2 <- read_csv("~/Desktop/Current_work/OTU_Builber/Sequencing_Data_Info_Sheet3.csv")
+Metadata3 <- Metadata2
+Metadata3$Time <- Metadata3$Time_Collected
+Metadata3$Time[which(Metadata3$Time == "T_0")] <- "00_Weeks"
+Metadata3$Time[which(Metadata3$Time == "2_week")] <- "02_Weeks"
+Metadata3$Time[which(Metadata3$Time == "1_month")] <- "04_Weeks"
+Metadata3$Time[which(Metadata3$Time == "3_month")] <- "12_Weeks"
+Metadata3$Time[which(Metadata3$Time == "6_month")] <- "24_Weeks"
+
+META <- sample_data(Metadata3)
+sample_names(META)= META$SampleID
+```
+
+```{r}
+CAUDO_counts <- read.csv("counts2_CAUDO.csv", quote = "", header = TRUE, stringsAsFactors = FALSE, row.names = 1)
+#CAUDO_counts <- subset(CAUDO_counts, select = -c(length))
+CAUDO_OTU <- otu_table(CAUDO_counts, taxa_are_rows = TRUE)
+
+CAUDO_tax <- read.csv("CAUDO_tax.csv", quote = "", header = TRUE, stringsAsFactors = FALSE, row.names = 1)
+CAUDO_OTU <- merge(CAUDO_tax, CAUDO_counts, by.x="row.names", by.y="row.names")
+CAUDO_OTU<- subset (CAUDO_OTU, select = -c(Superkingdom, Realm, Kingdom, Phylum, Class, Order, Family, Subfamily, Genus))
+CAUDO_OTU<-ddply(CAUDO_OTU,"Species",numcolwise(sum))
+row.names(CAUDO_OTU)<-CAUDO_OTU$Species
+CAUDO_OTU<- subset (CAUDO_OTU, select = -c(Species))
+CAUDO_spec<-c("Bacillus phage Stitch","Caudovirales sp.","Escherichia phage T7","Escherichia virus DE3","Escherichia virus T7","Escherichia virus TH38","Marine virus AFVG_250M104","Staphylococcus phage HOB 14.1.R1","Staphylococcus phage PhiSepi-HH3","Staphylococcus phage SPbeta-like","Staphylococcus virus IPLA7","Staphylococcus virus IPLAC1C","Staphylococcus virus PH15","Staphylococcus virus vB_SepS_456","Staphylococcus virus vB_SepS_459","Staphylococcus virus vB_SepS_E72","Streptococcus phage phi-SC181","Uncultured Caudovirales phage")
+CAUDO_OTU<-subset(CAUDO_OTU, rownames(CAUDO_OTU) %in% CAUDO_spec)
+CAUDO_OTU <- otu_table(CAUDO_counts, taxa_are_rows = TRUE)
+CAUDO_tax <- read.csv("CAUDO_tax.csv", quote = "", header = TRUE, stringsAsFactors = FALSE)
+CAUDO_tax<-subset(CAUDO_tax, Species %in% CAUDO_spec)
+CAUDO_tax<- subset (CAUDO_tax, select = -c(ContigID))
+CAUDO_tax<-unique(CAUDO_tax)
+row.names(CAUDO_tax)<-CAUDO_tax$Species
+CAUDO_tax <-as.matrix(CAUDO_tax)
+CAUDO_tax <- tax_table(CAUDO_tax)
+
+CHeckV_counts <- read.csv("counts2_bowtie.csv", quote = "", header = TRUE, stringsAsFactors = FALSE, row.names = 1)
+CHeckV_counts  <- subset(CHeckV_counts , select = -c(length))
+tax_ann <- read.csv("vc_tax.csv", quote = "", header = TRUE, stringsAsFactors = FALSE, row.names = 1)
+#tax_ann<-read_delim("vc_tax.txt", "\t", escape_double = FALSE, trim_ws = TRUE)
+CHeckV_counts2 <- merge(tax_ann, CHeckV_counts, by.x = "row.names", by.y = "row.names")
+CHeckV_counts2<- subset (CHeckV_counts2, select = -c(Superkingdom, Realm, Kingdom, Phylum, Class, Family, Order, Species, Subfamily, Genus))
+row.names(CHeckV_counts2)<- CHeckV_counts2$Row.names
+CHeckV_counts2<- subset (CHeckV_counts2, select = -c(Row.names))
+CHeckV_OTU <- otu_table(CHeckV_counts2, taxa_are_rows = TRUE)
+
+CHeckV_counts<-read.csv("counts2_checkv_FINAL.txt", "\t", header = TRUE, stringsAsFactors = FALSE, row.names = 1)
+
+PAP_counts <- read.csv("papilloma/PAPcounts.csv", quote = "", header = TRUE, stringsAsFactors = FALSE, row.names = 1)
+PAP_OTU <- otu_table(PAP_counts, taxa_are_rows = TRUE)
+
+BAC_counts <- read.csv("baculo/counts2_baculo_edited.csv", quote = "", header = TRUE, stringsAsFactors = FALSE, row.names = 1)
+BAC_OTU <- otu_table(BAC_counts, taxa_are_rows = TRUE)
+
+GEN_counts <- read.csv("genomovir/counts2_genomovir_edited.csv", quote = "", header = TRUE, stringsAsFactors = FALSE, row.names = 1)
+GEN_OTU <- otu_table(GEN_counts, taxa_are_rows = TRUE)
+
+Contigs_counts <- read.csv("counts2_bowtie.csv", quote = "", header = TRUE, stringsAsFactors = FALSE, row.names = 1)
+Contigs_counts  <- subset(Contigs_counts , select = -c(length))
+CONTIG_OTU <- otu_table(Contigs_counts, taxa_are_rows = TRUE)
+```
+
+```{r}
+CAUDO_tax <- read.csv("CAUDO_tax.csv", quote = "", header = TRUE, stringsAsFactors = FALSE, row.names = 1)
+CAUDO_tax <-as.matrix(CAUDO_tax)
+CAUDO_tax <- tax_table(CAUDO_tax)
+
+tax_ann <- read.csv("vc_tax.csv", quote = "", header = TRUE, stringsAsFactors = FALSE, row.names = 1)
+#tax_ann<-read.csv("vc_tax.txt", "\t", header = TRUE, stringsAsFactors = FALSE, row.names = 1)
+#tax_ann <- subset(tax_ann, select = -c(isolate_clone_subspecies))
+tax_ann <-as.matrix(tax_ann)
+CHeckV_tax <- tax_table(tax_ann)
+
+
+PAP_tax <- read.csv("papilloma/papilloma_taxa.csv", quote = "", header = TRUE, stringsAsFactors = FALSE, row.names = 1)
+PAP_tax <- subset(PAP_tax, select = -c(Serotype,Isolate))
+PAP_tax <-as.matrix(PAP_tax)
+PAP_tax <- tax_table(PAP_tax)
+
+
+BAC_tax <- read.csv("baculo/baculo_taxa.csv", quote = "", header = TRUE, stringsAsFactors = FALSE, row.names = 1)
+BAC_tax <- subset(BAC_tax, select = -c(Isolate))
+BAC_tax <-as.matrix(BAC_tax)
+BAC_tax <- tax_table(BAC_tax)
+
+GEN_tax <- read.csv("genomovir/genomovir_taxa.csv", quote = "", header = TRUE, stringsAsFactors = FALSE, row.names = 1)
+GEN_tax <- subset(GEN_tax, select = -c(Isolate))
+GEN_tax <-as.matrix(GEN_tax)
+GEN_tax <- tax_table(GEN_tax)
+
+Contigs_tax <- Contigs_counts
+Contigs_tax$Superkingdom<-"Viruses"
+Contigs_tax$Realm <- row.names(Contigs_tax)
+Contigs_tax <- subset(Contigs_tax, select = c(Superkingdom,Realm))
+Contigs_tax$Kingdom<-Contigs_tax$Realm
+Contigs_tax$Phylum <-Contigs_tax$Realm
+Contigs_tax$Class<-Contigs_tax$Realm
+Contigs_tax$Order<-Contigs_tax$Realm
+Contigs_tax$Family<-Contigs_tax$Realm
+Contigs_tax$Subfamily<-Contigs_tax$Realm
+Contigs_tax$Genus<-Contigs_tax$Realm
+Contigs_tax$Species<-Contigs_tax$Realm
+Contigs_tax <-as.matrix(Contigs_tax)
+Contigs_tax <- tax_table(Contigs_tax)
+```
+
+```{r}
+CAUDO_counts <- read.csv("counts2_CAUDO.csv", quote = "", header = TRUE, stringsAsFactors = FALSE, row.names = 1)
+CAUDO_tax <- read.csv("CAUDO_tax.csv", quote = "", header = TRUE, stringsAsFactors = FALSE, row.names = 1)
+CAUDO_OTU <- merge(CAUDO_tax, CAUDO_counts, by.x="row.names", by.y="row.names")
+CAUDO_OTU<- subset (CAUDO_OTU, select = -c(Superkingdom, Realm, Kingdom, Phylum, Class, Order, Family, Subfamily, Genus))
+CAUDO_spec<-c("Bacillus phage Stitch","Caudovirales sp.","Escherichia phage T7","Escherichia virus DE3","Escherichia virus Lambda","Escherichia virus T7","Escherichia virus TH38","Marine virus AFVG_250M104","Marine virus AFVG_25M557","Staphylococcus phage HOB 14.1.R1","Staphylococcus phage PhiSepi-HH3","Staphylococcus phage SPbeta-like","Staphylococcus phage vB_SauH_DELF3","Staphylococcus virus IPLA7","Staphylococcus virus IPLAC1C","Staphylococcus virus PH15","Staphylococcus virus vB_SepS_456","Staphylococcus virus vB_SepS_459","Staphylococcus virus vB_SepS_E72","Streptococcus phage phi-SC181","Streptococcus phage phiJH1301-2","Uncultured Caudovirales phage")
+CAUDO_OTU<-subset(CAUDO_OTU, Species %in% CAUDO_spec)
+CAUDO_OTU<-ddply(CAUDO_OTU,"Species",numcolwise(sum))
+row.names(CAUDO_OTU)<-CAUDO_OTU$Species
+CAUDO_OTU<- subset (CAUDO_OTU, select = -c(Species))
+CAUDO_OTU <- otu_table(CAUDO_OTU, taxa_are_rows = TRUE)
+CAUDO_tax <- read.csv("CAUDO_tax.csv", quote = "", header = TRUE, stringsAsFactors = FALSE)
+CAUDO_tax<-subset(CAUDO_tax, Species %in% CAUDO_spec)
+CAUDO_tax<- subset (CAUDO_tax, select = -c(ContigID))
+CAUDO_tax<-unique(CAUDO_tax)
+row.names(CAUDO_tax)<-CAUDO_tax$Species
+CAUDO_tax <-as.matrix(CAUDO_tax)
+CAUDO_tax <- tax_table(CAUDO_tax)
+
+
+CHeckV_counts <- read.csv("counts2_bowtie.csv", quote = "", header = TRUE, stringsAsFactors = FALSE, row.names = 1)
+CHeckV_counts  <- subset(CHeckV_counts , select = -c(length))
+tax_ann <- read.csv("vc_tax.csv", quote = "", header = TRUE, stringsAsFactors = FALSE, row.names = 1)
+CHeckV_counts2 <- merge(tax_ann, CHeckV_counts, by.x = "row.names", by.y = "row.names")
+CHeckV_counts2<- subset (CHeckV_counts2, select = -c(Superkingdom, Realm, Kingdom, Phylum, Class, Family, Order,Subfamily, Genus))
+CHeckV_spec<-c("Autographa californica multiple nucleopolyhedrovirus","Autographa californica nucleopolyhedrovirus","Staphylococcus phage St 134","Unclassified Caudovirales","Unclassified Homo sapiens like virus","Unclassified Siphoviridae","Uncultured Caudovirales phage")
+CHeckV_counts2<-subset(CHeckV_counts2, Species %in% CHeckV_spec)
+CHeckV_counts2<-ddply(CHeckV_counts2,"Species",numcolwise(sum))
+row.names(CHeckV_counts2)<- CHeckV_counts2$Species
+CHeckV_counts2<- subset (CHeckV_counts2, select = -c(Species))
+CHeckV_OTU <- otu_table(CHeckV_counts2, taxa_are_rows = TRUE)
+tax_ann <- read.csv("vc_tax.csv", quote = "", header = TRUE, stringsAsFactors = FALSE,row.names=NULL)
+tax_ann<-subset(tax_ann, Species %in% CHeckV_spec)
+tax_ann<- subset (tax_ann, select = -c(contig_id))
+tax_ann<-unique(tax_ann)
+remv<-c("4","70")
+tax_ann<-subset(tax_ann, !row.names(tax_ann) %in% remv)
+row.names(tax_ann)<-tax_ann$Species
+CHeckV_tax <-as.matrix(tax_ann)
+CHeckV_tax <- tax_table(CHeckV_tax)
+CHeckV_tax <-as.matrix(CHeckV_tax)
+CHeckV_tax <- tax_table(CHeckV_tax)
+
+
+PAP_counts <- read.csv("papilloma/PAPcounts.csv", quote = "", header = TRUE, stringsAsFactors = FALSE, row.names = 1)
+PAP_tax <- read.csv("papilloma/papilloma_taxa.csv", quote = "", header = TRUE, stringsAsFactors = FALSE, row.names = 1)
+PAP_tax <- subset(PAP_tax, select = -c(Serotype,Isolate))
+PAP_OTU <- merge(PAP_tax, PAP_counts, by.x="row.names", by.y="row.names")
+PAP_OTU<- subset (PAP_OTU, select = -c(Superkingdom, Realm, Kingdom, Phylum, Class, Order, Family, Subfamily, Genus))
+PAP_spec<-c("Alphapapillomavirus 5","Betapapillomavirus 1","Betapapillomavirus 2","Betapapillomavirus 3","Gammapapillomavirus 12","Gammapapillomavirus 22","Gammapapillomavirus 7","Gammapapillomavirus 8")
+PAP_OTU<-subset(PAP_OTU, Species %in% PAP_spec)
+PAP_OTU<-ddply(PAP_OTU,"Species",numcolwise(sum))
+row.names(PAP_OTU)<-PAP_OTU$Species
+PAP_OTU<- subset (PAP_OTU, select = -c(Species))
+PAP_OTU <- otu_table(PAP_OTU, taxa_are_rows = TRUE)
+PAP_tax <- read.csv("papilloma/papilloma_taxa.csv", quote = "", header = TRUE, stringsAsFactors = FALSE)
+PAP_tax <- subset(PAP_tax, select = -c(Serotype,Isolate))
+PAP_tax<-subset(PAP_tax, Species %in% PAP_spec)
+PAP_tax<- subset (PAP_tax, select = -c(ContigID))
+PAP_tax<-unique(PAP_tax)
+remv<-c("1341")
+PAP_tax<-subset(PAP_tax, !row.names(PAP_tax) %in% remv)
+row.names(PAP_tax)<-PAP_tax$Species
+PAP_tax <-as.matrix(PAP_tax)
+PAP_tax <- tax_table(PAP_tax)
+
+
+BAC_counts <- read.csv("baculo/counts2_baculo_edited.csv", quote = "", header = TRUE, stringsAsFactors = FALSE, row.names = 1)
+BAC_tax <- read.csv("baculo/baculo_taxa.csv", quote = "", header = TRUE, stringsAsFactors = FALSE, row.names = 1)
+BAC_tax <- subset(BAC_tax, select = -c(Isolate))
+BAC_OTU <- merge(BAC_tax, BAC_counts, by.x="row.names", by.y="row.names")
+BAC_OTU<- subset (BAC_OTU, select = -c(Superkingdom, Realm, Kingdom, Phylum, Class, Order, Family, Subfamily, Genus))
+BAC_spec<-c("Autographa californica multiple nucleopolyhedrovirus","Malacosoma neustria nucleopolyhedrovirus","Unclassified Baculoviridae")
+BAC_OTU<-subset(BAC_OTU, Species %in% BAC_spec)
+BAC_OTU<-ddply(BAC_OTU,"Species",numcolwise(sum))
+row.names(BAC_OTU)<-BAC_OTU$Species
+BAC_OTU<- subset (BAC_OTU, select = -c(Species))
+BAC_OTU <- otu_table(BAC_OTU, taxa_are_rows = TRUE)
+BAC_tax <- read.csv("baculo/baculo_taxa.csv", quote = "", header = TRUE, stringsAsFactors = FALSE, row.names = 1)
+BAC_tax <- subset(BAC_tax, select = -c(Isolate))
+BAC_tax<-subset(BAC_tax, Species %in% BAC_spec)
+BAC_tax<-unique(BAC_tax)
+row.names(BAC_tax)<-BAC_tax$Species
+BAC_tax <-as.matrix(BAC_tax)
+BAC_tax <- tax_table(BAC_tax)
+
+
+GEN_counts <- read.csv("genomovir/counts2_genomovir_edited.csv", quote = "", header = TRUE, stringsAsFactors = FALSE, row.names = 1)
+GEN_tax <- read.csv("genomovir/genomovir_taxa.csv", quote = "", header = TRUE, stringsAsFactors = FALSE, row.names = 1)
+GEN_tax <- subset(GEN_tax, select = -c(Isolate))
+GEN_OTU <- merge(GEN_tax, GEN_counts, by.x="row.names", by.y="row.names")
+GEN_OTU<- subset (GEN_OTU, select = -c(Superkingdom, Realm, Kingdom, Phylum, Class, Order, Family, Subfamily, Genus))
+GEN_spec<-c("Genomoviridae sp.")
+GEN_OTU<-subset(GEN_OTU, Species %in% GEN_spec)
+GEN_OTU<-ddply(GEN_OTU,"Species",numcolwise(sum))
+row.names(GEN_OTU)<-GEN_OTU$Species
+GEN_OTU<- subset (GEN_OTU, select = -c(Species))
+GEN_OTU <- otu_table(GEN_OTU, taxa_are_rows = TRUE)
+GEN_tax <- read.csv("genomovir/genomovir_taxa.csv", quote = "", header = TRUE, stringsAsFactors = FALSE, row.names = 1)
+GEN_tax <- subset(GEN_tax, select = -c(Isolate))
+GEN_tax<-subset(GEN_tax, Species %in% GEN_spec)
+GEN_tax<-unique(GEN_tax)
+row.names(GEN_tax)<-GEN_tax$Species
+GEN_tax <-as.matrix(GEN_tax)
+GEN_tax <- tax_table(GEN_tax)
+
+Contigs_counts <- read.csv("counts2_bowtie.csv", quote = "", header = TRUE, stringsAsFactors = FALSE, row.names = 1)
+Contigs_counts  <- subset(Contigs_counts , select = -c(length))
+CONTIG_spec<-c("k127_12278877","k127_1246730","k127_12842510","k127_12954","k127_13186497","k127_13257999","k127_14008563","k127_14874687","k127_3126920","k127_3443640","k127_4343132","k127_5189512","k127_5608134","k127_5988390","k127_6026611","k127_639643","k127_6473642","k127_699139","k127_8568361","k127_9807842","k127_9848036")
+Contigs_counts<-subset(Contigs_counts, row.names(Contigs_counts) %in% CONTIG_spec)
+CONTIG_OTU <- otu_table(Contigs_counts, taxa_are_rows = TRUE)
+Contigs_tax <- Contigs_counts
+Contigs_tax$Superkingdom<-"Viruses"
+Contigs_tax$Realm <- row.names(Contigs_tax)
+Contigs_tax <- subset(Contigs_tax, select = c(Superkingdom,Realm))
+Contigs_tax$Kingdom<-Contigs_tax$Realm
+Contigs_tax$Phylum <-Contigs_tax$Realm
+Contigs_tax$Class<-Contigs_tax$Realm
+Contigs_tax$Order<-Contigs_tax$Realm
+Contigs_tax$Family<-Contigs_tax$Realm
+Contigs_tax$Subfamily<-Contigs_tax$Realm
+Contigs_tax$Genus<-Contigs_tax$Realm
+Contigs_tax$Species<-Contigs_tax$Realm
+Contigs_tax<-subset(Contigs_tax, row.names(Contigs_tax) %in% CONTIG_spec)
+Contigs_tax <-as.matrix(Contigs_tax)
+Contigs_tax <- tax_table(Contigs_tax)
+
+```
+
+```{r}
+CAUDO_PHY <- phyloseq(CAUDO_OTU, CAUDO_tax, META)#
+CHeckV_PHY <- phyloseq(CHeckV_OTU, CHeckV_tax, META)
+PAP_PHY <- phyloseq(PAP_OTU, PAP_tax, META)#
+BAC_PHY <- phyloseq(BAC_OTU, BAC_tax, META)#
+GEN_PHY <- phyloseq(GEN_OTU, GEN_tax, META)#
+CONTIG_PHY <- phyloseq(CONTIG_OTU, Contigs_tax, META)
+
+Samples_toRemove <- c("HV_001_27", "HV_002_27", "HV_003_27", "HV_004_27", "HV_005_27", "HV_006_27", "HV_007_27", "HV_008_27",
+                      "HV_009_27", "HV_010_27", "HV_011_27", "HV_012_27", "HV_013_27", "HV_014_27", "HV_015_27", "HV_016_27",
+                      "HV_017_27", "HV_018_27", "HV_019_27", "HV_020_27", "HV_021_27", "HV_022_27", "HV_023_27", "HV_024_27",
+                      "HV_025_27", "HV_026_27", "HV_027_27", "HV_028_27", "HV_029_27", "HV_030_27", "HV_015_20", "HV_015_21", 
+                      "HV_020_22", "HV_027_02", "HV_027_03", "HV_027_04", "HV_027_05", "HV_027_06", "HV_027_07", "HV_020_10",
+                      "HV_021_13", "HV_027_01","HV_003_15")
+
+CAUDO_PHY2 <- subset_samples(CAUDO_PHY, !(SampleID %in% Samples_toRemove))
+CHeckV_PHY2 <- subset_samples(CHeckV_PHY, !(SampleID %in% Samples_toRemove))
+PAP_PHY2 <- subset_samples(PAP_PHY, !(SampleID %in% Samples_toRemove))
+BAC_PHY2 <- subset_samples(BAC_PHY, !(SampleID %in% Samples_toRemove))
+GEN_PHY2 <- subset_samples(GEN_PHY, !(SampleID %in% Samples_toRemove))
+CONTIG_PHY2 <- subset_samples(CONTIG_PHY, !(SampleID %in% Samples_toRemove))
+```
+
+
+```{r}
+Profile<- merge_phyloseq(CAUDO_PHY2,CHeckV_PHY2,PAP_PHY2,BAC_PHY2,GEN_PHY2,CONTIG_PHY2)
+Profile_Checkv<-CHeckV_PHY2
+Profile_Contig<-CONTIG_PHY2
+Profile_NCBI<-merge_phyloseq(CAUDO_PHY2,PAP_PHY2,BAC_PHY2,GEN_PHY2)
+```
+
+#Time_Abundance
+
+
+#alpha
+```{r}
+# Extract abundance matrix from the phyloseq object
+Total_OTU <- as(otu_table(Profile), "matrix")
+# transpose if necessary
+Total_OTU <- t(Total_OTU)
+# Coerce to data.frame
+Total_OTUdf = as.data.frame(Total_OTU)
+
+#merge metadata file with alpha diversity measures:
+
+#Remove samples from metadatafile that were removed from your phyloseq object (ie control samples, repeated samples, and other samples that are of other persons you are not using in this data set (P33, >P43))
+Samples_toRemove <- c("HV_001_27", "HV_002_27", "HV_003_27", "HV_004_27", "HV_005_27", "HV_006_27", "HV_007_27", "HV_008_27",
+                      "HV_009_27", "HV_010_27", "HV_011_27", "HV_012_27", "HV_013_27", "HV_014_27", "HV_015_27", "HV_016_27",
+                      "HV_017_27", "HV_018_27", "HV_019_27", "HV_020_27", "HV_021_27", "HV_022_27", "HV_023_27", "HV_024_27",
+                      "HV_025_27", "HV_026_27", "HV_027_27", "HV_028_27", "HV_029_27", "HV_030_27", "HV_015_20", "HV_015_21", 
+                      "HV_020_22", "HV_027_02", "HV_027_03", "HV_027_04", "HV_027_05", "HV_027_06", "HV_027_07", "HV_020_10",
+                      "HV_021_13", "HV_027_01", "HV_003_15")
+
+Metadata_stat <- Metadata2[!grepl("HV_001_27", Metadata2$SampleID),]
+Metadata_stat <- Metadata_stat[!grepl("HV_002_27", Metadata_stat$SampleID),]
+Metadata_stat <- Metadata_stat[!grepl("HV_027_03", Metadata_stat$SampleID),]
+Metadata_stat <- Metadata_stat[!grepl("HV_027_04", Metadata_stat$SampleID),]
+Metadata_stat <- Metadata_stat[!grepl("HV_027_06", Metadata_stat$SampleID),]
+Metadata_stat <- Metadata_stat[!grepl("HV_027_07", Metadata_stat$SampleID),]
+Metadata_stat <- Metadata_stat[!grepl("HV_021_13", Metadata_stat$SampleID),]
+Metadata_stat <- Metadata_stat[!grepl("HV_027_01", Metadata_stat$SampleID),]
+Metadata_stat <- Metadata_stat[!grepl("HV_020_10", Metadata_stat$SampleID),]
+Metadata_stat <- Metadata_stat[!grepl("HV_015_21", Metadata_stat$SampleID),]
+Metadata_stat <- Metadata_stat[!grepl("HV_027_05", Metadata_stat$SampleID),]
+Metadata_stat <- Metadata_stat[!grepl("HV_020_22", Metadata_stat$SampleID),]
+Metadata_stat <- Metadata_stat[!grepl("HV_027_02", Metadata_stat$SampleID),]
+Metadata_stat <- Metadata_stat[!grepl("HV_015_20", Metadata_stat$SampleID),]
+Metadata_stat <- Metadata_stat[!grepl("HV_003_27", Metadata_stat$SampleID),]
+Metadata_stat <- Metadata_stat[!grepl("HV_004_27", Metadata_stat$SampleID),]
+Metadata_stat <- Metadata_stat[!grepl("HV_005_27", Metadata_stat$SampleID),]
+Metadata_stat <- Metadata_stat[!grepl("HV_006_27", Metadata_stat$SampleID),]
+Metadata_stat <- Metadata_stat[!grepl("HV_007_27", Metadata_stat$SampleID),]
+Metadata_stat <- Metadata_stat[!grepl("HV_008_27", Metadata_stat$SampleID),]
+Metadata_stat <- Metadata_stat[!grepl("HV_009_27", Metadata_stat$SampleID),]
+Metadata_stat <- Metadata_stat[!grepl("HV_010_27", Metadata_stat$SampleID),]
+Metadata_stat <- Metadata_stat[!grepl("HV_011_27", Metadata_stat$SampleID),]
+Metadata_stat <- Metadata_stat[!grepl("HV_012_27", Metadata_stat$SampleID),]
+Metadata_stat <- Metadata_stat[!grepl("HV_013_27", Metadata_stat$SampleID),]
+Metadata_stat <- Metadata_stat[!grepl("HV_014_27", Metadata_stat$SampleID),]
+Metadata_stat <- Metadata_stat[!grepl("HV_015_27", Metadata_stat$SampleID),]
+Metadata_stat <- Metadata_stat[!grepl("HV_016_27", Metadata_stat$SampleID),]
+Metadata_stat <- Metadata_stat[!grepl("HV_017_27", Metadata_stat$SampleID),]
+Metadata_stat <- Metadata_stat[!grepl("HV_018_27", Metadata_stat$SampleID),]
+Metadata_stat <- Metadata_stat[!grepl("HV_019_27", Metadata_stat$SampleID),]
+Metadata_stat <- Metadata_stat[!grepl("HV_020_27", Metadata_stat$SampleID),]
+Metadata_stat <- Metadata_stat[!grepl("HV_021_27", Metadata_stat$SampleID),]
+Metadata_stat <- Metadata_stat[!grepl("HV_022_27", Metadata_stat$SampleID),]
+Metadata_stat <- Metadata_stat[!grepl("HV_023_27", Metadata_stat$SampleID),]
+Metadata_stat <- Metadata_stat[!grepl("HV_024_27", Metadata_stat$SampleID),]
+Metadata_stat <- Metadata_stat[!grepl("HV_025_27", Metadata_stat$SampleID),]
+Metadata_stat <- Metadata_stat[!grepl("HV_026_27", Metadata_stat$SampleID),]
+Metadata_stat <- Metadata_stat[!grepl("HV_027_27", Metadata_stat$SampleID),]
+Metadata_stat <- Metadata_stat[!grepl("HV_028_27", Metadata_stat$SampleID),]
+Metadata_stat <- Metadata_stat[!grepl("HV_029_27", Metadata_stat$SampleID),]
+Metadata_stat <- Metadata_stat[!grepl("HV_030_27", Metadata_stat$SampleID),]
+Metadata_stat <- Metadata_stat[!grepl("HV_003_15", Metadata_stat$SampleID),]
+
+
+#Total_OTUdf2<- Total_OTUdf
+#Total_OTUdf2$SampleID <- row.names(Total_OTUdf2)
+#Total_OTUdf2 <- subset(Total_OTUdf2, select = c(SampleID))
+#Metadata_stat2 <- subset(Metadata_stat, select = c(SampleID))
+#anti_join(Metadata_stat2, Total_OTUdf2)
+
+#alpha diversity measures:
+Metadata_stat$shannon.vegan <- diversity(Total_OTUdf, index = "shannon")
+Metadata_stat$simpson.vegan <- diversity(Total_OTUdf, index = "simpson")
+Metadata_stat$invsimpson.vegan <- diversity(Total_OTUdf, index = "invsimpson")
+```
+
+```{r}
+model1 <- aov(shannon.vegan~ Gender+Subject/Location, data = Metadata_stat)
+summary(model1)
+```
+
+```{r}
+prevdf_profile= apply(X = otu_table(Profile), 
+                       MARGIN = ifelse(taxa_are_rows(Profile), yes = 1, no = 2), 
+                       FUN = function(x){sum(x > 0)})
+prevdf_profile <- data.frame(Prevalence= prevdf_profile, TotalAbundance=taxa_sums(Profile))
+View(prevdf_profile)
+ps_profile <- rownames(prevdf_profile)[prevdf_profile$Prevalence > 1]
+ps_profile_analyze <- prune_taxa(ps_profile , Profile)
+sum(otu_table(ps_profile_analyze))/sum(otu_table(Profile)) #99% retained
+sum(otu_table(ps_profile_analyze)) #68265908
+ps_rarefy <- rarefy_even_depth(ps_profile_analyze, sample.size = min(sample_sums(ps_profile_analyze)), rngseed = T, replace = TRUE, trimOTUs = TRUE, verbose = TRUE) #81 removed
+
+Chao1_obser_rarefy= estimate_richness(ps_rarefy, split = TRUE, measures = c("Chao1"))
+head(Chao1_obser_rarefy)
+obser_rarefy= estimate_richness(ps_rarefy, split = TRUE, measures = c("Observed"))
+head(obser_rarefy)
+shannon_obser_rarefy= estimate_richness(ps_rarefy, split = TRUE, measures = c("Shannon"))
+Chao1_obser_rarefy_metadata= merge(META,Chao1_obser_rarefy, by= "row.names")
+head(Chao1_obser_rarefy_metadata)
+shannon_obser_rarefy_metadata= merge(META,shannon_obser_rarefy, by= "row.names")
+
+alpha_meas = c("Observed", "InvSimpson", "Shannon")
+(p <- plot_richness(ps_rarefy, "Subject", measures=alpha_meas))
+test <- (p + geom_boxplot(data=p$data, aes(x=Subject, y=value, color=NULL), alpha=0.1)) 
+plot(test)
+```
+
+```{r}
+alpha_meas = c("Observed","Shannon")
+plot_richness(Profile, color = "Location", x = "Subject")
+
+png("Alpha.png", width= 3000, height= 2000,
+    units="px", res=300, pointsize=12)
+plot_richness(Profile, x="Subject", measures=alpha_meas)+
+  geom_boxplot(alpha=0.5)+
+  theme_half_open()+
+  theme(legend.position="none",axis.text.x=element_text(angle=90,,vjust = 0.5, hjust=1,size=9))
+ dev.off()
+ 
+alp<-plot_richness(Profile, x="Subject", measures=alpha_meas)+
+  geom_boxplot(alpha=0.5)+
+  theme_half_open()+
+  theme(legend.position="none",axis.text.x=element_text(angle=90,,vjust = 0.5, hjust=1,size=9))
+ggsave(plot=alp,"Figures/alpha.pdf",dpi = 600, pointsize=12, width=25, units = "cm")
+
+png("Beta.png", width= 3000, height= 2000,
+    units="px", res=300, pointsize=12)
+p1<-plot_ordination(norm_groups, ord.core_groups.pcoa, color = "Subject", shape = "Location") +
+  geom_point(size=1)+
+  theme_half_open()+theme(legend.position = "none")
+  legend_b <- get_legend(
+  p1 + 
+    guides(shape=guide_legend(nrow = 3), color = guide_legend(nrow = 4)) +
+    theme(legend.position = "bottom", legend.justification="center")
+)
+beta_p<-plot_grid(p1, legend_b, ncol = 1, rel_heights = c(1, .2))
+ggsave("beta.pdf", beta_p, width = 16, height = 10, units = "in",dpi = 600, pointsize=12)
+
+dev.off()
+color = "Subject"
+a_my_comparisons <- list( c("P01", "P02"), c("P01", "P05"), c("P06", "P08"))
+comparisons = a_my_comparisons
+symnum.args = list(cutpoints = c(0, 0.0001, 0.001, 0.01, 0.05, 1), symbols = c("****", "***", "**", "*", "ns"))
+
+a_my_comparisons <- list( c("P02", "P06"),c("P02", "P19"),c("P02", "P22"), c("P02", "P23"),c("P02", "P24"),c("P02", "P36"),c("P02", "P39"),c("P03", "P06"),c("P03", "P19"),c("P03", "P22"),c("P03", "P24"),c("P03", "P39"),c("P04", "P19"),c("P04", "P36"),c("P04", "P39"),c("P05", "P24"),c("P06", "P09"),c("P06", "P12"),c("P06", "P16"),c("P06", "P25"),c("P06", "P32"),c("P07", "P22"),c("P07", "P24"),c("P07", "P39"),c("P08", "P19"),c("P08", "P22"),c("P08", "P24"),c("P08", "P36"),c("P08", "P39"),c("P09", "P19"),c("P09", "P23"),c("P09", "P24"),c("P09", "P27"),c("P09", "P29"),c("P09", "P31"),c("P09", "P34"),c("P09", "P35"),c("P09", "P36"),c("P09", "P37"),c("P09", "P39"),c("P10", "P22"),c("P10", "P24"),c("P10", "P39"),c("P11", "P22"),c("P11", "P24"),c("P11", "P36"),c("P11", "P39"),c("P12", "P19"),c("P12", "P22"),c("P12", "P24"),c("P12", "P27"),c("P12", "P36"),c("P12", "P39"),c("P14", "P22"),c("P14", "P24"),c("P15", "P22"),c("P16", "P19"),c("P16", "P22"),c("P16", "P23"),c("P16", "P24"),c("P16", "P36"),c("P16", "P39"),c("P17", "P22"),c("P17", "P24"),c("P17", "P39"),c("P18", "P22"),c("P18", "P24"),c("P19", "P22"),c("P19", "P25"),c("P19", "P32"),c("P20", "P22"),c("P20", "P24"),c("P20", "P39"),c("P21", "P22"), c("P21", "P23"),c("P21", "P24"),c("P21", "P27"),c("P21", "P36"),c("P21", "P39"),c("P22", "P25"),c("P22", "P32"),c("P22", "P38"),c("P22", "P41"),c("P22", "P43"),c("P23", "P25"),c("P24", "P25"),c("P24", "P30"),c("P24", "P32"),c("P24", "P41"),c("P24", "P43"),c("P25", "P27"),c("P25", "P34"),c("P25", "P35"),c("P25", "P36"),c("P25", "P37"),c("P25", "P39"),c("P27", "P32"),c("P32", "P34"),c("P32", "P36"),c("P32", "P39"),c("P39", "P41"),c("P39", "P43"))
+
+plot_richness(Profile, x="Subject", measures="Shannon")+
+  geom_boxplot(alpha=0.5)+
+    theme(legend.position="none", axis.text.x=element_text(angle=45,hjust=1,,size=12))+
+  stat_compare_means(method = "wilcox.test",comparisons = a_my_comparisons, label = "p.signif", symnum.args = symnum.args)
+
+```
+
+
+```{r}
+library(ggplot2)
+library(vegan)
+library(dplyr)
+library(scales)
+library(grid)
+library(reshape2)
+library(phyloseq)
+Profile_scale <- Profile %>%
+  scale_reads(round = "round") 
+```
+```{r}
+model_AOV <- aov(shannon.vegan~Subject+Location, data = Metadata_stat)
+summary(model_AOV)
+```
+
+```{r}
+Profile_pap<-subset_taxa(Profile, Family == "Papillomaviridae")
+Profile_PRUNE<- prune_taxa(taxa_sums(Profile) > 1, Profile) 
+Profile_PRUNE2 = prune_samples(sample_sums(Profile_PRUNE)>=1, Profile_PRUNE)
+```
+
+```{r}
+norm_groups <- transform_sample_counts(Profile, function(x) x / sum(x) )
+ord.core_groups.pcoa <- ordinate(norm_groups, method="PCoA", distance="jaccard", na.rm = TRUE)
+plot_ordination(norm_groups, ord.core_groups.pcoa, color = "Subject", shape = "Time_Collected") +
+  geom_point(size=1)
+metadata <- as(sample_data(norm_groups ), "data.frame")
+adonis(phyloseq::distance(norm_groups, method="bray") ~  Subject,
+       data = metadata)
+
+```
+#Time_Abundance:
+
+```{r}
+norm_groups <- transform_sample_counts(Profile, function(x) x / sum(x) )
+tax_table(norm_groups)
+Profile_glom <- tax_glom(Profile, "Species")
+norm_groups_glom <- transform_sample_counts(Profile_glom, function(x) x / sum(x) )
+plot_bar(MSRD, x="Subject", title = "MSRD Gene Abundance", facet_grid= "Time_Week")
+
+```
+
+```{r}
+P01<-c("HV_001_01", "HV_001_02", "HV_001_03", "HV_002_01", "HV_002_02", "HV_002_03", "HV_003_01", "HV_003_02", "HV_003_03", "HV_004_01", "HV_004_02", "HV_004_03", "HV_005_01","HV_005_03") 
+#14
+P02<-c("HV_001_04", "HV_001_05", "HV_001_06", "HV_002_04", "HV_002_05", "HV_002_06", "HV_003_04", "HV_003_05", "HV_003_06", "HV_004_04", "HV_004_05", "HV_004_06", "HV_005_04", "HV_005_05","HV_005_06") 
+#15
+P03<-c("HV_001_07", "HV_001_08", "HV_001_09", "HV_002_07", "HV_002_08", "HV_002_09", "HV_003_07", "HV_003_08", "HV_003_09", "HV_004_07", "HV_004_08", "HV_004_09", "HV_005_07", "HV_005_08", "HV_005_09")
+#15
+P04<-c("HV_001_10", "HV_001_11", "HV_001_12", "HV_002_10", "HV_002_11", "HV_002_12", "HV_003_10", "HV_003_11", "HV_003_12", "HV_004_10", "HV_004_11", "HV_004_12", "HV_005_10", "HV_005_11","HV_005_12")
+#15
+P05<-c("HV_001_13", "HV_001_14", "HV_001_15", "HV_002_13", "HV_002_14", "HV_002_15", "HV_003_13", "HV_003_14", "HV_004_13", "HV_004_14", "HV_004_15", "HV_005_13", "HV_005_14","HV_005_15")
+#14
+P06<-c("HV_001_16", "HV_001_18", "HV_001_19", "HV_002_18", "HV_002_19", "HV_003_16", "HV_003_18", "HV_003_19", "HV_004_16", "HV_004_18", "HV_004_19", "HV_005_16", "HV_005_18") 
+#13
+P07<-c("HV_001_20",  "HV_001_21",  "HV_001_22",  "HV_002_20",  "HV_002_21",  "HV_002_22",  "HV_003_20",  "HV_003_21",  "HV_003_22",  "HV_004_20",  "HV_004_21",  "HV_004_22",  "HV_005_20", "HV_005_22") 
+#14
+P08<-c("HV_006_01", "HV_006_02", "HV_006_03", "HV_007_01", "HV_007_02", "HV_007_03", "HV_008_01", "HV_008_02", "HV_008_03", "HV_009_01", "HV_009_03", "HV_010_01", "HV_010_02","HV_010_03")
+#14
+P09<-c("HV_006_04", "HV_006_05", "HV_006_06", "HV_007_04", "HV_007_05", "HV_007_06", "HV_008_04", "HV_008_05", "HV_008_06", "HV_009_04", "HV_009_05", "HV_009_06", "HV_010_04", "HV_010_05", "HV_010_06")
+#15
+P10<-c("HV_006_07", "HV_006_08", "HV_006_09", "HV_007_07", "HV_007_08", "HV_007_09", "HV_008_07", "HV_008_08", "HV_008_09", "HV_009_07", "HV_009_08", "HV_009_09", "HV_010_07", "HV_010_08","HV_010_09")
+#15
+P11<-c("HV_006_10", "HV_006_11", "HV_006_12", "HV_007_10", "HV_007_11", "HV_007_12", "HV_008_10", "HV_008_11", "HV_008_12", "HV_009_10", "HV_009_11", "HV_009_12", "HV_010_10", "HV_010_11","HV_010_12")
+#15
+P12<-c("HV_006_13", "HV_006_14", "HV_006_15", "HV_007_13", "HV_007_14", "HV_007_15", "HV_008_13", "HV_008_14", "HV_008_15", "HV_009_13", "HV_009_14", "HV_009_15", "HV_010_13", "HV_010_14","HV_010_15")
+#15
+P13<-c("HV_006_16", "HV_006_18", "HV_006_19", "HV_007_16", "HV_007_18", "HV_007_19", "HV_008_16", "HV_008_18", "HV_008_19", "HV_009_16", "HV_009_18", "HV_009_19", "HV_010_16", "HV_010_18","HV_010_19")
+#15
+P14<-c("HV_006_20", "HV_006_21", "HV_006_22", "HV_007_20", "HV_007_21", "HV_007_22", "HV_008_20", "HV_008_21", "HV_008_22", "HV_009_20", "HV_009_21", "HV_009_22", "HV_010_20", "HV_010_21","HV_010_22")
+#15
+P15<-c("HV_011_01", "HV_011_02", "HV_011_03", "HV_012_01", "HV_012_02", "HV_012_03", "HV_013_01", "HV_013_02", "HV_013_03", "HV_014_01", "HV_014_02", "HV_014_03", "HV_015_01", "HV_015_02","HV_015_03")
+#15
+P16<-c("HV_011_04", "HV_011_05", "HV_011_06", "HV_012_04", "HV_012_05", "HV_012_06", "HV_013_04", "HV_013_05", "HV_014_04", "HV_014_05", "HV_014_06", "HV_015_04", "HV_015_05","HV_015_06")
+P17<-c("HV_011_07", "HV_011_08", "HV_011_09", "HV_012_07", "HV_012_08", "HV_012_09", "HV_013_07", "HV_013_08", "HV_013_09", "HV_014_07", "HV_014_08", "HV_014_09", "HV_015_07", "HV_015_08","HV_015_09")
+P18<-c("HV_011_10", "HV_011_11", "HV_011_12", "HV_012_10", "HV_012_11", "HV_012_12", "HV_013_10", "HV_013_11", "HV_013_12", "HV_014_10", "HV_014_11", "HV_014_12", "HV_015_10", "HV_015_11", "HV_015_12")
+P19<-c("HV_011_13", "HV_011_14", "HV_011_15", "HV_012_13", "HV_012_14", "HV_012_15", "HV_013_13", "HV_013_14", "HV_013_15", "HV_014_13", "HV_014_14", "HV_014_15", "HV_015_13", "HV_015_14","HV_015_15")
+P20<-c("HV_011_16", "HV_011_18", "HV_011_19", "HV_012_16", "HV_012_18", "HV_012_19", "HV_013_16", "HV_013_18", "HV_013_19", "HV_014_16", "HV_014_18", "HV_014_19", "HV_015_16", "HV_015_18","HV_015_19")
+P21<-c("HV_011_20", "HV_011_21", "HV_011_22", "HV_012_20", "HV_012_21", "HV_012_22", "HV_013_20", "HV_013_21", "HV_013_22", "HV_014_20", "HV_014_21","HV_014_22")
+P22<-c("HV_016_01", "HV_017_01", "HV_018_01", "HV_019_01", "HV_020_01", "HV_021_02", "HV_022_01", "HV_023_01", "HV_024_01", "HV_025_02", "HV_026_01", "HV_027_08", "HV_028_01", "HV_029_01","HV_030_01")
+P23<-c("HV_016_02", "HV_017_02", "HV_018_02", "HV_019_02", "HV_020_02", "HV_021_03", "HV_022_02", "HV_023_02", "HV_024_02", "HV_025_03", "HV_026_02", "HV_027_09", "HV_028_02", "HV_029_02","HV_030_02")
+P24<-c("HV_016_03", "HV_017_03", "HV_018_03", "HV_019_03", "HV_021_01", "HV_021_04", "HV_022_03", "HV_023_03", "HV_024_03", "HV_025_04", "HV_026_03", "HV_027_10", "HV_028_03", "HV_029_03","HV_030_03")
+P25<-c("HV_016_04", "HV_017_04", "HV_018_04", "HV_019_04", "HV_020_03", "HV_021_05", "HV_022_04", "HV_023_04", "HV_024_04", "HV_025_05", "HV_026_04", "HV_027_11", "HV_028_04", "HV_029_04","HV_030_04")
+P26<-c("HV_016_05", "HV_017_05", "HV_018_05", "HV_019_05", "HV_020_04", "HV_021_06", "HV_022_05", "HV_023_05", "HV_024_05", "HV_025_06", "HV_026_05", "HV_027_12", "HV_028_05", "HV_029_05", "HV_030_05")
+P27<-c("HV_016_06", "HV_017_06", "HV_018_06", "HV_019_06", "HV_020_05", "HV_021_07", "HV_022_06", "HV_023_06", "HV_024_06", "HV_025_07", "HV_026_06", "HV_027_13", "HV_028_06", "HV_029_06","HV_030_06")
+P28<-c("HV_016_07", "HV_017_07", "HV_018_07", "HV_019_07", "HV_020_06", "HV_021_08", "HV_022_07", "HV_023_07", "HV_024_07", "HV_025_08", "HV_026_07", "HV_027_14", "HV_028_07", "HV_029_07","HV_030_07")
+P29<-c("HV_016_08", "HV_017_08", "HV_018_08", "HV_019_08", "HV_020_07", "HV_021_09", "HV_022_08", "HV_023_08", "HV_024_08", "HV_025_09", "HV_026_08", "HV_027_15", "HV_028_08", "HV_029_08","HV_030_08")
+P30<-c("HV_016_09", "HV_017_09", "HV_018_09", "HV_019_09", "HV_020_08", "HV_021_10", "HV_022_09", "HV_023_09", "HV_024_09", "HV_025_10", "HV_026_09", "HV_027_16", "HV_028_09", "HV_029_09","HV_030_09")
+P31<-c("HV_016_10", "HV_017_10", "HV_018_10", "HV_019_10", "HV_021_11", "HV_022_10", "HV_023_10", "HV_024_10", "HV_026_10", "HV_027_18", "HV_028_10", "HV_029_10")
+P32<-c("HV_016_11", "HV_017_11", "HV_018_11", "HV_019_11", "HV_020_09", "HV_021_12", "HV_022_11", "HV_023_11", "HV_024_11", "HV_025_11", "HV_026_11", "HV_027_19", "HV_028_11", "HV_029_11","HV_030_10")
+P34<-c("HV_016_12", "HV_017_12", "HV_018_12", "HV_019_12", "HV_020_11", "HV_021_14", "HV_022_12", "HV_023_12", "HV_024_12", "HV_025_12", "HV_026_12", "HV_027_20", "HV_028_12", "HV_029_12","HV_030_11")
+P35<-c("HV_016_13", "HV_017_13", "HV_018_13", "HV_019_13", "HV_020_12", "HV_021_15", "HV_022_13", "HV_023_13", "HV_024_13", "HV_025_13", "HV_026_13", "HV_027_21", "HV_028_13", "HV_029_13","HV_030_12")
+P36<-c("HV_016_14", "HV_017_14", "HV_018_14", "HV_019_14", "HV_020_13", "HV_021_16", "HV_022_14", "HV_023_14", "HV_024_14", "HV_025_14", "HV_026_14", "HV_027_22", "HV_028_14", "HV_029_14","HV_030_13")
+P37<-c("HV_016_15", "HV_017_15", "HV_018_15", "HV_019_15", "HV_020_14", "HV_021_18", "HV_022_15", "HV_023_15", "HV_024_15", "HV_025_15", "HV_026_15", "HV_028_15", "HV_029_15", "HV_030_14","HV_030_22")
+P38<-c("HV_016_16", "HV_017_16", "HV_018_16", "HV_019_16", "HV_020_15", "HV_021_19", "HV_022_16", "HV_023_16", "HV_024_16", "HV_025_16", "HV_026_16", "HV_028_16", "HV_029_16","HV_030_15")
+P39<-c("HV_016_18", "HV_017_18", "HV_018_18", "HV_019_18", "HV_020_16", "HV_021_20", "HV_022_18", "HV_023_18", "HV_024_18", "HV_025_18", "HV_026_18", "HV_028_18", "HV_029_18","HV_030_16")
+P40<-c("HV_016_19", "HV_017_19", "HV_018_19", "HV_019_19", "HV_020_18", "HV_021_21", "HV_022_19", "HV_023_19", "HV_024_19", "HV_025_19", "HV_026_19", "HV_028_19", "HV_029_19","HV_030_18")
+P41<-c("HV_016_20", "HV_017_20", "HV_018_20", "HV_019_20", "HV_020_19", "HV_021_22", "HV_022_20", "HV_023_20", "HV_024_20", "HV_025_20", "HV_026_20", "HV_028_20", "HV_029_20","HV_030_19")
+P42<-c("HV_016_21", "HV_017_21", "HV_018_21", "HV_019_21", "HV_020_20", "HV_022_21", "HV_023_21", "HV_024_21", "HV_025_21", "HV_026_21", "HV_028_21", "HV_029_21", "HV_030_20")
+P43<-c("HV_016_22", "HV_017_22", "HV_018_22", "HV_019_22", "HV_020_21", "HV_022_22", "HV_023_22", "HV_024_22", "HV_025_01", "HV_025_22", "HV_026_22", "HV_028_22", "HV_029_22","HV_030_21")
+```
+
+#Overall
+```{r}
+#P01_profile <- subset_samples(Profile, Subject=="P43")
+#norm_groups <- transform_sample_counts(P01_profile, function(x) x / sum(x) )
+
+norm_groups <- transform_sample_counts(Profile, function(x) x / sum(x) )
+#norm_groups <- transform_sample_counts(Profile_Checkv, function(x) x / sum(x) )
+#norm_groups <- transform_sample_counts(Profile_Contig, function(x) x / sum(x) )
+#norm_groups <- transform_sample_counts(Profile_NCBI, function(x) x / sum(x) )
+#norm_groups  <- prune_samples(sample_sums(norm_groups) >= 1, norm_groups)
+mea<-phyloseq::distance(norm_groups, method="jaccard", binary = TRUE)
+df <- melt(as.matrix(mea), varnames = c("row", "col"))
+df
+
+
+
+df_P<-subset(df, col %in% P43)
+df_between<-subset(df_P, !row %in% P43)
+df_within<-subset(df_P, row %in% P43)
+#remove same sample comparisons
+df_within2 <- df_within[df_within$row != df_within$col,]
+#mean betwen
+mean(df_between$value)
+#mean within
+mean(df_within2$value)
+both<-c(mean(df_between$value),mean(df_within2$value))
+both
+
+```
+
+```{r}
+P01_LH<-c("HV_001_01", "HV_002_01", "HV_003_01", "HV_004_01","HV_005_01")
+P01_RH<-c("HV_001_02", "HV_002_02", "HV_003_02","HV_004_02")
+P01_SC<-c("HV_001_03", "HV_002_03", "HV_003_03", "HV_004_03","HV_005_03")
+
+P02_LH<-c("HV_001_04", "HV_002_04", "HV_003_04", "HV_004_04","HV_005_04")
+P02_RH<-c("HV_001_05", "HV_002_05", "HV_003_05", "HV_004_05","HV_005_05")
+P02_SC<-c("HV_001_06", "HV_002_06", "HV_003_06", "HV_004_06","HV_005_06")
+
+P03_LH<-c("HV_001_07", "HV_002_07", "HV_003_07", "HV_004_07","HV_005_07")
+P03_RH<-c("HV_001_08", "HV_002_08", "HV_003_08", "HV_004_08","HV_005_08")
+P03_SC<-c("HV_001_09", "HV_002_09", "HV_003_09", "HV_004_09","HV_005_09")
+
+P04_LH<-c("HV_001_10", "HV_002_10", "HV_003_10", "HV_004_10", "HV_005_10")
+P04_RH<-c("HV_001_11", "HV_002_11", "HV_003_11", "HV_004_11","HV_005_11")
+P04_SC<-c("HV_001_12", "HV_002_12", "HV_003_12", "HV_004_12","HV_005_12")
+
+P05_LH<-c("HV_001_13", "HV_002_13", "HV_003_13", "HV_004_13","HV_005_13")
+P05_RH<-c("HV_001_14", "HV_002_14", "HV_003_14", "HV_004_14", "HV_005_14")
+P05_SC<-c("HV_001_15", "HV_002_15", "HV_004_15","HV_005_15")
+
+P06_LH<-c("HV_001_16", "HV_003_16", "HV_004_16", "HV_005_16")
+P06_RH<-c("HV_001_18", "HV_002_18", "HV_003_18", "HV_004_18","HV_005_18")
+P06_SC<-c("HV_001_19", "HV_002_19", "HV_003_19", "HV_004_19","HV_005_19")
+
+P07_LH<-c("HV_001_20", "HV_002_20", "HV_003_20", "HV_004_20","HV_005_20")
+P07_RH<-c("HV_001_21", "HV_002_21", "HV_003_21","HV_004_21")
+P07_SC<-c("HV_001_22", "HV_002_22", "HV_003_22", "HV_004_22","HV_005_22")
+
+P08_LH<-c("HV_006_01", "HV_007_01", "HV_008_01", "HV_009_01","HV_010_01")
+P08_RH<-c("HV_006_02", "HV_007_02", "HV_008_02","HV_010_02")
+P08_SC<-c("HV_006_03", "HV_007_03", "HV_008_03", "HV_009_03","HV_010_03")
+
+P09_LH<-c("HV_006_04", "HV_007_04", "HV_008_04", "HV_009_04","HV_010_04")
+P09_RH<-c("HV_006_05", "HV_007_05", "HV_008_05", "HV_009_05","HV_010_05")
+P09_SC<-c("HV_006_06", "HV_007_06", "HV_008_06", "HV_009_06","HV_010_06")
+
+P10_LH<-c("HV_006_07", "HV_007_07", "HV_008_07", "HV_009_07","HV_010_07")
+P10_RH<-c("HV_006_08", "HV_007_08", "HV_008_08", "HV_009_08","HV_010_08")
+P10_SC<-c("HV_006_09", "HV_007_09", "HV_008_09", "HV_009_09","HV_010_09")
+
+P11_LH<-c("HV_006_10", "HV_007_10", "HV_008_10", "HV_009_10","HV_010_10")
+P11_RH<-c("HV_006_11", "HV_007_11", "HV_008_11", "HV_009_11","HV_010_11")
+P11_SC<-c("HV_006_12", "HV_007_12", "HV_008_12", "HV_009_12","HV_010_12")
+
+P12_LH<-c("HV_006_13", "HV_007_13", "HV_008_13", "HV_009_13","HV_010_13")
+P12_RH<-c("HV_006_14", "HV_007_14", "HV_008_14", "HV_009_14","HV_010_14")
+P12_SC<-c("HV_006_15", "HV_007_15", "HV_008_15", "HV_009_15","HV_010_15")
+
+P13_LH<-c("HV_006_16", "HV_007_16", "HV_008_16", "HV_009_16","HV_010_16")
+P13_RH<-c("HV_006_18", "HV_007_18", "HV_008_18", "HV_009_18","HV_010_18")
+P13_SC<-c("HV_006_19", "HV_007_19", "HV_008_19", "HV_009_19","HV_010_19")
+
+P14_LH<-c("HV_006_20", "HV_007_20", "HV_008_20", "HV_009_20","HV_010_20")
+P14_RH<-c("HV_006_21", "HV_007_21", "HV_008_21", "HV_009_21","HV_010_21")
+P14_SC<-c("HV_006_22", "HV_007_22", "HV_008_22", "HV_009_22","HV_010_22")
+
+P15_LH<-c("HV_011_01", "HV_012_01", "HV_013_01", "HV_014_01","HV_015_01")
+P15_RH<-c("HV_011_02", "HV_012_02", "HV_013_02", "HV_014_02","HV_015_02")
+P15_SC<-c("HV_011_03", "HV_012_03", "HV_013_03", "HV_014_03","HV_015_03")
+
+P16_LH<-c("HV_011_04", "HV_012_04", "HV_013_04", "HV_014_04","HV_015_04")
+P16_RH<-c("HV_011_05", "HV_012_05", "HV_013_05", "HV_014_05","HV_015_05")
+P16_SC<-c("HV_011_06", "HV_012_06", "HV_014_06","HV_015_06")
+
+P17_LH<-c("HV_011_07", "HV_012_07", "HV_013_07", "HV_014_07","HV_015_07")
+P17_RH<-c("HV_011_08", "HV_012_08", "HV_013_08", "HV_014_08","HV_015_08")
+P17_SC<-c("HV_011_09", "HV_012_09", "HV_013_09", "HV_014_09","HV_015_09")
+
+P18_LH<-c("HV_011_10", "HV_012_10", "HV_013_10", "HV_014_10","HV_015_10")
+P18_RH<-c("HV_011_11", "HV_012_11", "HV_013_11", "HV_014_11","HV_015_11")
+P18_SC<-c("HV_011_12", "HV_012_12", "HV_013_12", "HV_014_12","HV_015_12")
+
+P19_LH<-c("HV_011_13", "HV_012_13", "HV_013_13", "HV_014_13","HV_015_13")
+P19_RH<-c("HV_011_14", "HV_012_14", "HV_013_14", "HV_014_14","HV_015_14")
+P19_SC<-c("HV_011_15", "HV_012_15", "HV_013_15", "HV_014_15","HV_015_15")
+
+P20_LH<-c("HV_011_16", "HV_012_16", "HV_013_16", "HV_014_16","HV_015_16")
+P20_RH<-c("HV_011_18", "HV_012_18", "HV_013_18", "HV_014_18","HV_015_18")
+P20_SC<-c("HV_011_19", "HV_012_19", "HV_013_19", "HV_014_19","HV_015_19")
+
+P21_LH<-c("HV_011_20", "HV_012_20", "HV_013_20","HV_014_20")
+P21_RH<-c("HV_011_21", "HV_012_21", "HV_013_21","HV_014_21")
+P21_SC<-c("HV_011_22", "HV_012_22", "HV_013_22","HV_014_22")
+
+P22_LH<-c("HV_021_02", "HV_022_01", "HV_023_01", "HV_024_01","HV_025_02")
+P22_RH<-c("HV_026_01", "HV_027_08", "HV_028_01", "HV_029_01","HV_030_01")
+P22_SC<-c("HV_016_01", "HV_017_01", "HV_018_01", "HV_019_01","HV_020_01")
+
+P23_LH<-c("HV_021_03", "HV_022_02", "HV_023_02", "HV_024_02","HV_025_03")
+P23_RH<-c("HV_026_02", "HV_027_09", "HV_028_02", "HV_029_02","HV_030_02")
+P23_SC<-c("HV_016_02", "HV_017_02", "HV_018_02", "HV_019_02","HV_020_02")
+
+P24_LH<-c("HV_021_04", "HV_022_03", "HV_023_03", "HV_024_03","HV_025_04")
+P24_RH<-c("HV_026_03", "HV_027_10", "HV_028_03", "HV_029_03","HV_030_03")
+P24_SC<-c("HV_016_03", "HV_017_03", "HV_018_03", "HV_019_03","HV_021_01")
+
+P25_LH<-c("HV_021_05", "HV_022_04", "HV_023_04", "HV_024_04","HV_025_05")
+P25_RH<-c("HV_026_04", "HV_027_11", "HV_028_04", "HV_029_04","HV_030_04")
+P25_SC<-c("HV_016_04", "HV_017_04", "HV_018_04", "HV_019_04","HV_020_03")
+
+P26_LH<-c("HV_021_06", "HV_022_05", "HV_023_05", "HV_024_05","HV_025_06")
+P26_RH<-c("HV_026_05", "HV_027_12", "HV_028_05", "HV_029_05","HV_030_05")
+P26_SC<-c("HV_016_05", "HV_017_05", "HV_018_05", "HV_019_05","HV_020_04")
+
+P27_LH<-c("HV_021_07", "HV_022_06", "HV_023_06", "HV_024_06","HV_025_07")
+P27_RH<-c("HV_026_06", "HV_027_13", "HV_028_06", "HV_029_06","HV_030_06")
+P27_SC<-c("HV_016_06", "HV_017_06", "HV_018_06", "HV_019_06","HV_020_05")
+
+P28_LH<-c("HV_021_08", "HV_022_07", "HV_023_07", "HV_024_07","HV_025_08")
+P28_RH<-c("HV_026_07", "HV_027_14", "HV_028_07", "HV_029_07","HV_030_07")
+P28_SC<-c("HV_016_07", "HV_017_07", "HV_018_07", "HV_019_07","HV_020_06")
+
+P29_LH<-c("HV_021_09", "HV_022_08", "HV_023_08", "HV_024_08","HV_025_09")
+P29_RH<-c("HV_026_08", "HV_027_15", "HV_028_08", "HV_029_08","HV_030_08")
+P29_SC<-c("HV_016_08", "HV_017_08", "HV_018_08", "HV_019_08","HV_020_07")
+
+P30_LH<-c("HV_021_10", "HV_022_09", "HV_023_09", "HV_024_09","HV_025_10")
+P30_RH<-c("HV_026_09", "HV_027_16", "HV_028_09", "HV_029_09","HV_030_09")
+P30_SC<-c("HV_016_09", "HV_017_09", "HV_018_09", "HV_019_09","HV_020_08")
+
+P31_LH<-c("HV_021_11", "HV_022_10", "HV_023_10","HV_024_10")
+P31_RH<-c("HV_026_10", "HV_027_18", "HV_028_10","HV_029_10")
+P31_SC<-c("HV_016_10", "HV_017_10", "HV_018_10","HV_019_10")
+
+P32_LH<-c("HV_021_12", "HV_022_11", "HV_023_11", "HV_024_11","HV_025_11")
+P32_RH<-c("HV_026_11", "HV_027_19", "HV_028_11", "HV_029_11","HV_030_10")
+P32_SC<-c("HV_016_11", "HV_017_11", "HV_018_11", "HV_019_11","HV_020_09")
+
+P34_LH<-c("HV_021_14", "HV_022_12", "HV_023_12", "HV_024_12","HV_025_12")
+P34_RH<-c("V_026_12", "HV_027_20", "HV_028_12", "HV_029_12","HV_030_11")
+P34_SC<-c("HV_016_12", "HV_017_12", "HV_018_12", "HV_019_12","HV_020_11")
+
+P35_LH<-c("HV_021_15", "HV_022_13", "HV_023_13", "HV_024_13","HV_025_13")
+P35_RH<-c("HV_026_13", "HV_027_21", "HV_028_13", "HV_029_13","HV_030_12")
+P35_SC<-c("HV_016_13", "HV_017_13", "HV_018_13", "HV_019_13","HV_020_12")
+
+P36_LH<-c("HV_021_16", "HV_022_14", "HV_023_14", "HV_024_14","HV_025_14")
+P36_RH<-c("HV_026_14", "HV_027_22", "HV_028_14", "HV_029_14","HV_030_13")
+P36_SC<-c("HV_016_14", "HV_017_14", "HV_018_14", "HV_019_14","HV_020_13")
+
+P37_LH<-c("HV_021_18", "HV_022_15", "HV_023_15", "HV_024_15","HV_025_15")
+P37_RH<-c("HV_026_15", "HV_028_15", "HV_029_15", "HV_030_14","HV_030_22")
+P37_SC<-c("HV_016_15", "HV_017_15", "HV_018_15", "HV_019_15","HV_020_14")
+
+P38_LH<-c("HV_021_19", "HV_022_16", "HV_023_16", "HV_024_16","HV_025_16")
+P38_RH<-c("HV_026_16", "HV_028_16", "HV_029_16","HV_030_15")
+P38_SC<-c("HV_016_16", "HV_017_16", "HV_018_16", "HV_019_16","HV_020_15")
+
+P39_LH<-c("HV_021_20", "HV_022_18", "HV_023_18", "HV_024_18","HV_025_18")
+P39_RH<-c("HV_026_18", "HV_028_18", "HV_029_18","HV_030_16")
+P39_SC<-c("HV_016_18", "HV_017_18", "HV_018_18", "HV_019_18","HV_020_16")
+
+P40_LH<-c("HV_021_21", "HV_022_19", "HV_023_19", "HV_024_19","HV_025_19")
+P40_RH<-c("HV_026_19", "HV_028_19", "HV_029_19","HV_030_18")
+P40_SC<-c("HV_016_19", "HV_017_19", "HV_018_19", "HV_019_19","HV_020_18")
+
+P41_LH<-c("HV_021_22", "HV_022_20", "HV_023_20", "HV_024_20","HV_025_20")
+P41_RH<-c("HV_026_20", "HV_028_20", "HV_029_20","HV_030_19")
+P41_SC<-c("HV_016_20", "HV_017_20", "HV_018_20", "HV_019_20","HV_020_19")
+
+P42_LH<-c("HV_022_21", "HV_023_21", "HV_024_21","HV_025_21")
+P42_RH<-c("HV_026_21", "HV_028_21", "HV_029_21","HV_030_20")
+P42_SC<-c("HV_016_21", "HV_017_21", "HV_018_21", "HV_019_21","HV_020_20")
+
+P43_LH<-c("HV_022_22", "HV_023_22", "HV_024_22", "HV_025_01","HV_025_22")
+P43_RH<-c("HV_026_22", "HV_028_22", "HV_029_22","HV_030_21")
+P43_SC<-c("HV_016_22", "HV_017_22", "HV_018_22", "HV_019_22","HV_020_21")
+```
+
+```{r}
+LH_profile<-subset_samples(Profile, Location=="left")
+P01_profile <- subset_samples(LH_profile, Subject=="P01")
+
+RH_profile<-subset_samples(Profile, Location=="right")
+P01_profile <- subset_samples(RH_profile, Subject=="P01")
+
+SC_profile<-subset_samples(Profile, Location=="scalp")
+P01_profile <- subset_samples(SC_profile, Subject=="P01")
+
+norm_groups <- transform_sample_counts(P01_profile, function(x) x / sum(x) )
+#norm_groups <- transform_sample_counts(Profile, function(x) x / sum(x) )
+mea<-phyloseq::distance(norm_groups, method="jaccard", binary = TRUE)
+mea
+
+#LH
+LH_profile<-subset_samples(Profile, Location=="left")
+norm_groups <- transform_sample_counts(LH_profile, function(x) x / sum(x) )
+mea<-phyloseq::distance(norm_groups, method="jaccard", binary = TRUE)
+df_LH <- melt(as.matrix(mea), varnames = c("row", "col"))
+df_LH
+
+df_LH_P<-subset(df_LH, col %in% P41_LH)
+df_LH_between<-subset(df_LH_P, !row %in% P41_LH)
+df_LH_within<-subset(df_LH_P, row %in% P41_LH)
+#remove same sample comparisons
+df_LH_within2 <- df__LH_within[df_LH_within$row != df_LH_within$col,]
+#mean betwen
+mean(df_LH_between$value)
+#mean within
+mean(df_LH_within2$value)
+both<-c(mean(df_LH_between$value),mean(df_LH_within2$value))
+both
+
+#RH
+RH_profile<-subset_samples(Profile, Location=="right")
+norm_groups <- transform_sample_counts(RH_profile, function(x) x / sum(x) )
+mea<-phyloseq::distance(norm_groups, method="jaccard", binary = TRUE)
+df_RH <- melt(as.matrix(mea), varnames = c("row", "col"))
+df_RH
+
+df_RH_P<-subset(df_RH, col %in% P43_RH)
+df_RH_between<-subset(df_RH_P, !row %in% P43_RH)
+df_RH_within<-subset(df_RH_P, row %in% P43_RH)
+#remove same sample comparisons
+df_RH_within2 <- df_RH_within[df_RH_within$row != df_RH_within$col,]
+#mean betwen
+mean(df_RH_between$value)
+#mean within
+mean(df_RH_within2$value)
+both<-c(mean(df_RH_between$value),mean(df_RH_within2$value))
+both
+
+#SC
+SC_profile<-subset_samples(Profile, Location=="scalp")
+norm_groups <- transform_sample_counts(SC_profile, function(x) x / sum(x) )
+mea<-phyloseq::distance(norm_groups, method="jaccard", binary = TRUE)
+df_SC <- melt(as.matrix(mea), varnames = c("row", "col"))
+df_SC
+
+df_SC_P<-subset(df_SC, col %in% P43_SC)
+df_SC_between<-subset(df_SC_P, !row %in% P43_SC)
+df_SC_within<-subset(df_SC_P, row %in% P43_SC)
+#remove same sample comparisons
+df_SC_within2 <- df_SC_within[df_SC_within$row != df_SC_within$col,]
+#mean betwen
+mean(df_SC_between$value)
+#mean within
+mean(df_SC_within2$value)
+both<-c(mean(df_SC_between$value),mean(df_SC_within2$value))
+both
+```
+
+```{r}
+#library(binaryLogic)
+#library(glmmADMB)
+Profile_df <- psmelt(Profile)
+
+Profile_df$Subject[which(Profile_df$Subject == "P01")] <- 1
+Profile_df$Subject[which(Profile_df$Subject == "P02")] <- 1
+Profile_df$Subject[which(Profile_df$Subject == "P03")] <- 1
+Profile_df$Subject[which(Profile_df$Subject == "P04")] <- 1
+Profile_df$Subject[which(Profile_df$Subject == "P05")] <- 1
+Profile_df$Subject[which(Profile_df$Subject == "P06")] <- 1
+Profile_df$Subject[which(Profile_df$Subject == "P07")] <- 1
+Profile_df$Subject[which(Profile_df$Subject == "P08")] <- 1
+Profile_df$Subject[which(Profile_df$Subject == "P09")] <- 1
+Profile_df$Subject[which(Profile_df$Subject == "P10")] <- 1
+Profile_df$Subject[which(Profile_df$Subject == "P11")] <- 1
+Profile_df$Subject[which(Profile_df$Subject == "P12")] <- 1
+Profile_df$Subject[which(Profile_df$Subject == "P13")] <- 1
+Profile_df$Subject[which(Profile_df$Subject == "P14")] <- 1
+Profile_df$Subject[which(Profile_df$Subject == "P15")] <- 1
+Profile_df$Subject[which(Profile_df$Subject == "P16")] <- 1
+Profile_df$Subject[which(Profile_df$Subject == "P17")] <- 1
+Profile_df$Subject[which(Profile_df$Subject == "P18")] <- 1
+Profile_df$Subject[which(Profile_df$Subject == "P19")] <- 1
+Profile_df$Subject[which(Profile_df$Subject == "P20")] <- 1
+Profile_df$Subject[which(Profile_df$Subject == "P21")] <- 1
+Profile_df$Subject[which(Profile_df$Subject == "P22")] <- 1
+Profile_df$Subject[which(Profile_df$Subject == "P23")] <- 1
+Profile_df$Subject[which(Profile_df$Subject == "P24")] <- 1
+Profile_df$Subject[which(Profile_df$Subject == "P25")] <- 1
+Profile_df$Subject[which(Profile_df$Subject == "P01")] <- 1
+Profile_df$Subject[which(Profile_df$Subject == "P01")] <- 1
+
+
+Profile_df$Presence[Profile_df$Presence > 0] = 1
+
+fit_zipoisson <- glmmadmb(Presence ~ Time_Week,
+                         data=Profile_df,
+                           zeroInflation=FALSE,
+                         family="nbinom1")
+
+model1 <- glm(Presence ~ Time_Week, family = binomial(),
+          data = Profile_df)
+summary(model1)
+
+```
+```{r}
+#install.packages('coin')
+#library(coin)
+#library(rstatix)
+jeff_Overall<-jac_Overall%>%wilcox_effsize(Distance ~ Comparison)
+jeff_Overall<-as.data.frame(jeff_Overall) 
+#row.names(jeff_Overall)<-"Overall"
+jeff_Overall$Figure<-"Fig. 2G"
+jeff_Left<-jac_Left%>%wilcox_effsize(Distance ~ Comparison)
+jeff_Left<-as.data.frame(jeff_Left) 
+#row.names(jeff_Left)<-"Left"
+jeff_Left$Figure<-"Fig. 2D"
+jeff_Right<-jac_Right%>%wilcox_effsize(Distance ~ Comparison)
+jeff_Right<-as.data.frame(jeff_Right) 
+#row.names(jeff_Right)<-"Right"
+jeff_Right$Figure<-"Fig. 2E"
+jeff_Scalp<-jac_Scalp%>%wilcox_effsize(Distance ~ Comparison)
+jeff_Scalp<-as.data.frame(jeff_Scalp) 
+#row.names(jeff_Scalp)<-"Scalp"
+jeff_Scalp$Figure<-"Fig. 2F"
+jeff_SetA<-jac_SetA%>%wilcox_effsize(Distance ~ Comparison)
+jeff_SetA<-as.data.frame(jeff_SetA) 
+#row.names(jeff_SetA)<-"SetA"
+jeff_SetA$Figure<-"Fig. 2A"
+jeff_SetB<-jac_SetB%>%wilcox_effsize(Distance ~ Comparison)
+jeff_SetB<-as.data.frame(jeff_SetB) 
+#row.names(jeff_SetB)<-"SetB"
+jeff_SetB$Figure<-"Fig. 2B"
+jeff_SetC<-jac_SetC%>%wilcox_effsize(Distance ~ Comparison)
+jeff_SetC<-as.data.frame(jeff_SetC) 
+#row.names(jeff_SetC)<-"SetC"
+jeff_SetC$Figure<-"Fig. 2C"
+beff<-bray_plot%>%wilcox_effsize(Distance ~ Comparison)
+beff<-as.data.frame(beff)
+#row.names(beff)<-"SupplementaryFig4"
+beff$Figure<-"Supplementary Fig.4"
+eff_size_jaccard<-rbind(jeff_Left,jeff_Right,jeff_Scalp,jeff_SetA,jeff_SetB,jeff_SetC,jeff_Overall,beff)
+eff_size_jaccard<- subset(eff_size_jaccard, select = c(Figure, .y., group1, group2, effsize, magnitude))
+row.names(eff_size_jaccard)<-NULL
+eff_size_jaccard
+```
+```{r}
+jac_plot2<-read.csv("~/Desktop/Faces/compare.csv", quote = "", header = TRUE, stringsAsFactors = FALSE)
+my_comparisons <- list( c("Harvey", "Population")) 
+```
+```{r}
+#library(ggsignif)
+#library(cowplot)
+
+
+jac_plot<-read.csv("Jaccard_bw_win.csv", quote = "", header = TRUE, stringsAsFactors = FALSE)
+my_comparisons <- list( c("Between", "Within")) 
+symnum.args = list(cutpoints = c(0, 0.0001, 0.001, 0.01, 0.05, 1), symbols = c("****", "***", "**", "*", "ns"))
+p_Overall2<-ggplot(jac_plot2, aes(Person,quality))+
+  geom_boxplot(alpha=0.5)+
+  ylab("Quality")+
+  theme(legend.position="none", axis.text.x=element_text(angle=45,hjust=1,vjust=1,size=12),axis.title.x=element_blank())+
+  stat_compare_means(method = "wilcox.test",comparisons = my_comparisons)+
+  theme_half_open()
+p_Overall <- p_Overall + ylim(c(0.25, 1))
+```
+
+
+
+jac_Overall<-subset(jac_plot, Set %in% "Overall")
+p_Overall<-ggplot(jac_Overall, aes(Comparison,Distance))+
+  geom_boxplot(alpha=0.5)+
+  ylab("Dissimilarity")+
+  theme(legend.position="none", axis.text.x=element_text(angle=45,hjust=1,vjust=1,size=12),axis.title.x=element_blank())+
+  stat_compare_means(method = "wilcox.test",comparisons = my_comparisons,  symnum.args = symnum.args)+
+  theme_half_open()
+p_Overall <- p_Overall + ylim(c(0.25, 1))
+
+jac_Left<-subset(jac_plot, Set %in% "Left")
+p_Left<-ggplot(jac_Left, aes(Comparison,Distance))+
+  geom_boxplot(alpha=0.5)+
+  ylab("Dissimilarity")+
+  theme(legend.position="none", axis.text.x=element_text(angle=45,hjust=1,vjust=1,size=12),axis.title.x=element_blank())+
+  stat_compare_means(method = "wilcox.test",comparisons = my_comparisons,  symnum.args = symnum.args)+
+  theme_half_open()
+p_Left <- p_Left + ylim(c(0.25, 1))
+
+jac_Right<-subset(jac_plot, Set %in% "Right")
+p_Right<-ggplot(jac_Right, aes(Comparison,Distance))+
+  geom_boxplot(alpha=0.5)+
+  ylab("Dissimilarity")+
+  theme(legend.position="none", axis.text.x=element_text(angle=45,hjust=1,vjust=1,size=12),axis.title.x=element_blank())+
+  stat_compare_means(method = "wilcox.test",comparisons = my_comparisons,  symnum.args = symnum.args)+
+  theme_half_open()
+p_Right <- p_Right + ylim(c(0.25, 1))
+
+jac_Scalp<-subset(jac_plot, Set %in% "Scalp")
+p_Scalp<-ggplot(jac_Scalp, aes(Comparison,Distance))+
+  geom_boxplot(alpha=0.5)+
+  ylab("Dissimilarity")+
+  theme(legend.position="none", axis.text.x=element_text(angle=45,hjust=1,vjust=1,size=12),axis.title.x=element_blank())+
+  stat_compare_means(method = "wilcox.test",comparisons = my_comparisons,  symnum.args = symnum.args)+
+  theme_half_open()
+p_Scalp <- p_Scalp + ylim(c(0.25, 1))
+
+jac_SetA<-subset(jac_plot, Set %in% "SetA")
+p_SetA<-ggplot(jac_SetA, aes(Comparison,Distance))+
+  geom_boxplot(alpha=0.5)+
+  ylab("Dissimilarity")+
+  theme(legend.position="none", axis.text.x=element_text(angle=45,hjust=1,vjust=1,size=12),axis.title.x=element_blank())+
+  stat_compare_means(method = "wilcox.test",comparisons = my_comparisons,  symnum.args = symnum.args)+
+  theme_half_open()
+p_SetA <- p_SetA + ylim(c(0.25, 1))
+
+jac_SetB<-subset(jac_plot, Set %in% "SetB")
+p_SetB<-ggplot(jac_SetB, aes(Comparison,Distance))+
+  geom_boxplot(alpha=0.5)+
+  ylab("Dissimilarity")+
+  theme(legend.position="none", axis.text.x=element_text(angle=45,hjust=1,vjust=1,size=12),axis.title.x=element_blank())+
+  stat_compare_means(method = "wilcox.test",comparisons = my_comparisons,  symnum.args = symnum.args)+
+  theme_half_open()
+p_SetB <- p_SetB + ylim(c(0.25, 1))
+
+jac_SetC<-subset(jac_plot, Set %in% "SetC")
+p_SetC<-ggplot(jac_SetC, aes(Comparison,Distance))+
+  geom_boxplot(alpha=0.5)+
+  ylab("Dissimilarity")+
+  theme(legend.position="none", axis.text.x=element_text(angle=45,hjust=1,vjust=1,size=12),axis.title.x=element_blank())+
+  stat_compare_means(method = "wilcox.test",comparisons = my_comparisons,  symnum.args = symnum.args)+
+  theme_half_open()
+p_SetC <- p_SetC + ylim(c(0.25, 1))
+
+
+bw_win<-cowplot::plot_grid(p_SetA + theme(axis.title.x = element_blank()),
+                   p_SetB + theme(axis.title.y = element_blank(),axis.title.x = element_blank()),
+                   p_SetC + theme(axis.title.y = element_blank(),axis.title.x = element_blank()),
+                   p_Left + theme(axis.title.x = element_blank()),
+                   p_Right + theme(axis.title.y = element_blank(),axis.title.x = element_blank()),
+                   p_Scalp + theme(axis.title.y = element_blank(),axis.title.x = element_blank()),
+                   p_Overall +theme(axis.title.x = element_blank()), labels = "AUTO", label_size = 12, align = "v")
+
+
+ggsave("Figures/jaccard_fig.pdf", bw_win,  width = 9, height = 7, units = "in",dpi = 600, pointsize=12)
+                 
+```
+
+
+
+#Beta Diversity
+```{r}
+P01_profile <- subset_samples(Profile, Subject=="P01")
+norm_groups <- transform_sample_counts(Profile, function(x) x / sum(x) )
+metadata <- as(sample_data(norm_groups), "data.frame")
+adonis(phyloseq::distance(norm_groups, method="jaccard", binary = TRUE) ~  Subject+Subject:Time_Collected,
+       data = metadata)
+ord.core_groups.pcoa <- ordinate(norm_groups, method="PCoA", distance="jaccard", na.rm = TRUE, binary = TRUE)
+png("Beta.png", width= 3000, height= 2000,
+    units="px", res=300, pointsize=12)
+plot_ordination(norm_groups, ord.core_groups.pcoa, color = "Subject", shape = "Location") +
+  geom_point(size=1)+
+  theme_half_open()
+dev.off()
+```
+
+```{r}
+p<-plot_ordination(norm_groups, ord.core_groups.pcoa, color = "Subject", shape = "Location") +
+  geom_point(size=1)+
+  theme_half_open()
+ggsave(plot=p,"Figures/beta.pdf",dpi = 600, width = 9,
+  height = 6, units="in",pointsize=12)
+
+```
+
+
+```{r}
+adonis(phyloseq::distance(norm_groups, method="jaccard", binary = TRUE) ~  Subject,
+       data = metadata)
+```
+```{r}
+29963 + 32138
+```
+```{r}
+anosim(phyloseq::distance(norm_groups,"jaccard",binary = TRUE), metadata$Subject)
+```
+#Relative Abundance Graph
+
+```{r}
+CHeckV_counts <- read.csv("counts2_bowtie.csv", quote = "", header = TRUE, stringsAsFactors = FALSE, row.names = 1)
+CHeckV_counts  <- subset(CHeckV_counts , select = -c(length))
+tax_ann <- read.csv("vc_tax.csv", quote = "", header = TRUE, stringsAsFactors = FALSE, row.names = 1)
+CHeckV_bar_OTU <- otu_table(CHeckV_counts, taxa_are_rows = TRUE)
+tax_ann <-as.matrix(tax_ann)
+CHeckV_bar_tax <- tax_table(tax_ann)
+
+CHeckV_bar_PHY <- phyloseq(CHeckV_bar_OTU, CHeckV_bar_tax, META)
+
+
+Samples_toRemove <- c("HV_001_27", "HV_002_27", "HV_003_27", "HV_004_27", "HV_005_27", "HV_006_27", "HV_007_27", "HV_008_27",
+                      "HV_009_27", "HV_010_27", "HV_011_27", "HV_012_27", "HV_013_27", "HV_014_27", "HV_015_27", "HV_016_27",
+                      "HV_017_27", "HV_018_27", "HV_019_27", "HV_020_27", "HV_021_27", "HV_022_27", "HV_023_27", "HV_024_27",
+                      "HV_025_27", "HV_026_27", "HV_027_27", "HV_028_27", "HV_029_27", "HV_030_27", "HV_015_20", "HV_015_21", 
+                      "HV_020_22", "HV_027_02", "HV_027_03", "HV_027_04", "HV_027_05", "HV_027_06", "HV_027_07", "HV_020_10",
+                      "HV_021_13", "HV_027_01","HV_003_15")
+
+CHeckV_bar_PHY2 <- subset_samples(CHeckV_bar_PHY, !(SampleID %in% Samples_toRemove))
+
+```
+```{r}
+CHeckV_bar_PHY2_SC<- subset_samples(CHeckV_bar_PHY2, Location=="scalp")
+P_01 <- subset_samples(CHeckV_bar_PHY2_SC, Subject=="P01")
+TopNOTUs_P01 <- sort(tapply(taxa_sums(P_01), tax_table(P_01)[, "Family"], sum), TRUE)[1:10]
+P_02 <- subset_samples(CHeckV_bar_PHY2_SC, Subject=="P02")
+TopNOTUs_P02 <- sort(tapply(taxa_sums(P_02), tax_table(P_02)[, "Family"], sum), TRUE)[1:10]
+P_03 <- subset_samples(CHeckV_bar_PHY2_SC, Subject=="P03")
+TopNOTUs_P03 <- sort(tapply(taxa_sums(P_03), tax_table(P_03)[, "Family"], sum), TRUE)[1:10]
+P_04 <- subset_samples(CHeckV_bar_PHY2_SC, Subject=="P04")
+TopNOTUs_P04 <- sort(tapply(taxa_sums(P_04), tax_table(P_04)[, "Family"], sum), TRUE)[1:10]
+P_05 <- subset_samples(CHeckV_bar_PHY2_SC, Subject=="P05")
+TopNOTUs_P05 <- sort(tapply(taxa_sums(P_05), tax_table(P_05)[, "Family"], sum), TRUE)[1:10]
+P_06 <- subset_samples(CHeckV_bar_PHY2_SC, Subject=="P06")
+TopNOTUs_P06 <- sort(tapply(taxa_sums(P_06), tax_table(P_06)[, "Family"], sum), TRUE)[1:10]
+P_07 <- subset_samples(CHeckV_bar_PHY2_SC, Subject=="P07")
+TopNOTUs_P07 <- sort(tapply(taxa_sums(P_07), tax_table(P_07)[, "Family"], sum), TRUE)[1:10]
+P_08 <- subset_samples(CHeckV_bar_PHY2_SC, Subject=="P08")
+TopNOTUs_P08 <- sort(tapply(taxa_sums(P_08), tax_table(P_08)[, "Family"], sum), TRUE)[1:10]
+P_09 <- subset_samples(CHeckV_bar_PHY2_SC, Subject=="P09")
+TopNOTUs_P09 <- sort(tapply(taxa_sums(P_09), tax_table(P_09)[, "Family"], sum), TRUE)[1:10]
+P_10 <- subset_samples(CHeckV_bar_PHY2_SC, Subject=="P10")
+TopNOTUs_P10 <- sort(tapply(taxa_sums(P_10), tax_table(P_10)[, "Family"], sum), TRUE)[1:10]
+P_11 <- subset_samples(CHeckV_bar_PHY2_SC, Subject=="P11")
+TopNOTUs_P11 <- sort(tapply(taxa_sums(P_11), tax_table(P_11)[, "Family"], sum), TRUE)[1:10]
+P_12 <- subset_samples(CHeckV_bar_PHY2_SC, Subject=="P12")
+TopNOTUs_P12 <- sort(tapply(taxa_sums(P_12), tax_table(P_12)[, "Family"], sum), TRUE)[1:10]
+P_13 <- subset_samples(CHeckV_bar_PHY2_SC, Subject=="P13")
+TopNOTUs_P13 <- sort(tapply(taxa_sums(P_13), tax_table(P_13)[, "Family"], sum), TRUE)[1:10]
+P_14 <- subset_samples(CHeckV_bar_PHY2_SC, Subject=="P14")
+TopNOTUs_P14 <- sort(tapply(taxa_sums(P_14), tax_table(P_14)[, "Family"], sum), TRUE)[1:10]
+P_15 <- subset_samples(CHeckV_bar_PHY2_SC, Subject=="P15")
+TopNOTUs_P15 <- sort(tapply(taxa_sums(P_15), tax_table(P_15)[, "Family"], sum), TRUE)[1:10]
+P_16 <- subset_samples(CHeckV_bar_PHY2_SC, Subject=="P16")
+TopNOTUs_P16 <- sort(tapply(taxa_sums(P_16), tax_table(P_16)[, "Family"], sum), TRUE)[1:10]
+P_17 <- subset_samples(CHeckV_bar_PHY2_SC, Subject=="P17")
+TopNOTUs_P17 <- sort(tapply(taxa_sums(P_17), tax_table(P_17)[, "Family"], sum), TRUE)[1:10]
+P_18 <- subset_samples(CHeckV_bar_PHY2_SC, Subject=="P18")
+TopNOTUs_P18 <- sort(tapply(taxa_sums(P_18), tax_table(P_18)[, "Family"], sum), TRUE)[1:10]
+P_19 <- subset_samples(CHeckV_bar_PHY2_SC, Subject=="P19")
+TopNOTUs_P19 <- sort(tapply(taxa_sums(P_19), tax_table(P_19)[, "Family"], sum), TRUE)[1:10]
+P_20 <- subset_samples(CHeckV_bar_PHY2_SC, Subject=="P20")
+TopNOTUs_P20 <- sort(tapply(taxa_sums(P_20), tax_table(P_20)[, "Family"], sum), TRUE)[1:10]
+P_21 <- subset_samples(CHeckV_bar_PHY2_SC, Subject=="P21")
+TopNOTUs_P21 <- sort(tapply(taxa_sums(P_21), tax_table(P_21)[, "Family"], sum), TRUE)[1:10]
+P_22 <- subset_samples(CHeckV_bar_PHY2_SC, Subject=="P22")
+TopNOTUs_P22 <- sort(tapply(taxa_sums(P_22), tax_table(P_22)[, "Family"], sum), TRUE)[1:10]
+P_23 <- subset_samples(CHeckV_bar_PHY2_SC, Subject=="P23")
+TopNOTUs_P23 <- sort(tapply(taxa_sums(P_23), tax_table(P_23)[, "Family"], sum), TRUE)[1:10]
+P_24 <- subset_samples(CHeckV_bar_PHY2_SC, Subject=="P24")
+TopNOTUs_P24 <- sort(tapply(taxa_sums(P_24), tax_table(P_24)[, "Family"], sum), TRUE)[1:10]
+P_25 <- subset_samples(CHeckV_bar_PHY2_SC, Subject=="P25")
+TopNOTUs_P25 <- sort(tapply(taxa_sums(P_25), tax_table(P_25)[, "Family"], sum), TRUE)[1:10]
+P_26 <- subset_samples(CHeckV_bar_PHY2_SC, Subject=="P26")
+TopNOTUs_P26 <- sort(tapply(taxa_sums(P_26), tax_table(P_26)[, "Family"], sum), TRUE)[1:10]
+P_27 <- subset_samples(CHeckV_bar_PHY2_SC, Subject=="P27")
+TopNOTUs_P27 <- sort(tapply(taxa_sums(P_27), tax_table(P_27)[, "Family"], sum), TRUE)[1:10]
+P_28 <- subset_samples(CHeckV_bar_PHY2_SC, Subject=="P28")
+TopNOTUs_P28 <- sort(tapply(taxa_sums(P_28), tax_table(P_28)[, "Family"], sum), TRUE)[1:10]
+P_29 <- subset_samples(CHeckV_bar_PHY2_SC, Subject=="P29")
+TopNOTUs_P29 <- sort(tapply(taxa_sums(P_29), tax_table(P_29)[, "Family"], sum), TRUE)[1:10]
+P_30 <- subset_samples(CHeckV_bar_PHY2_SC, Subject=="P30")
+TopNOTUs_P30 <- sort(tapply(taxa_sums(P_30), tax_table(P_30)[, "Family"], sum), TRUE)[1:10]
+P_31 <- subset_samples(CHeckV_bar_PHY2_SC, Subject=="P31")
+TopNOTUs_P31 <- sort(tapply(taxa_sums(P_31), tax_table(P_31)[, "Family"], sum), TRUE)[1:10]
+P_32 <- subset_samples(CHeckV_bar_PHY2_SC, Subject=="P32")
+TopNOTUs_P32 <- sort(tapply(taxa_sums(P_32), tax_table(P_32)[, "Family"], sum), TRUE)[1:10]
+P_34 <- subset_samples(CHeckV_bar_PHY2_SC, Subject=="P34")
+TopNOTUs_P34 <- sort(tapply(taxa_sums(P_34), tax_table(P_34)[, "Family"], sum), TRUE)[1:10]
+P_35 <- subset_samples(CHeckV_bar_PHY2_SC, Subject=="P35")
+TopNOTUs_P35 <- sort(tapply(taxa_sums(P_35), tax_table(P_35)[, "Family"], sum), TRUE)[1:10]
+P_36 <- subset_samples(CHeckV_bar_PHY2_SC, Subject=="P36")
+TopNOTUs_P36 <- sort(tapply(taxa_sums(P_36), tax_table(P_36)[, "Family"], sum), TRUE)[1:10]
+P_37 <- subset_samples(CHeckV_bar_PHY2_SC, Subject=="P37")
+TopNOTUs_P37 <- sort(tapply(taxa_sums(P_37), tax_table(P_37)[, "Family"], sum), TRUE)[1:10]
+P_38 <- subset_samples(CHeckV_bar_PHY2_SC, Subject=="P38")
+TopNOTUs_P38 <- sort(tapply(taxa_sums(P_38), tax_table(P_38)[, "Family"], sum), TRUE)[1:10]
+P_39 <- subset_samples(CHeckV_bar_PHY2_SC, Subject=="P39")
+TopNOTUs_P39 <- sort(tapply(taxa_sums(P_39), tax_table(P_39)[, "Family"], sum), TRUE)[1:10]
+P_40 <- subset_samples(CHeckV_bar_PHY2_SC, Subject=="P40")
+TopNOTUs_P40 <- sort(tapply(taxa_sums(P_40), tax_table(P_40)[, "Family"], sum), TRUE)[1:10]
+P_41 <- subset_samples(CHeckV_bar_PHY2_SC, Subject=="P41")
+TopNOTUs_P41 <- sort(tapply(taxa_sums(P_41), tax_table(P_41)[, "Family"], sum), TRUE)[1:10]
+P_42 <- subset_samples(CHeckV_bar_PHY2_SC, Subject=="P42")
+TopNOTUs_P42 <- sort(tapply(taxa_sums(P_42), tax_table(P_42)[, "Family"], sum), TRUE)[1:10]
+P_43 <- subset_samples(CHeckV_bar_PHY2_SC, Subject=="P43")
+TopNOTUs_P43 <- sort(tapply(taxa_sums(P_43), tax_table(P_43)[, "Family"], sum), TRUE)[1:10]
+
+```
+```{r}
+TopNOTUs_20<-c(TopNOTUs_P01,TopNOTUs_P02,TopNOTUs_P03,TopNOTUs_P04,TopNOTUs_P05,TopNOTUs_P06,TopNOTUs_P07,TopNOTUs_P08,TopNOTUs_P09,TopNOTUs_P10,TopNOTUs_P11,TopNOTUs_P12,TopNOTUs_P13,TopNOTUs_P14,TopNOTUs_P15,TopNOTUs_P16,TopNOTUs_P17,TopNOTUs_P18,TopNOTUs_P19,TopNOTUs_P20,TopNOTUs_P21,TopNOTUs_P22,TopNOTUs_P23,TopNOTUs_P24,TopNOTUs_P25,TopNOTUs_P26,TopNOTUs_P27,TopNOTUs_P28,TopNOTUs_P29,TopNOTUs_P30,TopNOTUs_P31,TopNOTUs_P32,TopNOTUs_P34,TopNOTUs_P35,TopNOTUs_P36,TopNOTUs_P37,TopNOTUs_P38,TopNOTUs_P39,TopNOTUs_P40,TopNOTUs_P41,TopNOTUs_P42,TopNOTUs_P43)
+TopNOTUs_20_list<-unique(names(TopNOTUs_20))
+
+
+TopNOTUs_20_list_noUn<-TopNOTUs_20_list[!grepl("Unclassified",TopNOTUs_20_list)]
+TopNOTUs_20_list_noUn<-TopNOTUs_20_list_noUn[!grepl("Unlcassified",TopNOTUs_20_list_noUn)]
+TopNOTUs_20_list_noUn<-c(TopNOTUs_20_list_noUn,"Unclassified Caudovirales")
+
+
+TopNOTUs_10<-c(TopNOTUs_P01,TopNOTUs_P02,TopNOTUs_P03,TopNOTUs_P04,TopNOTUs_P05,TopNOTUs_P06,TopNOTUs_P07,TopNOTUs_P08,TopNOTUs_P09,TopNOTUs_P10,TopNOTUs_P11,TopNOTUs_P12,TopNOTUs_P13,TopNOTUs_P14,TopNOTUs_P15,TopNOTUs_P16,TopNOTUs_P17,TopNOTUs_P18,TopNOTUs_P19,TopNOTUs_P20,TopNOTUs_P21,TopNOTUs_P22,TopNOTUs_P23,TopNOTUs_P24,TopNOTUs_P25,TopNOTUs_P26,TopNOTUs_P27,TopNOTUs_P28,TopNOTUs_P29,TopNOTUs_P30,TopNOTUs_P31,TopNOTUs_P32,TopNOTUs_P34,TopNOTUs_P35,TopNOTUs_P36,TopNOTUs_P37,TopNOTUs_P38,TopNOTUs_P39,TopNOTUs_P40,TopNOTUs_P41,TopNOTUs_P42,TopNOTUs_P43)
+TopNOTUs_10_list<-unique(names(TopNOTUs_10))
+
+#LH10
+TopNOTUs_10_LH<-c(TopNOTUs_P01,TopNOTUs_P02,TopNOTUs_P03,TopNOTUs_P04,TopNOTUs_P05,TopNOTUs_P06,TopNOTUs_P07,TopNOTUs_P08,TopNOTUs_P09,TopNOTUs_P10,TopNOTUs_P11,TopNOTUs_P12,TopNOTUs_P13,TopNOTUs_P14,TopNOTUs_P15,TopNOTUs_P16,TopNOTUs_P17,TopNOTUs_P18,TopNOTUs_P19,TopNOTUs_P20,TopNOTUs_P21,TopNOTUs_P22,TopNOTUs_P23,TopNOTUs_P24,TopNOTUs_P25,TopNOTUs_P26,TopNOTUs_P27,TopNOTUs_P28,TopNOTUs_P29,TopNOTUs_P30,TopNOTUs_P31,TopNOTUs_P32,TopNOTUs_P34,TopNOTUs_P35,TopNOTUs_P36,TopNOTUs_P37,TopNOTUs_P38,TopNOTUs_P39,TopNOTUs_P40,TopNOTUs_P41,TopNOTUs_P42,TopNOTUs_P43)
+TopNOTUs_10_list_LH<-unique(names(TopNOTUs_10_LH))
+
+TopNOTUs_10_list_noUn_LH<-TopNOTUs_10_list_LH[!grepl("Unclassified",TopNOTUs_10_list_LH)]
+TopNOTUs_10_list_noUn_LH<-TopNOTUs_10_list_noUn_LH[!grepl("Unlcassified",TopNOTUs_10_list_noUn_LH)]
+TopNOTUs_10_list_noUn_LH<-c(TopNOTUs_10_list_noUn_LH,"Unclassified Cressdnaviricota")
+TopNOTUs_10_list_noUn_LH<-c(TopNOTUs_10_list_noUn_LH,"Unclassified Duplodnaviria")
+TopNOTUs_10_list_noUn_LH<-c(TopNOTUs_10_list_noUn_LH,"Unclassified Monodnaviria")
+
+
+#RH10
+TopNOTUs_10_RH<-c(TopNOTUs_P01,TopNOTUs_P02,TopNOTUs_P03,TopNOTUs_P04,TopNOTUs_P05,TopNOTUs_P06,TopNOTUs_P07,TopNOTUs_P08,TopNOTUs_P09,TopNOTUs_P10,TopNOTUs_P11,TopNOTUs_P12,TopNOTUs_P13,TopNOTUs_P14,TopNOTUs_P15,TopNOTUs_P16,TopNOTUs_P17,TopNOTUs_P18,TopNOTUs_P19,TopNOTUs_P20,TopNOTUs_P21,TopNOTUs_P22,TopNOTUs_P23,TopNOTUs_P24,TopNOTUs_P25,TopNOTUs_P26,TopNOTUs_P27,TopNOTUs_P28,TopNOTUs_P29,TopNOTUs_P30,TopNOTUs_P31,TopNOTUs_P32,TopNOTUs_P34,TopNOTUs_P35,TopNOTUs_P36,TopNOTUs_P37,TopNOTUs_P38,TopNOTUs_P39,TopNOTUs_P40,TopNOTUs_P41,TopNOTUs_P42,TopNOTUs_P43)
+TopNOTUs_10_list_RH<-unique(names(TopNOTUs_10_RH))
+
+TopNOTUs_10_list_noUn_RH<-TopNOTUs_10_list_RH[!grepl("Unclassified",TopNOTUs_10_list_RH)]
+TopNOTUs_10_list_noUn_RH<-TopNOTUs_10_list_noUn_RH[!grepl("Unlcassified",TopNOTUs_10_list_noUn_RH)]
+TopNOTUs_10_list_noUn_RH<-c(TopNOTUs_10_list_noUn_RH,"Unclassified Caudovirales")
+TopNOTUs_10_list_noUn_RH<-c(TopNOTUs_10_list_noUn_RH,"Unclassified Cressdnaviricota")
+TopNOTUs_10_list_noUn_RH<-c(TopNOTUs_10_list_noUn_RH,"Unclassified Duplodnaviria")
+TopNOTUs_10_list_noUn_RH<-c(TopNOTUs_10_list_noUn_RH,"Unclassified Monodnaviria")
+
+#SC10
+TopNOTUs_10_SC<-c(TopNOTUs_P01,TopNOTUs_P02,TopNOTUs_P03,TopNOTUs_P04,TopNOTUs_P05,TopNOTUs_P06,TopNOTUs_P07,TopNOTUs_P08,TopNOTUs_P09,TopNOTUs_P10,TopNOTUs_P11,TopNOTUs_P12,TopNOTUs_P13,TopNOTUs_P14,TopNOTUs_P15,TopNOTUs_P16,TopNOTUs_P17,TopNOTUs_P18,TopNOTUs_P19,TopNOTUs_P20,TopNOTUs_P21,TopNOTUs_P22,TopNOTUs_P23,TopNOTUs_P24,TopNOTUs_P25,TopNOTUs_P26,TopNOTUs_P27,TopNOTUs_P28,TopNOTUs_P29,TopNOTUs_P30,TopNOTUs_P31,TopNOTUs_P32,TopNOTUs_P34,TopNOTUs_P35,TopNOTUs_P36,TopNOTUs_P37,TopNOTUs_P38,TopNOTUs_P39,TopNOTUs_P40,TopNOTUs_P41,TopNOTUs_P42,TopNOTUs_P43)
+TopNOTUs_10_list_SC<-unique(names(TopNOTUs_10_SC))
+
+TopNOTUs_10_list_noUn_SC<-TopNOTUs_10_list_SC[!grepl("Unclassified",TopNOTUs_10_list_SC)]
+TopNOTUs_10_list_noUn_SC<-TopNOTUs_10_list_noUn_SC[!grepl("Unlcassified",TopNOTUs_10_list_noUn_SC)]
+TopNOTUs_10_list_noUn_SC<-c(TopNOTUs_10_list_noUn_SC,"Unclassified Caudovirales")
+TopNOTUs_10_list_noUn_SC<-c(TopNOTUs_10_list_noUn_SC,"Unclassified Cressdnaviricota")
+TopNOTUs_10_list_noUn_SC<-c(TopNOTUs_10_list_noUn_SC,"Unclassified Duplodnaviria")
+TopNOTUs_10_list_noUn_SC<-c(TopNOTUs_10_list_noUn_SC,"Unclassified Monodnaviria")
+```
+
+```{r}
+ent10_LH <- subset_taxa(CHeckV_bar_PHY2, Family %in% TopNOTUs_10_list_noUn_LH)
+glom.subject_LH <- merge_samples(ent10_LH, "Subject")
+glom.subject.family_LH <- transform_sample_counts(glom.subject_LH, function(x) x / sum(x) )
+glom_LH <- tax_glom(glom.subject.family_LH, taxrank = 'Family')
+data_glom_LH<- psmelt(glom_LH)
+data_glom_LH$Family <- as.character(data_glom_LH$Family)
+data_glom_LH$Location<-"Left Hand"
+data_glom_LH$Family <- factor(data_glom_LH$Family, levels = c("Siphoviridae", "Podoviridae", "Uncultured phage", "Myoviridae", "Herelleviridae", "Genomoviridae", "Microviridae", "Papillomaviridae", "Lake Sarah-associated circular molecule 3", "Pithoviridae", "Uncultured virus", "Sewage-associated circular DNA molecule", "Streptococcus satellite phage Javan305", "Caulimoviridae", "Staphylococcus phage PhiSepi-HH1", "Phycodnaviridae", "Circoviridae", "Staphylococcus phage PI-Sepi-HH2", "Baculoviridae", "Poxviridae", "Polyomaviridae", "Bovine faeces associated circular DNA virus 1", "Unclassified Cressdnaviricota", "Unclassified Duplodnaviria", "Unclassified Monodnaviria"))
+
+ent10_RH <- subset_taxa(CHeckV_bar_PHY2, Family %in% TopNOTUs_10_list_noUn_RH)
+glom.subject_RH <- merge_samples(ent10_RH, "Subject")
+glom.subject.family_RH <- transform_sample_counts(glom.subject_RH, function(x) x / sum(x) )
+glom_RH <- tax_glom(glom.subject.family_RH, taxrank = 'Family')
+data_glom_RH<- psmelt(glom_RH)
+data_glom_RH$Family <- as.character(data_glom_RH$Family)
+data_glom_RH$Location<-"Right Hand"
+data_glom_RH$Family <- factor(data_glom_RH$Family, levels = c("Caulimoviridae", "Siphoviridae", "Microviridae", "Papillomaviridae", "Genomoviridae", "Herelleviridae", "Baculoviridae", "Circoviridae", "Uncultured phage", "Myoviridae", "Sewage-associated circular DNA molecule", "Lake Sarah-associated circular molecule 3", "Podoviridae", "Mimiviridae", "Staphylococcus phage PI-Sepi-HH2", "Staphylococcus phage PhiSepi-HH1", "Streptococcus satellite phage Javan359", "Streptococcus satellite phage Javan360", "Smacoviridae", "Uncultured human fecal virus clone E.ramosum_S04.r3.N09_4_c1", "Inoviridae", "Uncultured virus isolate Wastewater_Circular_Virus_FL54", "Unclassified Caudovirales", "Unclassified Cressdnaviricota", "Unclassified Duplodnaviria", "Unclassified Monodnaviria"))
+
+
+ent10_SC <- subset_taxa(CHeckV_bar_PHY2, Family %in% TopNOTUs_10_list_noUn_SC)
+glom.subject_SC <- merge_samples(ent10_SC, "Subject")
+glom.subject.family_SC <- transform_sample_counts(glom.subject_SC, function(x) x / sum(x) )
+glom_SC <- tax_glom(glom.subject.family_SC, taxrank = 'Family')
+data_glom_SC<- psmelt(glom_SC)
+data_glom_SC$Family <- as.character(data_glom_SC$Family)
+data_glom_SC$Location<-"Scalp"
+data_glom_SC$Family <- factor(data_glom_SC$Family, levels = c("Circoviridae", "Siphoviridae", "Herelleviridae", "Genomoviridae", "Papillomaviridae", "Lake Sarah-associated circular molecule 3", "Myoviridae", "Uncultured virus", "Podoviridae", "Microviridae", "Caulimoviridae", "Sewage-associated circular DNA molecule", "Autographiviridae", "Retroviridae", "Anelloviridae", "Gopherus associated circular DNA virus 4", "Baculoviridae", "Phycodnaviridae", "Chicken virus mg4_2302", "Streptococcus satellite phage Javan361", "Unclassified Caudovirales", "Unclassified Cressdnaviricota", "Unclassified Duplodnaviria", "Unclassified Monodnaviria" ))
+
+data_glom_ALL<-rbind(data_glom_SC,data_glom_RH,data_glom_LH)
+
+spatial_plot <- ggplot(data=data_glom_ALL, aes(x=Location, y=Abundance, fill=Family)) + facet_grid(~Sample, scales = "free")+geom_col(position = "fill")
+
+relativeabund<-spatial_plot + geom_bar(aes(), stat="identity", position="stack",colour = 'black')  +
+theme(legend.position="bottom",axis.title.x = element_text(vjust=1, hjust=2,size=12),legend.text=element_text(size=12),
+      axis.title.y = element_text(vjust=1,size=12),) + guides(fill=guide_legend(nrow=7),size=12)+theme(axis.text.x = element_text(angle = 90,size=12))+ylab("Relative Abundance")
+ggsave(plot=relativeabund,"Figures/RelativeAbundanceFIGURE.pdf",dpi = 500, width = 29,
+  height = 16, units="in",pointsize=12)
+
+
+```
+
+```{r}
+
+#TopNOTUs <- sort(tapply(taxa_sums(top20_merge), tax_table(top20_merge)[, "Family"], sum), TRUE)[1:20]
+#ent10 <- subset_taxa(top20_merge, Family %in% names(TopNOTUs))
+
+ent10 <- subset_taxa(CHeckV_bar_PHY2, Family %in% TopNOTUs_20_list_noUn)
+#physeq3 <- transform_sample_counts(ent10, function(x) x / sum(x) )
+#glom.subject <- merge_samples(physeq3, "Subject")
+
+glom.subject <- merge_samples(ent10, "Subject")
+
+glom.subject.family <- transform_sample_counts(glom.subject, function(x) x / sum(x) )
+glom <- tax_glom(glom.subject.family, taxrank = 'Family')
+#glom
+data_glom<- psmelt(glom) # create dataframe from phyloseq object
+data_glom$Family <- as.character(data_glom$Family) #convert to character
+#data_glom$Family[data_glom$Abundance < 0.01] <- "< 1% abund."
+#Count = length(unique(data_glom$Family))
+#Count
+unique(data_glom$Family)
+
+#20 no class
+data_glom$Family <- factor(data_glom$Family, levels = c("Unclassified Caudovirales","Papillomaviridae","Genomoviridae","Microviridae","Myoviridae","Siphoviridae","Caulimoviridae","Phycodnaviridae","Inoviridae","Sewage-associated circular DNA molecule","Lake Sarah-associated circular molecule 3","Anelloviridae","Herelleviridae","Podoviridae","Circoviridae","Uncultured virus","Streptococcus satellite phage Javan361","Uncultured phage","Staphylococcus phage PI-Sepi-HH2","Uncultured virus isolate Wastewater_Circular_Virus_FL54","Streptococcus satellite phage Javan305","Chicken virus mg4_2302","Smacoviridae","Poxviridae","Polyomaviridae","Pithoviridae","Retroviridae","Mimiviridae","Baculoviridae","Streptococcus satellite phage Javan359","Uncultured Virus","Staphylococcus phage PhiSepi-HH1","Autographiviridae","Uncultured human fecal virus clone E.ramosum_S04.r3.N09_4_c1","Uncultured marine virus","Uncultured human fecal virus"))
+
+
+data_glom$Family <- factor(data_glom$Family, levels = c("Siphoviridae","Papillomaviridae","Unclassified Caudovirales","Baculoviridae","Genomoviridae","Microviridae","Podoviridae","Circoviridae","Herelleviridae","Caulimoviridae","Myoviridae","Unclassified Homo sapiens like virus","Sewage-associated circular DNA molecule","Unclassified Viruses 330","Uncultured phage","Unclassified Cressdnaviricota","Unclassified Homo sapiens BAC clone RP11-200K10 like virus","Unclassified Staphylococcus warneri like virus","Uncultured virus","Staphylococcus phage PI-Sepi-HH2","Unclassified Propionibacteriaceae like virus","Unclassified Monodnaviria","Unclassified Viruses 265","Unclassified Viruses 189","Unclassified Viruses 70","Lake Sarah-associated circular molecule 3","Unclassified Eukaryotic like virus","Unclassified Duplodnaviria","Anelloviridae","Unclassified Viruses 412","Unclassified Staphylococcus like virus","Unclassified Viruses 382","Unclassified Pinus taeda like virus","Unclassified Viruses 410","Unclassified Viruses 385","Unclassified Viruses 127","Unclassified Viruses 27","Unclassified Staphylococcus saccharolyticus like virus","Unclassified Viruses 405","Unclassified Viruses 328","Unclassified Viruses 181","Streptococcus satellite phage Javan305","Unclassified Viruses 76","Unclassified Viruses 219","Unclassified Viruses 83","Unclassified Viruses 339","Unclassified Triticum like virus","Unclassified Viruses 421","Smacoviridae","Unclassified Viruses 128","Unclassified Viruses 53","Unclassified Viruses 286","Unclassified Viruses 381","Inoviridae","Unclassified Staphylococcus argenteus 58113 plasmid p2 like virus","Unclassified Viruses 366","Mimiviridae","Unclassified Staphylococcus epidermidis like virus","Unclassified Fusobacterium nucleatum like virus","Unclassified Viruses 119","Poxviridae","Unclassified Viruses 261","Unclassified Viruses 377","Unclassified Viruses 351","Unclassified Viruses 407","Unclassified Cutibacterium acnes TP-CU389 like virus","Unclassified Viruses 237","Unclassified Viruses 247","Unclassified Viruses 231","Unclassified Staphylococcus pasteuri like virus","Unclassified Viruses 392","Unclassified Viruses 216","Unclassified Viruses 391","Unclassified Viruses 168","Unclassified Viruses 36","Uncultured virus isolate Wastewater_Circular_Virus_FL54","Unclassified Viruses 290","Unclassified Viruses 379","Unclassified Viruses 403","Gopherus associated circular DNA virus 4","Unclassified Viruses 419","Unclassified Viruses 217","Unclassified Viruses 34","Unclassified Lactobacillus like virus","Unclassified Viruses 273","Unclassified Viruses 380","Unclassified Campylobacter ureolyticus like virus","Unclassified Viruses 317","Unclassified Viruses 304","Unclassified Solanum lycopersicum like virus","Unclassified Staphylococcus sp. CDC3 plasmid SAP020A like virus","Unclassified Viruses 256","Unclassified Viruses 331","Unclassified Malassezia globosa strain CBS7966 like virus","Unclassified Viruses 122","Unclassified Viruses 300","Unclassified Viruses","Unclassified Viruses 316","Unclassified Viruses 52","Unclassified Viruses 337","Unclassified Enterococcus cecorum like virus","Unclassified Viruses 287","Unclassified Viruses 378","Unclassified Viruses 279","Unclassified Viruses 420","Unclassified Mesorhizobium terrae like virus","Unclassified Viruses 338","Unclassified Viruses 14","Phycodnaviridae","Unclassified Viruses 207","Unclassified Viruses 29","Unclassified Picea abies fosmid  like virus","Unclassified Viruses 336","Unclassified Viruses 11","Unclassified Viruses 195","Unclassified Viruses 9","Unclassified Viruses 321","Unclassified Viruses 275","Unclassified Epilithonimonas vandammei like virus","Unclassified Viruses 395","Unclassified Viruses 348","Unclassified Viruses 349","Unclassified Viruses 401","Unclassified Viruses 327","Unclassified Viruses 329","Unclassified Fusobacterium pseudoperiodonticum like virus","Unclassified Viruses 347","Streptococcus satellite phage Javan361","Unclassified Viruses 211","Unclassified Viruses 131","Unclassified Viruses 297","Unclassified Viruses 295","Unclassified Viruses 355","Unclassified Viruses 267","Unclassified Viruses 220","Unclassified Viruses 415","Unclassified Viruses 222","Unclassified Viruses 154","Unclassified Viruses 47","Unclassified Viruses 94","Unclassified Viruses 398","Unclassified Solanum tuberosum like virus","Unclassified Viruses 417","Unclassified Viruses 251","Unclassified Viruses 71","Unclassified Viruses 367","Unclassified Viruses 270","Unclassified Viruses 332","Unclassified Viruses 6","Unclassified Viruses 143","Unclassified Viruses 404","Unclassified Viruses 370","Unclassified Viruses 402","Unclassified Cucumis sativus like virus","Unclassified Viruses 423","Unclassified Viruses 322","Unclassified Viruses 282","Unclassified Viruses 340","Polyomaviridae","Unclassified Viruses 38","Unclassified Viruses 268","Unclassified Viruses 245","Unclassified Viruses 422","Unclassified Viruses 291","Unclassified Lawsonella clevelandensis like virus","Unclassified Viruses 360","Unclassified Viruses 39","Unclassified Viruses 424","Unclassified Viruses 130","Unclassified Solanum like virus","Unclassified Viruses 88","Unclassified Viruses 103","Unclassified Staphylococcus phage vB_StaM_SA1","Unclassified Suhomyces tanzawaensis like virus","Chicken virus mg4_2302","Unclassified Viruses 18","Unclassified Viruses 228","Unclassified Viruses 249","Unclassified Viruses 187","Unclassified Viruses 411","Unclassified Cutibacterium acnes  like virus","Unclassified Cucumis melo like virus","Unclassified Viruses 374","Unclassified Viruses 278","Unclassified Viruses 305","Unclassified Viruses 294","Unclassified Naegleria fowleri like virus","Unclassified Viruses 8","Unclassified Viruses 100","Unclassified Viruses 55","Unclassified Viruses 105"))  
+
+
+
+data_glom$Family <- factor(data_glom$Family, levels = c("Unclassified Caudovirales","Papillomaviridae","Genomoviridae","Siphoviridae","Uncultured virus","Microviridae","Unclassified Homo sapiens like virus","Unclassified Cressdnaviricota","Myoviridae","Circoviridae","Unclassified Monodnaviria","Sewage-associated circular DNA molecule","Unclassified Viruses 219","Caulimoviridae","Herelleviridae","Unclassified Viruses 405","Unclassified Staphylococcus like virus","Unclassified Viruses 52","Podoviridae","Unclassified Viruses 420"))
+
+
+
+#data_glom$Family <- factor(data_glom$Family, levels = c("Siphoviridae","Unclassified Viruses 265","Unclassified Cressdnaviricota","Genomoviridae","Papillomaviridae","Caulimoviridae","Unclassified Caudovirales","Unclassified Viruses 219","Microviridae","Unclassified Eukaryotic like virus","Sewage-associated circular DNA molecule","Unclassified Viruses 410","Unclassified Viruses 316","Unclassified Viruses 127","Myoviridae","Circoviridae","Anelloviridae","Unclassified Staphylococcus warneri like virus","Lake Sarah-associated circular molecule 3","Herelleviridae","Unclassified Homo sapiens like virus","Unclassified Viruses 412","Unclassified Propionibacteriaceae like virus","Unclassified Staphylococcus like virus","Unclassified Viruses 70","Unclassified Viruses 286","Unclassified Viruses 405","Uncultured virus","Podoviridae","Unclassified Viruses 168","Unclassified Viruses 52","Unclassified Monodnaviria","Unclassified Viruses 420","Unclassified Viruses 421","Unclassified Mesorhizobium terrae like virus","Unclassified Viruses 195","Unclassified Viruses 402","Unclassified Viruses 332","Unclassified Viruses 423","Unclassified Viruses 71"))
+
+#plot with condensed phyla into "unknown" category
+
+spatial_plot <- ggplot(data=data_glom, aes(x=Sample, y=Abundance, fill=Family)) + facet_grid(~Location, scales = "free")
+spatial_plot + geom_bar(aes(), stat="identity", position="stack")  +
+theme(legend.position="bottom") + guides(fill=guide_legend(nrow=10))  #facet_grid(~Location, scales = "free")
+
+```
+
+```{r}
+ent10 <- subset_taxa(top20_merge, Family %in% names(TopNOTUs))
+
+ent10 <- subset_taxa(CHeckV_bar_PHY2, Family %in% TopNOTUs_20_list_noUn)
+#physeq3 <- transform_sample_counts(ent10, function(x) x / sum(x) )
+#glom.subject <- merge_samples(physeq3, "Subject")
+
+glom.subject <- merge_samples(ent10, "Subject")
+
+glom.subject.family <- transform_sample_counts(glom.subject, function(x) x / sum(x) )
+glom <- tax_glom(glom.subject.family, taxrank = 'Family')
+#glom
+data_glom<- psmelt(glom) # create dataframe from phyloseq object
+data_glom$Family <- as.character(data_glom$Family) #convert to character
+#data_glom$Family[data_glom$Abundance < 0.01] <- "< 1% abund."
+#Count = length(unique(data_glom$Family))
+#Count
+unique(data_glom$Family)
+
+#20 no class
+data_glom$Family <- factor(data_glom$Family, levels = c("Unclassified Caudovirales","Papillomaviridae","Genomoviridae","Microviridae","Myoviridae","Siphoviridae","Caulimoviridae","Phycodnaviridae","Inoviridae","Sewage-associated circular DNA molecule","Lake Sarah-associated circular molecule 3","Anelloviridae","Herelleviridae","Podoviridae","Circoviridae","Uncultured virus","Streptococcus satellite phage Javan361","Uncultured phage","Staphylococcus phage PI-Sepi-HH2","Uncultured virus isolate Wastewater_Circular_Virus_FL54","Streptococcus satellite phage Javan305","Chicken virus mg4_2302","Smacoviridae","Poxviridae","Polyomaviridae","Pithoviridae","Retroviridae","Mimiviridae","Baculoviridae","Streptococcus satellite phage Javan359","Uncultured Virus","Staphylococcus phage PhiSepi-HH1","Autographiviridae","Uncultured human fecal virus clone E.ramosum_S04.r3.N09_4_c1","Uncultured marine virus","Uncultured human fecal virus","Unlcassified Fusobacterium pseudoperiodonticum like virus"))
+
+```
+
+
+
+#Rarefy data for diversity analysis
+```{r}
+prevdf_ps= apply(X = otu_table(CHeckV_PHY2), 
+                       MARGIN = ifelse(taxa_are_rows(CHeckV_PHY2), yes = 1, no = 2), 
+                       FUN = function(x){sum(x > 0)})
+prevdf_ps <- data.frame(Prevalence= prevdf_ps, TotalAbundance=taxa_sums(CHeckV_PHY2))
+#View(prevdf_ps)
+ps_virome_run <- rownames(prevdf_ps)[prevdf_ps$Prevalence > 1]
+ps_virome_run
+ps_virome_analyze <- prune_taxa(ps_virome_run, CHeckV_PHY2)
+ps_virome_analyze
+sum(otu_table(ps_virome_analyze))/sum(otu_table(CHeckV_PHY2)) 
+save(ps_virome_analyze, file = "ps_virome_analyze.rds")
+load("ps_virome_analyze.rds")
+sum(otu_table(ps_virome_analyze)) 
+ps_rarefy <- rarefy_even_depth(ps_virome_analyze, sample.size = min(sample_sums(ps_virome_analyze)), rngseed = T, replace = TRUE, trimOTUs = TRUE, verbose = TRUE)
+
+Chao1_obser_rarefy= estimate_richness(ps_rarefy, split = TRUE, measures = c("Chao1"))
+head(Chao1_obser_rarefy)
+obser_rarefy= estimate_richness(ps_rarefy, split = TRUE, measures = c("Observed"))
+head(obser_rarefy)
+shannon_obser_rarefy= estimate_richness(ps_rarefy, split = TRUE, measures = c("Shannon"))
+Chao1_obser_rarefy_metadata= merge(META,Chao1_obser_rarefy, by= "row.names")
+head(Chao1_obser_rarefy_metadata)
+shannon_obser_rarefy_metadata= merge(META,shannon_obser_rarefy, by= "row.names")
+```
+#run alpha diversity measures for Month_Sampled
+```{r}
+alpha_meas = c("Observed", "InvSimpson", "Shannon")
+(p <- plot_richness(ps_rarefy, "Month_Sampled", measures=alpha_meas))
+test <- (p + geom_boxplot(data=p$data, aes(x=Month_Sampled, y=value, color=NULL), alpha=0.1)) 
+plot(test)
+observed_pairwise <- pairwise.wilcox.test(obser_rarefy$Observed, sample_data(ps_rarefy)$Month_Sampled)
+observed_pairwise
+chao1_pairwise <- pairwise.wilcox.test(Chao1_obser_rarefy$Chao1, sample_data(ps_rarefy)$Month_Sampled)
+chao1_pairwise 
+shannon_pairwise <- pairwise.wilcox.test(shannon_obser_rarefy$Shannon, sample_data(ps_rarefy)$Month_Sampled)
+shannon_pairwise
+```
+
+#run alpha diversity measures for Time_Collected
+```{r}
+alpha_meas = c("Observed", "Chao1", "Shannon")
+(p <- plot_richness(ps_rarefy, "Time_Collected", measures=alpha_meas))
+test <- (p + geom_boxplot(data=p$data, aes(x=Time_Collected, y=value, color=NULL), alpha=0.1)) 
+plot(test)
+observed_pairwise <- pairwise.wilcox.test(obser_rarefy$Observed, sample_data(ps_rarefy)$Time_Collected)
+observed_pairwise
+chao1_pairwise <- pairwise.wilcox.test(Chao1_obser_rarefy$Chao1, sample_data(ps_rarefy)$Time_Collected)
+chao1_pairwise 
+shannon_pairwise <- pairwise.wilcox.test(shannon_obser_rarefy$Shannon, sample_data(ps_rarefy)$Time_Collected)
+shannon_pairwise
+```
+
+`
+
+## Set C Stable Hand Contigs
+```{r,message=FALSE,warning=FALSE,results="hide"}
+CONTIG_Hand_Markers_Shared2 <- CONTIG_LH_Markers2[CONTIG_LH_Markers2 %in% CONTIG_RH_Markers2]
+```
+Hand Stable Contig Markers
+```{r}
+CONTIG_Hand_Markers_Shared2
+```
+
+## Set B Stable Across All Locations Contigs
+```{r,message=FALSE,warning=FALSE,results="hide"}
+CONTIG_All_Markers_Shared2 <- CONTIG_Hand_Markers_Shared2[CONTIG_Hand_Markers_Shared2 %in% CONTIG_SC_Markers2]
+```
+Overall Across All Locations Contig Markers
+```{r}
+CONTIG_All_Markers_Shared2
+```
+
+```{r}
+tax_ann <- read.csv("vc_tax.csv", quote = "", header = TRUE, stringsAsFactors = FALSE, row.names = 1)
+tax_ann$Contigs<-row.names(tax_ann)
+Checkv_contig_list<-tax_ann$Contig
+CONTIG_LH_Markers2_final <- CONTIG_LH_Markers2[!(CONTIG_LH_Markers2 %in% Checkv_contig_list)]
+CONTIG_RH_Markers2_final <- CONTIG_LH_Markers2[!(CONTIG_LH_Markers2 %in% Checkv_contig_list)]
+CONTIG_SC_Markers2_final <- CONTIG_SC_Markers2[!(CONTIG_SC_Markers2 %in% Checkv_contig_list)]
+CONTIG_Hand_Markers_Shared2_final <- CONTIG_Hand_Markers_Shared2[!(CONTIG_Hand_Markers_Shared2 %in% Checkv_contig_list)]
+CONTIG_All_Markers_Shared2_final <- CONTIG_All_Markers_Shared2[!(CONTIG_All_Markers_Shared2 %in% Checkv_contig_list)]
+
+```
