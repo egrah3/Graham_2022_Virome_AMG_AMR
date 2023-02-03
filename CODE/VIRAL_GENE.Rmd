@@ -1,0 +1,1496 @@
+---
+title: "CORE_Josh"
+output: html_document
+---
+```{r}
+#You may not need all of these, these are just my defalt libraries I always use
+library(readr)
+library(phyloseq)
+library(dplyr)
+library(tidyr)
+library(ggplot2)
+library(phyloseq)
+library(tidyverse)
+library(microbiome)
+library(readr)
+library("ggpubr")
+library("tidyverse")
+library(vegan)
+```
+
+#The name of your phyloseq object you want to find the core taxa used in this example is JVIRAL_FINAL
+#Make sure to change JVIRAL_FINAL to the name of your phyloseq object of interest
+#Also make sure to remove all control samples (index 23 and 25), repeated samples (index 27), and dnase test samples (P33 & P45) from your phyloseq object
+
+
+#Overall core
+```{r}
+#Core taxa across 80% of all samples
+CORE<- filter_taxa(JVIRAL_FINAL, function(x) sum(x > 0) >= (0.8*length(x)), TRUE)
+#barplot of top 10 taxa in core taxa 
+CORE.sum<- tapply(taxa_sums(CORE), tax_table(CORE)[, "Bin"], sum, na.rm=TRUE)
+COREtop10phyla <-names(sort(CORE.sum, TRUE))[1:10]
+CORE_top10 <- prune_taxa((tax_table(CORE)[, "Bin"] %in% COREtop10phyla), CORE)
+plot_bar(CORE_top10, x="Subject", fill = "Bin")
+```
+
+
+#Person 01 Core
+```{r}
+#Subset by person 01
+P_01 <- subset_samples(JVIRAL_FINAL, Subject=="P01")
+#Subset person 01 by locations
+P_01_LH<- subset_samples(P_01, Location=="left")
+P_01_RH<- subset_samples(P_01, Location=="right")
+P_01_SC<- subset_samples(P_01, Location=="scalp")
+#Find taxa present across 80% of the repeated time points for each location for person 01 
+core_P01LH <- filter_taxa(P_01_LH, function(x) sum(x > 0) >= (0.8*length(x)), prune = TRUE)
+core_P01RH <- filter_taxa(P_01_RH, function(x) sum(x > 0) >= (0.8*length(x)), prune = TRUE)
+core_P01SC <- filter_taxa(P_01_SC, function(x) sum(x > 0) >= (0.8*length(x)), prune = TRUE)
+#merge core locations for person 01 together to make an overall core for person 01
+core_P01 <- merge_phyloseq(core_P01LH , core_P01RH, core_P01SC)
+#Subtract out overall CORE to get just unique core taxa for person 01 
+core_rm<- rownames(otu_table(CORE))
+core_P01_rm <- taxa_names(core_P01)
+core_P01_rm <- core_P01_rm[!(core_P01_rm %in% core_rm)]
+core_P01_rm <- prune_taxa(core_P01_rm, core_P01)
+```
+
+#Beta diversity for person 01 core 
+```{r}
+#P01 Core
+norm_core_P01 <- transform_sample_counts(core_P01, function(x) x / sum(x) )
+ord.core_01.pcoa <- ordinate(norm_core_P01, method="PCoA", distance="bray")
+plot_ordination(norm_core_P01, ord.core_01.pcoa, color = "Location", shape = "Time_Collected") +
+  geom_point(size=5)
+#P01 unique core 
+norm_core_P01_rm <- transform_sample_counts(core_P01_rm, function(x) x / sum(x) )
+ord.core_01_rm.pcoa <- ordinate(norm_core_P01_rm, method="PCoA", distance="bray")
+plot_ordination(norm_core_P01_rm, ord.core_01_rm.pcoa, color = "Location", shape = "Time_Collected") +
+  geom_point(size=5)
+```
+
+#The previous two coding chunks are then repeated for each person as seen below
+#For my sample set I only have persons 1-43, make sure to add more for each additional person you have in your dataset 
+
+#P02
+```{r}
+P_02 <- subset_samples(JVIRAL_FINAL, Subject=="P02")
+P_02_LH<- subset_samples(P_02, Location=="left")
+P_02_RH<- subset_samples(P_02, Location=="right")
+P_02_SC<- subset_samples(P_02, Location=="scalp")
+core_P02LH <- filter_taxa(P_02_LH, function(x) sum(x > 0) >= (0.8*length(x)), prune = TRUE)
+core_P02RH <- filter_taxa(P_02_RH, function(x) sum(x > 0) >= (0.8*length(x)), prune = TRUE)
+core_P02SC <- filter_taxa(P_02_SC, function(x) sum(x > 0) >= (0.8*length(x)), prune = TRUE)
+core_P02 <- merge_phyloseq(core_P02LH , core_P02RH, core_P02SC)
+
+core_rm<- rownames(otu_table(CORE))
+core_P02_rm <- taxa_names(core_P02)
+core_P02_rm <- core_P02_rm[!(core_P02_rm %in% core_rm)]
+core_P02_rm <- prune_taxa(core_P02_rm, core_P02)
+```
+```{r}
+norm_core_P02 <- transform_sample_counts(core_P02, function(x) x / sum(x) )
+ord.core_02.pcoa <- ordinate(norm_core_P02, method="PCoA", distance="bray")
+plot_ordination(norm_core_P02, ord.core_02.pcoa, color = "Location", shape = "Time_Collected") +
+  geom_point(size=5)
+norm_core_P02_rm <- transform_sample_counts(core_P02_rm, function(x) x / sum(x) )
+ord.core_02_rm.pcoa <- ordinate(norm_core_P02_rm, method="PCoA", distance="bray")
+plot_ordination(norm_core_P02_rm, ord.core_02_rm.pcoa, color = "Location", shape = "Time_Collected") +
+  geom_point(size=5)
+```
+
+#P03
+```{r}
+P_03 <- subset_samples(JVIRAL_FINAL, Subject=="P03")
+P_03_LH<- subset_samples(P_03, Location=="left")
+P_03_RH<- subset_samples(P_03, Location=="right")
+P_03_SC<- subset_samples(P_03, Location=="scalp")
+core_P03LH <- filter_taxa(P_03_LH, function(x) sum(x > 0) >= (0.8*length(x)), prune = TRUE)
+core_P03RH <- filter_taxa(P_03_RH, function(x) sum(x > 0) >= (0.8*length(x)), prune = TRUE)
+core_P03SC <- filter_taxa(P_03_SC, function(x) sum(x > 0) >= (0.8*length(x)), prune = TRUE)
+core_P03 <- merge_phyloseq(core_P03LH , core_P03RH, core_P03SC)
+
+core_rm<- rownames(otu_table(CORE))
+core_P03_rm <- taxa_names(core_P03)
+core_P03_rm <- core_P03_rm[!(core_P03_rm %in% core_rm)]
+core_P03_rm <- prune_taxa(core_P03_rm, core_P03)
+```
+```{r}
+norm_core_P03 <- transform_sample_counts(core_P03, function(x) x / sum(x) )
+ord.core_03.pcoa <- ordinate(norm_core_P03, method="PCoA", distance="bray")
+plot_ordination(norm_core_P03, ord.core_03.pcoa, color = "Location", shape = "Time_Collected") +
+  geom_point(size=5)
+norm_core_P03_rm <- transform_sample_counts(core_P03_rm, function(x) x / sum(x) )
+ord.core_03_rm.pcoa <- ordinate(norm_core_P03_rm, method="PCoA", distance="bray")
+plot_ordination(norm_core_P03_rm, ord.core_03_rm.pcoa, color = "Location", shape = "Time_Collected") +
+  geom_point(size=5)
+```
+
+#P04
+```{r}
+P_04 <- subset_samples(JVIRAL_FINAL, Subject=="P04")
+P_04_LH<- subset_samples(P_04, Location=="left")
+P_04_RH<- subset_samples(P_04, Location=="right")
+P_04_SC<- subset_samples(P_04, Location=="scalp")
+core_P04LH <- filter_taxa(P_04_LH, function(x) sum(x > 0) >= (0.8*length(x)), prune = TRUE)
+core_P04RH <- filter_taxa(P_04_RH, function(x) sum(x > 0) >= (0.8*length(x)), prune = TRUE)
+core_P04SC <- filter_taxa(P_04_SC, function(x) sum(x > 0) >= (0.8*length(x)), prune = TRUE)
+core_P04 <- merge_phyloseq(core_P04LH , core_P04RH, core_P04SC)
+
+core_rm<- rownames(otu_table(CORE))
+core_P04_rm <- taxa_names(core_P04)
+core_P04_rm <- core_P04_rm[!(core_P04_rm %in% core_rm)]
+core_P04_rm <- prune_taxa(core_P04_rm, core_P04)
+```
+```{r}
+norm_core_P04 <- transform_sample_counts(core_P04, function(x) x / sum(x) )
+ord.core_04.pcoa <- ordinate(norm_core_P04, method="PCoA", distance="bray")
+plot_ordination(norm_core_P04, ord.core_04.pcoa, color = "Location", shape = "Time_Collected") +
+  geom_point(size=5) 
+norm_core_P04_rm <- transform_sample_counts(core_P04_rm, function(x) x / sum(x) )
+ord.core_04_rm.pcoa <- ordinate(norm_core_P04_rm, method="PCoA", distance="bray")
+plot_ordination(norm_core_P04_rm, ord.core_04_rm.pcoa, color = "Location", shape = "Time_Collected") +
+  geom_point(size=5)
+```
+
+#P05
+```{r}
+P_05 <- subset_samples(JVIRAL_FINAL, Subject=="P05")
+P_05_LH<- subset_samples(P_05, Location=="left")
+P_05_RH<- subset_samples(P_05, Location=="right")
+P_05_SC<- subset_samples(P_05, Location=="scalp")
+core_P05LH <- filter_taxa(P_05_LH, function(x) sum(x > 0) >= (0.8*length(x)), prune = TRUE)
+core_P05RH <- filter_taxa(P_05_RH, function(x) sum(x > 0) >= (0.8*length(x)), prune = TRUE)
+core_P05SC <- filter_taxa(P_05_SC, function(x) sum(x > 0) >= (0.8*length(x)), prune = TRUE)
+core_P05 <- merge_phyloseq(core_P05LH , core_P05RH, core_P05SC)
+
+core_rm<- rownames(otu_table(CORE))
+core_P05_rm <- taxa_names(core_P05)
+core_P05_rm <- core_P05_rm[!(core_P05_rm %in% core_rm)]
+core_P05_rm <- prune_taxa(core_P05_rm, core_P05)
+```
+```{r}
+norm_core_P05 <- transform_sample_counts(core_P05, function(x) x / sum(x) )
+ord.core_05.pcoa <- ordinate(norm_core_P05, method="PCoA", distance="bray")
+plot_ordination(norm_core_P05, ord.core_05.pcoa, color = "Location", shape = "Time_Collected") +
+  geom_point(size=5)
+norm_core_P05_rm <- transform_sample_counts(core_P05_rm, function(x) x / sum(x) )
+ord.core_05_rm.pcoa <- ordinate(norm_core_P05_rm, method="PCoA", distance="bray")
+plot_ordination(norm_core_P05_rm, ord.core_05_rm.pcoa, color = "Location", shape = "Time_Collected") +
+  geom_point(size=5)
+```
+
+#P06
+```{r}
+P_06 <- subset_samples(JVIRAL_FINAL, Subject=="P06")
+P_06_LH<- subset_samples(P_06, Location=="left")
+P_06_RH<- subset_samples(P_06, Location=="right")
+P_06_SC<- subset_samples(P_06, Location=="scalp")
+core_P06LH <- filter_taxa(P_06_LH, function(x) sum(x > 0) >= (0.8*length(x)), prune = TRUE)
+core_P06RH <- filter_taxa(P_06_RH, function(x) sum(x > 0) >= (0.8*length(x)), prune = TRUE)
+core_P06SC <- filter_taxa(P_06_SC, function(x) sum(x > 0) >= (0.8*length(x)), prune = TRUE)
+core_P06 <- merge_phyloseq(core_P06LH , core_P06RH, core_P06SC)
+
+core_rm<- rownames(otu_table(CORE))
+core_P06_rm <- taxa_names(core_P06)
+core_P06_rm <- core_P06_rm[!(core_P06_rm %in% core_rm)]
+core_P06_rm <- prune_taxa(core_P06_rm, core_P06)
+```
+```{r}
+norm_core_P06 <- transform_sample_counts(core_P06, function(x) x / sum(x) )
+ord.core_06.pcoa <- ordinate(norm_core_P06, method="PCoA", distance="bray")
+plot_ordination(norm_core_P06, ord.core_06.pcoa, color = "Location", shape = "Time_Collected") +
+  geom_point(size=5) 
+norm_core_P06_rm <- transform_sample_counts(core_P06_rm, function(x) x / sum(x) )
+ord.core_06_rm.pcoa <- ordinate(norm_core_P06_rm, method="PCoA", distance="bray")
+plot_ordination(norm_core_P06_rm, ord.core_06_rm.pcoa, color = "Location", shape = "Time_Collected") +
+  geom_point(size=5)
+```
+
+#P07
+```{r}
+P_07 <- subset_samples(JVIRAL_FINAL, Subject=="P07")
+P_07_LH<- subset_samples(P_07, Location=="left")
+P_07_RH<- subset_samples(P_07, Location=="right")
+P_07_SC<- subset_samples(P_07, Location=="scalp")
+core_P07LH <- filter_taxa(P_07_LH, function(x) sum(x > 0) >= (0.8*length(x)), prune = TRUE)
+core_P07RH <- filter_taxa(P_07_RH, function(x) sum(x > 0) >= (0.8*length(x)), prune = TRUE)
+core_P07SC <- filter_taxa(P_07_SC, function(x) sum(x > 0) >= (0.8*length(x)), prune = TRUE)
+core_P07 <- merge_phyloseq(core_P07LH , core_P07RH, core_P07SC)
+
+core_rm<- rownames(otu_table(CORE))
+core_P07_rm <- taxa_names(core_P07)
+core_P07_rm <- core_P07_rm[!(core_P07_rm %in% core_rm)]
+core_P07_rm <- prune_taxa(core_P07_rm, core_P07)
+```
+```{r}
+norm_core_P07 <- transform_sample_counts(core_P07, function(x) x / sum(x) )
+ord.core_07.pcoa <- ordinate(norm_core_P07, method="PCoA", distance="bray")
+plot_ordination(norm_core_P07, ord.core_07.pcoa, color = "Location", shape = "Time_Collected") +
+  geom_point(size=5) 
+norm_core_P07_rm <- transform_sample_counts(core_P07_rm, function(x) x / sum(x) )
+ord.core_07_rm.pcoa <- ordinate(norm_core_P07_rm, method="PCoA", distance="bray")
+plot_ordination(norm_core_P07_rm, ord.core_07_rm.pcoa, color = "Location", shape = "Time_Collected") +
+  geom_point(size=5)
+```
+
+#P08
+```{r}
+P_08 <- subset_samples(JVIRAL_FINAL, Subject=="P08")
+P_08_LH<- subset_samples(P_08, Location=="left")
+P_08_RH<- subset_samples(P_08, Location=="right")
+P_08_SC<- subset_samples(P_08, Location=="scalp")
+core_P08LH <- filter_taxa(P_08_LH, function(x) sum(x > 0) >= (0.8*length(x)), prune = TRUE)
+core_P08RH <- filter_taxa(P_08_RH, function(x) sum(x > 0) >= (0.8*length(x)), prune = TRUE)
+core_P08SC <- filter_taxa(P_08_SC, function(x) sum(x > 0) >= (0.8*length(x)), prune = TRUE)
+core_P08 <- merge_phyloseq(core_P08LH , core_P08RH, core_P08SC)
+
+core_rm<- rownames(otu_table(CORE))
+core_P08_rm <- taxa_names(core_P08)
+core_P08_rm <- core_P08_rm[!(core_P08_rm %in% core_rm)]
+core_P08_rm <- prune_taxa(core_P08_rm, core_P08)
+```
+```{r}
+norm_core_P08 <- transform_sample_counts(core_P08, function(x) x / sum(x) )
+ord.core_08.pcoa <- ordinate(norm_core_P08, method="PCoA", distance="bray")
+plot_ordination(norm_core_P08, ord.core_08.pcoa, color = "Location", shape = "Time_Collected") +
+  geom_point(size=5) 
+norm_core_P08_rm <- transform_sample_counts(core_P08_rm, function(x) x / sum(x) )
+ord.core_08_rm.pcoa <- ordinate(norm_core_P08_rm, method="PCoA", distance="bray")
+plot_ordination(norm_core_P08_rm, ord.core_08_rm.pcoa, color = "Location", shape = "Time_Collected") +
+  geom_point(size=5)
+```
+
+#P09
+```{r}
+P_09 <- subset_samples(JVIRAL_FINAL, Subject=="P09")
+P_09_LH<- subset_samples(P_09, Location=="left")
+P_09_RH<- subset_samples(P_09, Location=="right")
+P_09_SC<- subset_samples(P_09, Location=="scalp")
+core_P09LH <- filter_taxa(P_09_LH, function(x) sum(x > 0) >= (0.8*length(x)), prune = TRUE)
+core_P09RH <- filter_taxa(P_09_RH, function(x) sum(x > 0) >= (0.8*length(x)), prune = TRUE)
+core_P09SC <- filter_taxa(P_09_SC, function(x) sum(x > 0) >= (0.8*length(x)), prune = TRUE)
+core_P09 <- merge_phyloseq(core_P09LH , core_P09RH, core_P09SC)
+
+core_rm<- rownames(otu_table(CORE))
+core_P09_rm <- taxa_names(core_P09)
+core_P09_rm <- core_P09_rm[!(core_P09_rm %in% core_rm)]
+core_P09_rm <- prune_taxa(core_P09_rm, core_P09)
+```
+```{r}
+norm_core_P09 <- transform_sample_counts(core_P09, function(x) x / sum(x) )
+ord.core_09.pcoa <- ordinate(norm_core_P09, method="PCoA", distance="bray")
+plot_ordination(norm_core_P09, ord.core_09.pcoa, color = "Location", shape = "Time_Collected") +
+  geom_point(size=5)
+norm_core_P09_rm <- transform_sample_counts(core_P09_rm, function(x) x / sum(x) )
+ord.core_09_rm.pcoa <- ordinate(norm_core_P09_rm, method="PCoA", distance="bray")
+plot_ordination(norm_core_P09_rm, ord.core_09_rm.pcoa, color = "Location", shape = "Time_Collected") +
+  geom_point(size=5)
+```
+
+#P10
+```{r}
+P_10 <- subset_samples(JVIRAL_FINAL, Subject=="P10")
+P_10_LH<- subset_samples(P_10, Location=="left")
+P_10_RH<- subset_samples(P_10, Location=="right")
+P_10_SC<- subset_samples(P_10, Location=="scalp")
+core_P10LH <- filter_taxa(P_10_LH, function(x) sum(x > 0) >= (0.8*length(x)), prune = TRUE)
+core_P10RH <- filter_taxa(P_10_RH, function(x) sum(x > 0) >= (0.8*length(x)), prune = TRUE)
+core_P10SC <- filter_taxa(P_10_SC, function(x) sum(x > 0) >= (0.8*length(x)), prune = TRUE)
+core_P10 <- merge_phyloseq(core_P10LH , core_P10RH, core_P10SC)
+
+core_rm<- rownames(otu_table(CORE))
+core_P10_rm <- taxa_names(core_P10)
+core_P10_rm <- core_P10_rm[!(core_P10_rm %in% core_rm)]
+core_P10_rm <- prune_taxa(core_P10_rm, core_P10)
+```
+```{r}
+norm_core_P10 <- transform_sample_counts(core_P10, function(x) x / sum(x) )
+ord.core_10.pcoa <- ordinate(norm_core_P10, method="PCoA", distance="bray")
+plot_ordination(norm_core_P10, ord.core_10.pcoa, color = "Location", shape = "Time_Collected") +
+  geom_point(size=5) 
+norm_core_P10_rm <- transform_sample_counts(core_P10_rm, function(x) x / sum(x) )
+ord.core_10_rm.pcoa <- ordinate(norm_core_P10_rm, method="PCoA", distance="bray")
+plot_ordination(norm_core_P10_rm, ord.core_10_rm.pcoa, color = "Location", shape = "Time_Collected") +
+  geom_point(size=5)
+```
+
+#P11
+```{r}
+P_11 <- subset_samples(JVIRAL_FINAL, Subject=="P11")
+P_11_LH<- subset_samples(P_11, Location=="left")
+P_11_RH<- subset_samples(P_11, Location=="right")
+P_11_SC<- subset_samples(P_11, Location=="scalp")
+core_P11LH <- filter_taxa(P_11_LH, function(x) sum(x > 0) >= (0.8*length(x)), prune = TRUE)
+core_P11RH <- filter_taxa(P_11_RH, function(x) sum(x > 0) >= (0.8*length(x)), prune = TRUE)
+core_P11SC <- filter_taxa(P_11_SC, function(x) sum(x > 0) >= (0.8*length(x)), prune = TRUE)
+core_P11 <- merge_phyloseq(core_P11LH , core_P11RH, core_P11SC)
+
+core_rm<- rownames(otu_table(CORE))
+core_P11_rm <- taxa_names(core_P11)
+core_P11_rm <- core_P11_rm[!(core_P11_rm %in% core_rm)]
+core_P11_rm <- prune_taxa(core_P11_rm, core_P11)
+```
+```{r}
+norm_core_P11 <- transform_sample_counts(core_P11, function(x) x / sum(x) )
+ord.core_11.pcoa <- ordinate(norm_core_P11, method="PCoA", distance="bray")
+plot_ordination(norm_core_P11, ord.core_11.pcoa, color = "Location", shape = "Time_Collected") +
+  geom_point(size=5) 
+norm_core_P11_rm <- transform_sample_counts(core_P11_rm, function(x) x / sum(x) )
+ord.core_11_rm.pcoa <- ordinate(norm_core_P11_rm, method="PCoA", distance="bray")
+plot_ordination(norm_core_P11_rm, ord.core_11_rm.pcoa, color = "Location", shape = "Time_Collected") +
+  geom_point(size=5)
+```
+
+#P12
+```{r}
+P_12 <- subset_samples(JVIRAL_FINAL, Subject=="P12")
+P_12_LH<- subset_samples(P_12, Location=="left")
+P_12_RH<- subset_samples(P_12, Location=="right")
+P_12_SC<- subset_samples(P_12, Location=="scalp")
+core_P12LH <- filter_taxa(P_12_LH, function(x) sum(x > 0) >= (0.8*length(x)), prune = TRUE)
+core_P12RH <- filter_taxa(P_12_RH, function(x) sum(x > 0) >= (0.8*length(x)), prune = TRUE)
+core_P12SC <- filter_taxa(P_12_SC, function(x) sum(x > 0) >= (0.8*length(x)), prune = TRUE)
+core_P12 <- merge_phyloseq(core_P12LH , core_P12RH, core_P12SC)
+
+core_rm<- rownames(otu_table(CORE))
+core_P12_rm <- taxa_names(core_P12)
+core_P12_rm <- core_P12_rm[!(core_P12_rm %in% core_rm)]
+core_P12_rm <- prune_taxa(core_P12_rm, core_P12)
+```
+```{r}
+norm_core_P12 <- transform_sample_counts(core_P12, function(x) x / sum(x) )
+ord.core_12.pcoa <- ordinate(norm_core_P12, method="PCoA", distance="bray")
+plot_ordination(norm_core_P12, ord.core_12.pcoa, color = "Location", shape = "Time_Collected") +
+  geom_point(size=5) 
+norm_core_P12_rm <- transform_sample_counts(core_P12_rm, function(x) x / sum(x) )
+ord.core_12_rm.pcoa <- ordinate(norm_core_P12_rm, method="PCoA", distance="bray")
+plot_ordination(norm_core_P12_rm, ord.core_12_rm.pcoa, color = "Location", shape = "Time_Collected") +
+  geom_point(size=5)
+```
+
+#P13
+```{r}
+P_13 <- subset_samples(JVIRAL_FINAL, Subject=="P13")
+P_13_LH<- subset_samples(P_13, Location=="left")
+P_13_RH<- subset_samples(P_13, Location=="right")
+P_13_SC<- subset_samples(P_13, Location=="scalp")
+core_P13LH <- filter_taxa(P_13_LH, function(x) sum(x > 0) >= (0.8*length(x)), prune = TRUE)
+core_P13RH <- filter_taxa(P_13_RH, function(x) sum(x > 0) >= (0.8*length(x)), prune = TRUE)
+core_P13SC <- filter_taxa(P_13_SC, function(x) sum(x > 0) >= (0.8*length(x)), prune = TRUE)
+core_P13 <- merge_phyloseq(core_P13LH , core_P13RH, core_P13SC)
+
+core_rm<- rownames(otu_table(CORE))
+core_P13_rm <- taxa_names(core_P13)
+core_P13_rm <- core_P13_rm[!(core_P13_rm %in% core_rm)]
+core_P13_rm <- prune_taxa(core_P13_rm, core_P13)
+```
+```{r}
+norm_core_P13 <- transform_sample_counts(core_P13, function(x) x / sum(x) )
+ord.core_13.pcoa <- ordinate(norm_core_P13, method="PCoA", distance="bray")
+plot_ordination(norm_core_P13, ord.core_13.pcoa, color = "Location", shape = "Time_Collected") +
+  geom_point(size=5)
+norm_core_P13_rm <- transform_sample_counts(core_P13_rm, function(x) x / sum(x) )
+ord.core_13_rm.pcoa <- ordinate(norm_core_P13_rm, method="PCoA", distance="bray")
+plot_ordination(norm_core_P13_rm, ord.core_13_rm.pcoa, color = "Location", shape = "Time_Collected") +
+  geom_point(size=5)
+```
+
+#P14
+```{r}
+P_14 <- subset_samples(JVIRAL_FINAL, Subject=="P14")
+P_14_LH<- subset_samples(P_14, Location=="left")
+P_14_RH<- subset_samples(P_14, Location=="right")
+P_14_SC<- subset_samples(P_14, Location=="scalp")
+core_P14LH <- filter_taxa(P_14_LH, function(x) sum(x > 0) >= (0.8*length(x)), prune = TRUE)
+core_P14RH <- filter_taxa(P_14_RH, function(x) sum(x > 0) >= (0.8*length(x)), prune = TRUE)
+core_P14SC <- filter_taxa(P_14_SC, function(x) sum(x > 0) >= (0.8*length(x)), prune = TRUE)
+core_P14 <- merge_phyloseq(core_P14LH , core_P14RH, core_P14SC)
+
+core_rm<- rownames(otu_table(CORE))
+core_P14_rm <- taxa_names(core_P14)
+core_P14_rm <- core_P14_rm[!(core_P14_rm %in% core_rm)]
+core_P14_rm <- prune_taxa(core_P14_rm, core_P14)
+```
+```{r}
+norm_core_P14 <- transform_sample_counts(core_P14, function(x) x / sum(x) )
+ord.core_14.pcoa <- ordinate(norm_core_P14, method="PCoA", distance="bray")
+plot_ordination(norm_core_P14, ord.core_14.pcoa, color = "Location", shape = "Time_Collected") +
+  geom_point(size=5) 
+norm_core_P14_rm <- transform_sample_counts(core_P14_rm, function(x) x / sum(x) )
+ord.core_14_rm.pcoa <- ordinate(norm_core_P14_rm, method="PCoA", distance="bray")
+plot_ordination(norm_core_P14_rm, ord.core_14_rm.pcoa, color = "Location", shape = "Time_Collected") +
+  geom_point(size=5)
+```
+
+#P15
+```{r}
+P_15 <- subset_samples(JVIRAL_FINAL, Subject=="P15")
+P_15_LH<- subset_samples(P_15, Location=="left")
+P_15_RH<- subset_samples(P_15, Location=="right")
+P_15_SC<- subset_samples(P_15, Location=="scalp")
+core_P15LH <- filter_taxa(P_15_LH, function(x) sum(x > 0) >= (0.8*length(x)), prune = TRUE)
+core_P15RH <- filter_taxa(P_15_RH, function(x) sum(x > 0) >= (0.8*length(x)), prune = TRUE)
+core_P15SC <- filter_taxa(P_15_SC, function(x) sum(x > 0) >= (0.8*length(x)), prune = TRUE)
+core_P15 <- merge_phyloseq(core_P15LH , core_P15RH, core_P15SC)
+
+core_rm<- rownames(otu_table(CORE))
+core_P15_rm <- taxa_names(core_P15)
+core_P15_rm <- core_P15_rm[!(core_P15_rm %in% core_rm)]
+core_P15_rm <- prune_taxa(core_P15_rm, core_P15)
+```
+```{r}
+norm_core_P15 <- transform_sample_counts(core_P15, function(x) x / sum(x) )
+ord.core_15.pcoa <- ordinate(norm_core_P15, method="PCoA", distance="bray")
+plot_ordination(norm_core_P15, ord.core_15.pcoa, color = "Location", shape = "Time_Collected") +
+  geom_point(size=5)
+norm_core_P15_rm <- transform_sample_counts(core_P15_rm, function(x) x / sum(x) )
+ord.core_15_rm.pcoa <- ordinate(norm_core_P15_rm, method="PCoA", distance="bray")
+plot_ordination(norm_core_P15_rm, ord.core_15_rm.pcoa, color = "Location", shape = "Time_Collected") +
+  geom_point(size=5)
+```
+
+#P16
+```{r}
+P_16 <- subset_samples(JVIRAL_FINAL, Subject=="P16")
+P_16_LH<- subset_samples(P_16, Location=="left")
+P_16_RH<- subset_samples(P_16, Location=="right")
+P_16_SC<- subset_samples(P_16, Location=="scalp")
+core_P16LH <- filter_taxa(P_16_LH, function(x) sum(x > 0) >= (0.8*length(x)), prune = TRUE)
+core_P16RH <- filter_taxa(P_16_RH, function(x) sum(x > 0) >= (0.8*length(x)), prune = TRUE)
+core_P16SC <- filter_taxa(P_16_SC, function(x) sum(x > 0) >= (0.8*length(x)), prune = TRUE)
+core_P16 <- merge_phyloseq(core_P16LH , core_P16RH, core_P16SC)
+
+core_rm<- rownames(otu_table(CORE))
+core_P16_rm <- taxa_names(core_P16)
+core_P16_rm <- core_P16_rm[!(core_P16_rm %in% core_rm)]
+core_P16_rm <- prune_taxa(core_P16_rm, core_P16)
+```
+```{r}
+norm_core_P16 <- transform_sample_counts(core_P16, function(x) x / sum(x) )
+ord.core_16.pcoa <- ordinate(norm_core_P16, method="PCoA", distance="bray")
+plot_ordination(norm_core_P16, ord.core_16.pcoa, color = "Location", shape = "Time_Collected") +
+  geom_point(size=5)
+norm_core_P16_rm <- transform_sample_counts(core_P16_rm, function(x) x / sum(x) )
+ord.core_16_rm.pcoa <- ordinate(norm_core_P16_rm, method="PCoA", distance="bray")
+plot_ordination(norm_core_P16_rm, ord.core_16_rm.pcoa, color = "Location", shape = "Time_Collected") +
+  geom_point(size=5)
+```
+
+#P17
+```{r}
+P_17 <- subset_samples(JVIRAL_FINAL, Subject=="P17")
+P_17_LH<- subset_samples(P_17, Location=="left")
+P_17_RH<- subset_samples(P_17, Location=="right")
+P_17_SC<- subset_samples(P_17, Location=="scalp")
+core_P17LH <- filter_taxa(P_17_LH, function(x) sum(x > 0) >= (0.8*length(x)), prune = TRUE)
+core_P17RH <- filter_taxa(P_17_RH, function(x) sum(x > 0) >= (0.8*length(x)), prune = TRUE)
+core_P17SC <- filter_taxa(P_17_SC, function(x) sum(x > 0) >= (0.8*length(x)), prune = TRUE)
+core_P17 <- merge_phyloseq(core_P17LH , core_P17RH, core_P17SC)
+
+core_rm<- rownames(otu_table(CORE))
+core_P17_rm <- taxa_names(core_P17)
+core_P17_rm <- core_P17_rm[!(core_P17_rm %in% core_rm)]
+core_P17_rm <- prune_taxa(core_P17_rm, core_P17)
+```
+```{r}
+norm_core_P17 <- transform_sample_counts(core_P17, function(x) x / sum(x) )
+ord.core_17.pcoa <- ordinate(norm_core_P17, method="PCoA", distance="bray")
+plot_ordination(norm_core_P17, ord.core_17.pcoa, color = "Location", shape = "Time_Collected") +
+  geom_point(size=5)
+norm_core_P17_rm <- transform_sample_counts(core_P17_rm, function(x) x / sum(x) )
+ord.core_17_rm.pcoa <- ordinate(norm_core_P17_rm, method="PCoA", distance="bray")
+plot_ordination(norm_core_P17_rm, ord.core_17_rm.pcoa, color = "Location", shape = "Time_Collected") +
+  geom_point(size=5)
+```
+
+#P18
+```{r}
+P_18 <- subset_samples(JVIRAL_FINAL, Subject=="P18")
+P_18_LH<- subset_samples(P_18, Location=="left")
+P_18_RH<- subset_samples(P_18, Location=="right")
+P_18_SC<- subset_samples(P_18, Location=="scalp")
+core_P18LH <- filter_taxa(P_18_LH, function(x) sum(x > 0) >= (0.8*length(x)), prune = TRUE)
+core_P18RH <- filter_taxa(P_18_RH, function(x) sum(x > 0) >= (0.8*length(x)), prune = TRUE)
+core_P18SC <- filter_taxa(P_18_SC, function(x) sum(x > 0) >= (0.8*length(x)), prune = TRUE)
+core_P18 <- merge_phyloseq(core_P18LH , core_P18RH, core_P18SC)
+
+core_rm<- rownames(otu_table(CORE))
+core_P18_rm <- taxa_names(core_P18)
+core_P18_rm <- core_P18_rm[!(core_P18_rm %in% core_rm)]
+core_P18_rm <- prune_taxa(core_P18_rm, core_P18)
+```
+```{r}
+norm_core_P18 <- transform_sample_counts(core_P18, function(x) x / sum(x) )
+ord.core_18.pcoa <- ordinate(norm_core_P18, method="PCoA", distance="bray")
+plot_ordination(norm_core_P18, ord.core_18.pcoa, color = "Location", shape = "Time_Collected") +
+  geom_point(size=5)
+norm_core_P18_rm <- transform_sample_counts(core_P18_rm, function(x) x / sum(x) )
+ord.core_18_rm.pcoa <- ordinate(norm_core_P18_rm, method="PCoA", distance="bray")
+plot_ordination(norm_core_P18_rm, ord.core_18_rm.pcoa, color = "Location", shape = "Time_Collected") +
+  geom_point(size=5)
+```
+
+#P19
+```{r}
+P_19 <- subset_samples(JVIRAL_FINAL, Subject=="P19")
+P_19_LH<- subset_samples(P_19, Location=="left")
+P_19_RH<- subset_samples(P_19, Location=="right")
+P_19_SC<- subset_samples(P_19, Location=="scalp")
+core_P19LH <- filter_taxa(P_19_LH, function(x) sum(x > 0) >= (0.8*length(x)), prune = TRUE)
+core_P19RH <- filter_taxa(P_19_RH, function(x) sum(x > 0) >= (0.8*length(x)), prune = TRUE)
+core_P19SC <- filter_taxa(P_19_SC, function(x) sum(x > 0) >= (0.8*length(x)), prune = TRUE)
+core_P19 <- merge_phyloseq(core_P19LH , core_P19RH, core_P19SC)
+
+core_rm<- rownames(otu_table(CORE))
+core_P19_rm <- taxa_names(core_P19)
+core_P19_rm <- core_P19_rm[!(core_P19_rm %in% core_rm)]
+core_P19_rm <- prune_taxa(core_P19_rm, core_P19)
+```
+```{r}
+norm_core_P19 <- transform_sample_counts(core_P19, function(x) x / sum(x) )
+ord.core_19.pcoa <- ordinate(norm_core_P19, method="PCoA", distance="bray")
+plot_ordination(norm_core_P19, ord.core_19.pcoa, color = "Location", shape = "Time_Collected") +
+  geom_point(size=5)
+norm_core_P19_rm <- transform_sample_counts(core_P19_rm, function(x) x / sum(x) )
+ord.core_19_rm.pcoa <- ordinate(norm_core_P19_rm, method="PCoA", distance="bray")
+plot_ordination(norm_core_P19_rm, ord.core_19_rm.pcoa, color = "Location", shape = "Time_Collected") +
+  geom_point(size=5)
+```
+
+#P20
+```{r}
+P_20 <- subset_samples(JVIRAL_FINAL, Subject=="P20")
+P_20_LH<- subset_samples(P_20, Location=="left")
+P_20_RH<- subset_samples(P_20, Location=="right")
+P_20_SC<- subset_samples(P_20, Location=="scalp")
+core_P20LH <- filter_taxa(P_20_LH, function(x) sum(x > 0) >= (0.8*length(x)), prune = TRUE)
+core_P20RH <- filter_taxa(P_20_RH, function(x) sum(x > 0) >= (0.8*length(x)), prune = TRUE)
+core_P20SC <- filter_taxa(P_20_SC, function(x) sum(x > 0) >= (0.8*length(x)), prune = TRUE)
+core_P20 <- merge_phyloseq(core_P20LH , core_P20RH, core_P20SC)
+
+core_rm<- rownames(otu_table(CORE))
+core_P20_rm <- taxa_names(core_P20)
+core_P20_rm <- core_P20_rm[!(core_P20_rm %in% core_rm)]
+core_P20_rm <- prune_taxa(core_P20_rm, core_P20)
+```
+```{r}
+norm_core_P20 <- transform_sample_counts(core_P20, function(x) x / sum(x) )
+ord.core_20.pcoa <- ordinate(norm_core_P20, method="PCoA", distance="bray")
+plot_ordination(norm_core_P20, ord.core_20.pcoa, color = "Location", shape = "Time_Collected") +
+  geom_point(size=5)
+norm_core_P20_rm <- transform_sample_counts(core_P20_rm, function(x) x / sum(x) )
+ord.core_20_rm.pcoa <- ordinate(norm_core_P20_rm, method="PCoA", distance="bray")
+plot_ordination(norm_core_P20_rm, ord.core_20_rm.pcoa, color = "Location", shape = "Time_Collected") +
+  geom_point(size=5)
+```
+
+#P21
+```{r}
+P_21 <- subset_samples(JVIRAL_FINAL, Subject=="P21")
+P_21_LH<- subset_samples(P_21, Location=="left")
+P_21_RH<- subset_samples(P_21, Location=="right")
+P_21_SC<- subset_samples(P_21, Location=="scalp")
+core_P21LH <- filter_taxa(P_21_LH, function(x) sum(x > 0) >= (0.8*length(x)), prune = TRUE)
+core_P21RH <- filter_taxa(P_21_RH, function(x) sum(x > 0) >= (0.8*length(x)), prune = TRUE)
+core_P21SC <- filter_taxa(P_21_SC, function(x) sum(x > 0) >= (0.8*length(x)), prune = TRUE)
+core_P21 <- merge_phyloseq(core_P21LH , core_P21RH, core_P21SC)
+
+core_rm<- rownames(otu_table(CORE))
+core_P21_rm <- taxa_names(core_P21)
+core_P21_rm <- core_P21_rm[!(core_P21_rm %in% core_rm)]
+core_P21_rm <- prune_taxa(core_P21_rm, core_P21)
+```
+```{r}
+norm_core_P21 <- transform_sample_counts(core_P21, function(x) x / sum(x) )
+ord.core_21.pcoa <- ordinate(norm_core_P21, method="PCoA", distance="bray")
+plot_ordination(norm_core_P21, ord.core_21.pcoa, color = "Location", shape = "Time_Collected") +
+  geom_point(size=5)
+norm_core_P21_rm <- transform_sample_counts(core_P21_rm, function(x) x / sum(x) )
+ord.core_21_rm.pcoa <- ordinate(norm_core_P21_rm, method="PCoA", distance="bray")
+plot_ordination(norm_core_P21_rm, ord.core_21_rm.pcoa, color = "Location", shape = "Time_Collected") +
+  geom_point(size=5)
+```
+
+
+#P22
+```{r}
+P_22 <- subset_samples(JVIRAL_FINAL, Subject=="P22")
+P_22_LH<- subset_samples(P_22, Location=="left")
+P_22_RH<- subset_samples(P_22, Location=="right")
+P_22_SC<- subset_samples(P_22, Location=="scalp")
+core_P22LH <- filter_taxa(P_22_LH, function(x) sum(x > 0) >= (0.8*length(x)), prune = TRUE)
+core_P22RH <- filter_taxa(P_22_RH, function(x) sum(x > 0) >= (0.8*length(x)), prune = TRUE)
+core_P22SC <- filter_taxa(P_22_SC, function(x) sum(x > 0) >= (0.8*length(x)), prune = TRUE)
+core_P22 <- merge_phyloseq(core_P22LH , core_P22RH, core_P22SC)
+
+core_rm<- rownames(otu_table(CORE))
+core_P22_rm <- taxa_names(core_P22)
+core_P22_rm <- core_P22_rm[!(core_P22_rm %in% core_rm)]
+core_P22_rm <- prune_taxa(core_P22_rm, core_P22)
+```
+```{r}
+norm_core_P22 <- transform_sample_counts(core_P22, function(x) x / sum(x) )
+ord.core_22.pcoa <- ordinate(norm_core_P22, method="PCoA", distance="bray")
+plot_ordination(norm_core_P22, ord.core_22.pcoa, color = "Location", shape = "Time_Collected") +
+  geom_point(size=5)
+norm_core_P22_rm <- transform_sample_counts(core_P22_rm, function(x) x / sum(x) )
+ord.core_22_rm.pcoa <- ordinate(norm_core_P22_rm, method="PCoA", distance="bray")
+plot_ordination(norm_core_P22_rm, ord.core_22_rm.pcoa, color = "Location", shape = "Time_Collected") +
+  geom_point(size=5)
+```
+
+#P23
+```{r}
+P_23 <- subset_samples(JVIRAL_FINAL, Subject=="P23")
+P_23_LH<- subset_samples(P_23, Location=="left")
+P_23_RH<- subset_samples(P_23, Location=="right")
+P_23_SC<- subset_samples(P_23, Location=="scalp")
+core_P23LH <- filter_taxa(P_23_LH, function(x) sum(x > 0) >= (0.8*length(x)), prune = TRUE)
+core_P23RH <- filter_taxa(P_23_RH, function(x) sum(x > 0) >= (0.8*length(x)), prune = TRUE)
+core_P23SC <- filter_taxa(P_23_SC, function(x) sum(x > 0) >= (0.8*length(x)), prune = TRUE)
+core_P23 <- merge_phyloseq(core_P23LH , core_P23RH, core_P23SC)
+
+core_rm<- rownames(otu_table(CORE))
+core_P23_rm <- taxa_names(core_P23)
+core_P23_rm <- core_P23_rm[!(core_P23_rm %in% core_rm)]
+core_P23_rm <- prune_taxa(core_P23_rm, core_P23)
+```
+```{r}
+norm_core_P23 <- transform_sample_counts(core_P23, function(x) x / sum(x) )
+ord.core_23.pcoa <- ordinate(norm_core_P23, method="PCoA", distance="bray")
+plot_ordination(norm_core_P23, ord.core_23.pcoa, color = "Location", shape = "Time_Collected") +
+  geom_point(size=5)
+norm_core_P23_rm <- transform_sample_counts(core_P23_rm, function(x) x / sum(x) )
+ord.core_23_rm.pcoa <- ordinate(norm_core_P23_rm, method="PCoA", distance="bray")
+plot_ordination(norm_core_P23_rm, ord.core_23_rm.pcoa, color = "Location", shape = "Time_Collected") +
+  geom_point(size=5)
+```
+
+#P24
+```{r}
+P_24 <- subset_samples(JVIRAL_FINAL, Subject=="P24")
+P_24_LH<- subset_samples(P_24, Location=="left")
+P_24_RH<- subset_samples(P_24, Location=="right")
+P_24_SC<- subset_samples(P_24, Location=="scalp")
+core_P24LH <- filter_taxa(P_24_LH, function(x) sum(x > 0) >= (0.8*length(x)), prune = TRUE)
+core_P24RH <- filter_taxa(P_24_RH, function(x) sum(x > 0) >= (0.8*length(x)), prune = TRUE)
+core_P24SC <- filter_taxa(P_24_SC, function(x) sum(x > 0) >= (0.8*length(x)), prune = TRUE)
+core_P24 <- merge_phyloseq(core_P24LH , core_P24RH, core_P24SC)
+norm_core_P24 <- transform_sample_counts(core_P24, function(x) x / sum(x) )
+
+core_rm<- rownames(otu_table(CORE))
+core_P24_rm <- taxa_names(core_P24)
+core_P24_rm <- core_P24_rm[!(core_P24_rm %in% core_rm)]
+core_P24_rm <- prune_taxa(core_P24_rm, core_P24)
+```
+```{r}
+ord.core_24.pcoa <- ordinate(norm_core_P24, method="PCoA", distance="bray")
+plot_ordination(norm_core_P24, ord.core_24.pcoa, color = "Location", shape = "Time_Collected") +
+  geom_point(size=5)
+norm_core_P24_rm <- transform_sample_counts(core_P24_rm, function(x) x / sum(x) )
+ord.core_24_rm.pcoa <- ordinate(norm_core_P24_rm, method="PCoA", distance="bray")
+plot_ordination(norm_core_P24_rm, ord.core_24_rm.pcoa, color = "Location", shape = "Time_Collected") +
+  geom_point(size=5)
+```
+
+#P25
+```{r}
+P_25 <- subset_samples(JVIRAL_FINAL, Subject=="P25")
+P_25_LH<- subset_samples(P_25, Location=="left")
+P_25_RH<- subset_samples(P_25, Location=="right")
+P_25_SC<- subset_samples(P_25, Location=="scalp")
+core_P25LH <- filter_taxa(P_25_LH, function(x) sum(x > 0) >= (0.8*length(x)), prune = TRUE)
+core_P25RH <- filter_taxa(P_25_RH, function(x) sum(x > 0) >= (0.8*length(x)), prune = TRUE)
+core_P25SC <- filter_taxa(P_25_SC, function(x) sum(x > 0) >= (0.8*length(x)), prune = TRUE)
+core_P25 <- merge_phyloseq(core_P25LH , core_P25RH, core_P25SC)
+
+core_rm<- rownames(otu_table(CORE))
+core_P25_rm <- taxa_names(core_P25)
+core_P25_rm <- core_P25_rm[!(core_P25_rm %in% core_rm)]
+core_P25_rm <- prune_taxa(core_P25_rm, core_P25)
+```
+```{r}
+norm_core_P25 <- transform_sample_counts(core_P25, function(x) x / sum(x) )
+ord.core_25.pcoa <- ordinate(norm_core_P25, method="PCoA", distance="bray")
+plot_ordination(norm_core_P25, ord.core_25.pcoa, color = "Location", shape = "Time_Collected") +
+  geom_point(size=5)
+norm_core_P25_rm <- transform_sample_counts(core_P25_rm, function(x) x / sum(x) )
+ord.core_25_rm.pcoa <- ordinate(norm_core_P25_rm, method="PCoA", distance="bray")
+plot_ordination(norm_core_P25_rm, ord.core_25_rm.pcoa, color = "Location", shape = "Time_Collected") +
+  geom_point(size=5)
+```
+
+#P26
+```{r}
+P_26 <- subset_samples(JVIRAL_FINAL, Subject=="P26")
+P_26_LH<- subset_samples(P_26, Location=="left")
+P_26_RH<- subset_samples(P_26, Location=="right")
+P_26_SC<- subset_samples(P_26, Location=="scalp")
+core_P26LH <- filter_taxa(P_26_LH, function(x) sum(x > 0) >= (0.8*length(x)), prune = TRUE)
+core_P26RH <- filter_taxa(P_26_RH, function(x) sum(x > 0) >= (0.8*length(x)), prune = TRUE)
+core_P26SC <- filter_taxa(P_26_SC, function(x) sum(x > 0) >= (0.8*length(x)), prune = TRUE)
+core_P26 <- merge_phyloseq(core_P26LH , core_P26RH, core_P26SC)
+
+core_rm<- rownames(otu_table(CORE))
+core_P26_rm <- taxa_names(core_P26)
+core_P26_rm <- core_P26_rm[!(core_P26_rm %in% core_rm)]
+core_P26_rm <- prune_taxa(core_P26_rm, core_P26)
+```
+```{r}
+norm_core_P26 <- transform_sample_counts(core_P26, function(x) x / sum(x) )
+ord.core_26.pcoa <- ordinate(norm_core_P26, method="PCoA", distance="bray")
+plot_ordination(norm_core_P26, ord.core_26.pcoa, color = "Location", shape = "Time_Collected") +
+  geom_point(size=5)
+norm_core_P26_rm <- transform_sample_counts(core_P26_rm, function(x) x / sum(x) )
+ord.core_26_rm.pcoa <- ordinate(norm_core_P26_rm, method="PCoA", distance="bray")
+plot_ordination(norm_core_P26_rm, ord.core_26_rm.pcoa, color = "Location", shape = "Time_Collected") +
+  geom_point(size=5)
+```
+
+#P27
+```{r}
+P_27 <- subset_samples(JVIRAL_FINAL, Subject=="P27")
+P_27_LH<- subset_samples(P_27, Location=="left")
+P_27_RH<- subset_samples(P_27, Location=="right")
+P_27_SC<- subset_samples(P_27, Location=="scalp")
+core_P27LH <- filter_taxa(P_27_LH, function(x) sum(x > 0) >= (0.8*length(x)), prune = TRUE)
+core_P27RH <- filter_taxa(P_27_RH, function(x) sum(x > 0) >= (0.8*length(x)), prune = TRUE)
+core_P27SC <- filter_taxa(P_27_SC, function(x) sum(x > 0) >= (0.8*length(x)), prune = TRUE)
+core_P27 <- merge_phyloseq(core_P27LH , core_P27RH, core_P27SC)
+
+core_rm<- rownames(otu_table(CORE))
+core_P27_rm <- taxa_names(core_P27)
+core_P27_rm <- core_P27_rm[!(core_P27_rm %in% core_rm)]
+core_P27_rm <- prune_taxa(core_P27_rm, core_P27)
+```
+```{r}
+norm_core_P27 <- transform_sample_counts(core_P27, function(x) x / sum(x) )
+ord.core_27.pcoa <- ordinate(norm_core_P27, method="PCoA", distance="bray")
+plot_ordination(norm_core_P27, ord.core_27.pcoa, color = "Location", shape = "Time_Collected") +
+  geom_point(size=5)
+norm_core_P27_rm <- transform_sample_counts(core_P27_rm, function(x) x / sum(x) )
+ord.core_27_rm.pcoa <- ordinate(norm_core_P27_rm, method="PCoA", distance="bray")
+plot_ordination(norm_core_P27_rm, ord.core_27_rm.pcoa, color = "Location", shape = "Time_Collected") +
+  geom_point(size=5)
+```
+
+#P28
+```{r}
+P_28 <- subset_samples(JVIRAL_FINAL, Subject=="P28")
+P_28_LH<- subset_samples(P_28, Location=="left")
+P_28_RH<- subset_samples(P_28, Location=="right")
+P_28_SC<- subset_samples(P_28, Location=="scalp")
+core_P28LH <- filter_taxa(P_28_LH, function(x) sum(x > 0) >= (0.8*length(x)), prune = TRUE)
+core_P28RH <- filter_taxa(P_28_RH, function(x) sum(x > 0) >= (0.8*length(x)), prune = TRUE)
+core_P28SC <- filter_taxa(P_28_SC, function(x) sum(x > 0) >= (0.8*length(x)), prune = TRUE)
+core_P28 <- merge_phyloseq(core_P28LH , core_P28RH, core_P28SC)
+
+core_rm<- rownames(otu_table(CORE))
+core_P28_rm <- taxa_names(core_P28)
+core_P28_rm <- core_P28_rm[!(core_P28_rm %in% core_rm)]
+core_P28_rm <- prune_taxa(core_P28_rm, core_P28)
+```
+```{r}
+norm_core_P28 <- transform_sample_counts(core_P28, function(x) x / sum(x) )
+ord.core_28.pcoa <- ordinate(norm_core_P28, method="PCoA", distance="bray")
+plot_ordination(norm_core_P28, ord.core_28.pcoa, color = "Location", shape = "Time_Collected") +
+  geom_point(size=5)
+norm_core_P28_rm <- transform_sample_counts(core_P28_rm, function(x) x / sum(x) )
+ord.core_28_rm.pcoa <- ordinate(norm_core_P28_rm, method="PCoA", distance="bray")
+plot_ordination(norm_core_P28_rm, ord.core_28_rm.pcoa, color = "Location", shape = "Time_Collected") +
+  geom_point(size=5)
+```
+
+#P29
+```{r}
+P_29 <- subset_samples(JVIRAL_FINAL, Subject=="P29")
+P_29_LH<- subset_samples(P_29, Location=="left")
+P_29_RH<- subset_samples(P_29, Location=="right")
+P_29_SC<- subset_samples(P_29, Location=="scalp")
+core_P29LH <- filter_taxa(P_29_LH, function(x) sum(x > 0) >= (0.8*length(x)), prune = TRUE)
+core_P29RH <- filter_taxa(P_29_RH, function(x) sum(x > 0) >= (0.8*length(x)), prune = TRUE)
+core_P29SC <- filter_taxa(P_29_SC, function(x) sum(x > 0) >= (0.8*length(x)), prune = TRUE)
+core_P29 <- merge_phyloseq(core_P29LH , core_P29RH, core_P29SC)
+
+core_rm<- rownames(otu_table(CORE))
+core_P29_rm <- taxa_names(core_P29)
+core_P29_rm <- core_P29_rm[!(core_P29_rm %in% core_rm)]
+core_P29_rm <- prune_taxa(core_P29_rm, core_P29)
+```
+```{r}
+norm_core_P29 <- transform_sample_counts(core_P29, function(x) x / sum(x) )
+ord.core_29.pcoa <- ordinate(norm_core_P29, method="PCoA", distance="bray")
+plot_ordination(norm_core_P29, ord.core_29.pcoa, color = "Location", shape = "Time_Collected") +
+  geom_point(size=5)
+norm_core_P29_rm <- transform_sample_counts(core_P29_rm, function(x) x / sum(x) )
+ord.core_29_rm.pcoa <- ordinate(norm_core_P29_rm, method="PCoA", distance="bray")
+plot_ordination(norm_core_P29_rm, ord.core_29_rm.pcoa, color = "Location", shape = "Time_Collected") +
+  geom_point(size=5)
+```
+
+#P30
+```{r}
+P_30 <- subset_samples(JVIRAL_FINAL, Subject=="P30")
+P_30_LH<- subset_samples(P_30, Location=="left")
+P_30_RH<- subset_samples(P_30, Location=="right")
+P_30_SC<- subset_samples(P_30, Location=="scalp")
+core_P30LH <- filter_taxa(P_30_LH, function(x) sum(x > 0) >= (0.8*length(x)), prune = TRUE)
+core_P30RH <- filter_taxa(P_30_RH, function(x) sum(x > 0) >= (0.8*length(x)), prune = TRUE)
+core_P30SC <- filter_taxa(P_30_SC, function(x) sum(x > 0) >= (0.8*length(x)), prune = TRUE)
+core_P30 <- merge_phyloseq(core_P30LH , core_P30RH, core_P30SC)
+
+core_rm<- rownames(otu_table(CORE))
+core_P30_rm <- taxa_names(core_P30)
+core_P30_rm <- core_P30_rm[!(core_P30_rm %in% core_rm)]
+core_P30_rm <- prune_taxa(core_P30_rm, core_P30)
+```
+```{r}
+norm_core_P30 <- transform_sample_counts(core_P30, function(x) x / sum(x) )
+ord.core_30.pcoa <- ordinate(norm_core_P30, method="PCoA", distance="bray")
+plot_ordination(norm_core_P30, ord.core_30.pcoa, color = "Location", shape = "Time_Collected") +
+  geom_point(size=5)
+norm_core_P30_rm <- transform_sample_counts(core_P30_rm, function(x) x / sum(x) )
+ord.core_30_rm.pcoa <- ordinate(norm_core_P30_rm, method="PCoA", distance="bray")
+plot_ordination(norm_core_P30_rm, ord.core_30_rm.pcoa, color = "Location", shape = "Time_Collected") +
+  geom_point(size=5)
+```
+
+#P31
+```{r}
+P_31 <- subset_samples(JVIRAL_FINAL, Subject=="P31")
+P_31_LH<- subset_samples(P_31, Location=="left")
+P_31_RH<- subset_samples(P_31, Location=="right")
+P_31_SC<- subset_samples(P_31, Location=="scalp")
+core_P31LH <- filter_taxa(P_31_LH, function(x) sum(x > 0) >= (0.8*length(x)), prune = TRUE)
+core_P31RH <- filter_taxa(P_31_RH, function(x) sum(x > 0) >= (0.8*length(x)), prune = TRUE)
+core_P31SC <- filter_taxa(P_31_SC, function(x) sum(x > 0) >= (0.8*length(x)), prune = TRUE)
+core_P31 <- merge_phyloseq(core_P31LH , core_P31RH, core_P31SC)
+
+core_rm<- rownames(otu_table(CORE))
+core_P31_rm <- taxa_names(core_P31)
+core_P31_rm <- core_P31_rm[!(core_P31_rm %in% core_rm)]
+core_P31_rm <- prune_taxa(core_P31_rm, core_P31)
+```
+```{r}
+norm_core_P31 <- transform_sample_counts(core_P31, function(x) x / sum(x) )
+ord.core_31.pcoa <- ordinate(norm_core_P31, method="PCoA", distance="bray")
+plot_ordination(norm_core_P31, ord.core_31.pcoa, color = "Location", shape = "Time_Collected") +
+  geom_point(size=5)
+norm_core_P31_rm <- transform_sample_counts(core_P31_rm, function(x) x / sum(x) )
+ord.core_31_rm.pcoa <- ordinate(norm_core_P31_rm, method="PCoA", distance="bray")
+plot_ordination(norm_core_P31_rm, ord.core_31_rm.pcoa, color = "Location", shape = "Time_Collected") +
+  geom_point(size=5)
+```
+
+#P32
+```{r}
+P_32 <- subset_samples(JVIRAL_FINAL, Subject=="P32")
+P_32_LH<- subset_samples(P_32, Location=="left")
+P_32_RH<- subset_samples(P_32, Location=="right")
+P_32_SC<- subset_samples(P_32, Location=="scalp")
+core_P32LH <- filter_taxa(P_32_LH, function(x) sum(x > 0) >= (0.8*length(x)), prune = TRUE)
+core_P32RH <- filter_taxa(P_32_RH, function(x) sum(x > 0) >= (0.8*length(x)), prune = TRUE)
+core_P32SC <- filter_taxa(P_32_SC, function(x) sum(x > 0) >= (0.8*length(x)), prune = TRUE)
+core_P32 <- merge_phyloseq(core_P32LH , core_P32RH, core_P32SC)
+
+core_rm<- rownames(otu_table(CORE))
+core_P32_rm <- taxa_names(core_P32)
+core_P32_rm <- core_P32_rm[!(core_P32_rm %in% core_rm)]
+core_P32_rm <- prune_taxa(core_P32_rm, core_P32)
+```
+```{r}
+norm_core_P32 <- transform_sample_counts(core_P32, function(x) x / sum(x) )
+ord.core_32.pcoa <- ordinate(norm_core_P32, method="PCoA", distance="bray")
+plot_ordination(norm_core_P32, ord.core_32.pcoa, color = "Location", shape = "Time_Collected") +
+  geom_point(size=5)
+norm_core_P32_rm <- transform_sample_counts(core_P32_rm, function(x) x / sum(x) )
+ord.core_32_rm.pcoa <- ordinate(norm_core_P32_rm, method="PCoA", distance="bray")
+plot_ordination(norm_core_P32_rm, ord.core_32_rm.pcoa, color = "Location", shape = "Time_Collected") +
+  geom_point(size=5)
+```
+
+#P34
+```{r}
+P_34 <- subset_samples(JVIRAL_FINAL, Subject=="P34")
+P_34_LH<- subset_samples(P_34, Location=="left")
+P_34_RH<- subset_samples(P_34, Location=="right")
+P_34_SC<- subset_samples(P_34, Location=="scalp")
+core_P34LH <- filter_taxa(P_34_LH, function(x) sum(x > 0) >= (0.8*length(x)), prune = TRUE)
+core_P34RH <- filter_taxa(P_34_RH, function(x) sum(x > 0) >= (0.8*length(x)), prune = TRUE)
+core_P34SC <- filter_taxa(P_34_SC, function(x) sum(x > 0) >= (0.8*length(x)), prune = TRUE)
+core_P34 <- merge_phyloseq(core_P34LH , core_P34RH, core_P34SC)
+
+core_rm<- rownames(otu_table(CORE))
+core_P34_rm <- taxa_names(core_P34)
+core_P34_rm <- core_P34_rm[!(core_P34_rm %in% core_rm)]
+core_P34_rm <- prune_taxa(core_P34_rm, core_P34)
+```
+```{r}
+norm_core_P34 <- transform_sample_counts(core_P34, function(x) x / sum(x) )
+ord.core_34.pcoa <- ordinate(norm_core_P34, method="PCoA", distance="bray")
+plot_ordination(norm_core_P34, ord.core_34.pcoa, color = "Location", shape = "Time_Collected") +
+  geom_point(size=5)
+norm_core_P34_rm <- transform_sample_counts(core_P34_rm, function(x) x / sum(x) )
+ord.core_34_rm.pcoa <- ordinate(norm_core_P34_rm, method="PCoA", distance="bray")
+plot_ordination(norm_core_P34_rm, ord.core_34_rm.pcoa, color = "Location", shape = "Time_Collected") +
+  geom_point(size=5)
+```
+
+#P35
+```{r}
+P_35 <- subset_samples(JVIRAL_FINAL, Subject=="P35")
+P_35_LH<- subset_samples(P_35, Location=="left")
+P_35_RH<- subset_samples(P_35, Location=="right")
+P_35_SC<- subset_samples(P_35, Location=="scalp")
+core_P35LH <- filter_taxa(P_35_LH, function(x) sum(x > 0) >= (0.8*length(x)), prune = TRUE)
+core_P35RH <- filter_taxa(P_35_RH, function(x) sum(x > 0) >= (0.8*length(x)), prune = TRUE)
+core_P35SC <- filter_taxa(P_35_SC, function(x) sum(x > 0) >= (0.8*length(x)), prune = TRUE)
+core_P35 <- merge_phyloseq(core_P35LH , core_P35RH, core_P35SC)
+
+core_rm<- rownames(otu_table(CORE))
+core_P35_rm <- taxa_names(core_P35)
+core_P35_rm <- core_P35_rm[!(core_P35_rm %in% core_rm)]
+core_P35_rm <- prune_taxa(core_P35_rm, core_P35)
+```
+```{r}
+norm_core_P35 <- transform_sample_counts(core_P35, function(x) x / sum(x) )
+ord.core_35.pcoa <- ordinate(norm_core_P35, method="PCoA", distance="bray")
+plot_ordination(norm_core_P35, ord.core_35.pcoa, color = "Location", shape = "Time_Collected") +
+  geom_point(size=5)
+norm_core_P35_rm <- transform_sample_counts(core_P35_rm, function(x) x / sum(x) )
+ord.core_35_rm.pcoa <- ordinate(norm_core_P35_rm, method="PCoA", distance="bray")
+plot_ordination(norm_core_P35_rm, ord.core_35_rm.pcoa, color = "Location", shape = "Time_Collected") +
+  geom_point(size=5)
+```
+
+
+#P36
+```{r}
+P_36 <- subset_samples(JVIRAL_FINAL, Subject=="P36")
+P_36_LH<- subset_samples(P_36, Location=="left")
+P_36_RH<- subset_samples(P_36, Location=="right")
+P_36_SC<- subset_samples(P_36, Location=="scalp")
+core_P36LH <- filter_taxa(P_36_LH, function(x) sum(x > 0) >= (0.8*length(x)), prune = TRUE)
+core_P36RH <- filter_taxa(P_36_RH, function(x) sum(x > 0) >= (0.8*length(x)), prune = TRUE)
+core_P36SC <- filter_taxa(P_36_SC, function(x) sum(x > 0) >= (0.8*length(x)), prune = TRUE)
+core_P36 <- merge_phyloseq(core_P36LH , core_P36RH, core_P36SC)
+
+core_rm<- rownames(otu_table(CORE))
+core_P36_rm <- taxa_names(core_P36)
+core_P36_rm <- core_P36_rm[!(core_P36_rm %in% core_rm)]
+core_P36_rm <- prune_taxa(core_P36_rm, core_P36)
+```
+```{r}
+norm_core_P36 <- transform_sample_counts(core_P36, function(x) x / sum(x) )
+ord.core_36.pcoa <- ordinate(norm_core_P36, method="PCoA", distance="bray")
+plot_ordination(norm_core_P36, ord.core_36.pcoa, color = "Location", shape = "Time_Collected") +
+  geom_point(size=5)
+norm_core_P36_rm <- transform_sample_counts(core_P36_rm, function(x) x / sum(x) )
+ord.core_36_rm.pcoa <- ordinate(norm_core_P36_rm, method="PCoA", distance="bray")
+plot_ordination(norm_core_P36_rm, ord.core_36_rm.pcoa, color = "Location", shape = "Time_Collected") +
+  geom_point(size=5)
+```
+
+#P37
+```{r}
+P_37 <- subset_samples(JVIRAL_FINAL, Subject=="P37")
+P_37_LH<- subset_samples(P_37, Location=="left")
+P_37_RH<- subset_samples(P_37, Location=="right")
+P_37_SC<- subset_samples(P_37, Location=="scalp")
+core_P37LH <- filter_taxa(P_37_LH, function(x) sum(x > 0) >= (0.8*length(x)), prune = TRUE)
+core_P37RH <- filter_taxa(P_37_RH, function(x) sum(x > 0) >= (0.8*length(x)), prune = TRUE)
+core_P37SC <- filter_taxa(P_37_SC, function(x) sum(x > 0) >= (0.8*length(x)), prune = TRUE)
+core_P37 <- merge_phyloseq(core_P37LH , core_P37RH, core_P37SC)
+
+core_rm<- rownames(otu_table(CORE))
+core_P37_rm <- taxa_names(core_P37)
+core_P37_rm <- core_P37_rm[!(core_P37_rm %in% core_rm)]
+core_P37_rm <- prune_taxa(core_P37_rm, core_P37)
+```
+```{r}
+norm_core_P37 <- transform_sample_counts(core_P37, function(x) x / sum(x) )
+ord.core_37.pcoa <- ordinate(norm_core_P37, method="PCoA", distance="bray")
+plot_ordination(norm_core_P37, ord.core_37.pcoa, color = "Location", shape = "Time_Collected") +
+  geom_point(size=5)
+norm_core_P37_rm <- transform_sample_counts(core_P37_rm, function(x) x / sum(x) )
+ord.core_37_rm.pcoa <- ordinate(norm_core_P37_rm, method="PCoA", distance="bray")
+plot_ordination(norm_core_P37_rm, ord.core_37_rm.pcoa, color = "Location", shape = "Time_Collected") +
+  geom_point(size=5)
+```
+
+
+#P38
+```{r}
+P_38 <- subset_samples(JVIRAL_FINAL, Subject=="P38")
+P_38_LH<- subset_samples(P_38, Location=="left")
+P_38_RH<- subset_samples(P_38, Location=="right")
+P_38_SC<- subset_samples(P_38, Location=="scalp")
+core_P38LH <- filter_taxa(P_38_LH, function(x) sum(x > 0) >= (0.8*length(x)), prune = TRUE)
+core_P38RH <- filter_taxa(P_38_RH, function(x) sum(x > 0) >= (0.8*length(x)), prune = TRUE)
+core_P38SC <- filter_taxa(P_38_SC, function(x) sum(x > 0) >= (0.8*length(x)), prune = TRUE)
+core_P38 <- merge_phyloseq(core_P38LH , core_P38RH, core_P38SC)
+
+core_rm<- rownames(otu_table(CORE))
+core_P38_rm <- taxa_names(core_P38)
+core_P38_rm <- core_P38_rm[!(core_P38_rm %in% core_rm)]
+core_P38_rm <- prune_taxa(core_P38_rm, core_P38)
+```
+```{r}
+norm_core_P38 <- transform_sample_counts(core_P38, function(x) x / sum(x) )
+ord.core_38.pcoa <- ordinate(norm_core_P38, method="PCoA", distance="bray")
+plot_ordination(norm_core_P38, ord.core_38.pcoa, color = "Location", shape = "Time_Collected") +
+  geom_point(size=5)
+norm_core_P38_rm <- transform_sample_counts(core_P38_rm, function(x) x / sum(x) )
+ord.core_38_rm.pcoa <- ordinate(norm_core_P38_rm, method="PCoA", distance="bray")
+plot_ordination(norm_core_P38_rm, ord.core_38_rm.pcoa, color = "Location", shape = "Time_Collected") +
+  geom_point(size=5)
+```
+
+#P39
+```{r}
+P_39 <- subset_samples(JVIRAL_FINAL, Subject=="P39")
+P_39_LH<- subset_samples(P_39, Location=="left")
+P_39_RH<- subset_samples(P_39, Location=="right")
+P_39_SC<- subset_samples(P_39, Location=="scalp")
+core_P39LH <- filter_taxa(P_39_LH, function(x) sum(x > 0) >= (0.8*length(x)), prune = TRUE)
+core_P39RH <- filter_taxa(P_39_RH, function(x) sum(x > 0) >= (0.8*length(x)), prune = TRUE)
+core_P39SC <- filter_taxa(P_39_SC, function(x) sum(x > 0) >= (0.8*length(x)), prune = TRUE)
+core_P39 <- merge_phyloseq(core_P39LH , core_P39RH, core_P39SC)
+
+core_rm<- rownames(otu_table(CORE))
+core_P39_rm <- taxa_names(core_P39)
+core_P39_rm <- core_P39_rm[!(core_P39_rm %in% core_rm)]
+core_P39_rm <- prune_taxa(core_P39_rm, core_P39)
+```
+```{r}
+norm_core_P39 <- transform_sample_counts(core_P39, function(x) x / sum(x) )
+ord.core_39.pcoa <- ordinate(norm_core_P39, method="PCoA", distance="bray")
+plot_ordination(norm_core_P39, ord.core_39.pcoa, color = "Location", shape = "Time_Collected") +
+  geom_point(size=5)
+norm_core_P39_rm <- transform_sample_counts(core_P39_rm, function(x) x / sum(x) )
+ord.core_39_rm.pcoa <- ordinate(norm_core_P39_rm, method="PCoA", distance="bray")
+plot_ordination(norm_core_P39_rm, ord.core_39_rm.pcoa, color = "Location", shape = "Time_Collected") +
+  geom_point(size=5)
+```
+
+#P40
+```{r}
+P_40 <- subset_samples(JVIRAL_FINAL, Subject=="P40")
+P_40_LH<- subset_samples(P_40, Location=="left")
+P_40_RH<- subset_samples(P_40, Location=="right")
+P_40_SC<- subset_samples(P_40, Location=="scalp")
+core_P40LH <- filter_taxa(P_40_LH, function(x) sum(x > 0) >= (0.8*length(x)), prune = TRUE)
+core_P40RH <- filter_taxa(P_40_RH, function(x) sum(x > 0) >= (0.8*length(x)), prune = TRUE)
+core_P40SC <- filter_taxa(P_40_SC, function(x) sum(x > 0) >= (0.8*length(x)), prune = TRUE)
+core_P40 <- merge_phyloseq(core_P40LH , core_P40RH, core_P40SC)
+
+core_rm<- rownames(otu_table(CORE))
+core_P40_rm <- taxa_names(core_P40)
+core_P40_rm <- core_P40_rm[!(core_P40_rm %in% core_rm)]
+core_P40_rm <- prune_taxa(core_P40_rm, core_P40)
+```
+```{r}
+norm_core_P40 <- transform_sample_counts(core_P40, function(x) x / sum(x) )
+ord.core_40.pcoa <- ordinate(norm_core_P40, method="PCoA", distance="bray")
+plot_ordination(norm_core_P40, ord.core_40.pcoa, color = "Location", shape = "Time_Collected") +
+  geom_point(size=5)
+norm_core_P40_rm <- transform_sample_counts(core_P40_rm, function(x) x / sum(x) )
+ord.core_40_rm.pcoa <- ordinate(norm_core_P40_rm, method="PCoA", distance="bray")
+plot_ordination(norm_core_P40_rm, ord.core_40_rm.pcoa, color = "Location", shape = "Time_Collected") +
+  geom_point(size=5)
+```
+
+#P41
+```{r}
+P_41 <- subset_samples(JVIRAL_FINAL, Subject=="P41")
+P_41_LH<- subset_samples(P_41, Location=="left")
+P_41_RH<- subset_samples(P_41, Location=="right")
+P_41_SC<- subset_samples(P_41, Location=="scalp")
+core_P41LH <- filter_taxa(P_41_LH, function(x) sum(x > 0) >= (0.8*length(x)), prune = TRUE)
+core_P41RH <- filter_taxa(P_41_RH, function(x) sum(x > 0) >= (0.8*length(x)), prune = TRUE)
+core_P41SC <- filter_taxa(P_41_SC, function(x) sum(x > 0) >= (0.8*length(x)), prune = TRUE)
+core_P41 <- merge_phyloseq(core_P41LH , core_P41RH, core_P41SC)
+
+core_rm<- rownames(otu_table(CORE))
+core_P41_rm <- taxa_names(core_P41)
+core_P41_rm <- core_P41_rm[!(core_P41_rm %in% core_rm)]
+core_P41_rm <- prune_taxa(core_P41_rm, core_P41)
+```
+```{r}
+norm_core_P41 <- transform_sample_counts(core_P41, function(x) x / sum(x) )
+ord.core_41.pcoa <- ordinate(norm_core_P41, method="PCoA", distance="bray")
+plot_ordination(norm_core_P41, ord.core_41.pcoa, color = "Location", shape = "Time_Collected") +
+  geom_point(size=5)
+norm_core_P41_rm <- transform_sample_counts(core_P41_rm, function(x) x / sum(x) )
+ord.core_41_rm.pcoa <- ordinate(norm_core_P41_rm, method="PCoA", distance="bray")
+plot_ordination(norm_core_P41_rm, ord.core_41_rm.pcoa, color = "Location", shape = "Time_Collected") +
+  geom_point(size=5)
+```
+
+#P42
+```{r}
+P_42 <- subset_samples(JVIRAL_FINAL, Subject=="P42")
+P_42_LH<- subset_samples(P_42, Location=="left")
+P_42_RH<- subset_samples(P_42, Location=="right")
+P_42_SC<- subset_samples(P_42, Location=="scalp")
+core_P42LH <- filter_taxa(P_42_LH, function(x) sum(x > 0) >= (0.8*length(x)), prune = TRUE)
+core_P42RH <- filter_taxa(P_42_RH, function(x) sum(x > 0) >= (0.8*length(x)), prune = TRUE)
+core_P42SC <- filter_taxa(P_42_SC, function(x) sum(x > 0) >= (0.8*length(x)), prune = TRUE)
+core_P42 <- merge_phyloseq(core_P42LH , core_P42RH, core_P42SC)
+
+core_rm<- rownames(otu_table(CORE))
+core_P42_rm <- taxa_names(core_P42)
+core_P42_rm <- core_P42_rm[!(core_P42_rm %in% core_rm)]
+core_P42_rm <- prune_taxa(core_P42_rm, core_P42)
+```
+```{r}
+norm_core_P42 <- transform_sample_counts(core_P42, function(x) x / sum(x) )
+ord.core_42.pcoa <- ordinate(norm_core_P42, method="PCoA", distance="bray")
+plot_ordination(norm_core_P42, ord.core_42.pcoa, color = "Location", shape = "Time_Collected") +
+  geom_point(size=5)
+norm_core_P42_rm <- transform_sample_counts(core_P42_rm, function(x) x / sum(x) )
+ord.core_42_rm.pcoa <- ordinate(norm_core_P42_rm, method="PCoA", distance="bray")
+plot_ordination(norm_core_P42_rm, ord.core_42_rm.pcoa, color = "Location", shape = "Time_Collected") +
+  geom_point(size=5)
+```
+
+#P43
+```{r}
+P_43 <- subset_samples(JVIRAL_FINAL, Subject=="P43")
+P_43_LH<- subset_samples(P_43, Location=="left")
+P_43_RH<- subset_samples(P_43, Location=="right")
+P_43_SC<- subset_samples(P_43, Location=="scalp")
+core_P43LH <- filter_taxa(P_43_LH, function(x) sum(x > 0) >= (0.8*length(x)), prune = TRUE)
+core_P43RH <- filter_taxa(P_43_RH, function(x) sum(x > 0) >= (0.8*length(x)), prune = TRUE)
+core_P43SC <- filter_taxa(P_43_SC, function(x) sum(x > 0) >= (0.8*length(x)), prune = TRUE)
+core_P43 <- merge_phyloseq(core_P43LH , core_P43RH, core_P43SC)
+
+core_rm<- rownames(otu_table(CORE))
+core_P43_rm <- taxa_names(core_P43)
+core_P43_rm <- core_P43_rm[!(core_P43_rm %in% core_rm)]
+core_P43_rm <- prune_taxa(core_P43_rm, core_P43)
+```
+```{r}
+norm_core_P43 <- transform_sample_counts(core_P43, function(x) x / sum(x) )
+ord.core_43.pcoa <- ordinate(norm_core_P43, method="PCoA", distance="bray")
+plot_ordination(norm_core_P43, ord.core_43.pcoa, color = "Location", shape = "Time_Collected") +
+  geom_point(size=5)
+norm_core_P43_rm <- transform_sample_counts(core_P43_rm, function(x) x / sum(x) )
+ord.core_43_rm.pcoa <- ordinate(norm_core_P43_rm, method="PCoA", distance="bray")
+plot_ordination(norm_core_P43_rm, ord.core_43_rm.pcoa, color = "Location", shape = "Time_Collected") +
+  geom_point(size=5)
+```
+
+#Merge each person's core togeher 
+```{r}
+#Core all locations merge 
+core_total_merge <- merge_phyloseq(core_P01, core_P02, core_P03, core_P04, core_P05, core_P06, core_P07, 
+                            core_P08, core_P09, core_P10, core_P11, core_P12, core_P13, core_P14,
+                            core_P15, core_P16, core_P17, core_P18, core_P19, core_P20, core_P21,
+                            core_P22, core_P23, core_P24, core_P25, core_P26, core_P27, core_P28,
+                            core_P29, core_P30, core_P31, core_P32, core_P34, core_P35, core_P36,
+                            core_P37, core_P38, core_P39, core_P40, core_P41, core_P42, core_P43)
+#Core by location merge
+
+#Left Hand
+core_LH_merge <- merge_phyloseq(core_P01LH, core_P02LH, core_P03LH, core_P04LH, core_P05LH, core_P06LH, core_P07LH, 
+                            core_P08LH, core_P09LH, core_P10LH, core_P11LH, core_P12LH, core_P13LH, core_P14LH,
+                            core_P15LH, core_P16LH, core_P17LH, core_P18LH, core_P19LH, core_P20LH, core_P21LH,
+                            core_P22LH, core_P23LH, core_P24LH, core_P25LH, core_P26LH, core_P27LH, core_P28LH,
+                            core_P29LH, core_P30LH, core_P31LH, core_P32LH, core_P34LH, core_P35LH, core_P36LH,
+                            core_P37LH, core_P38LH, core_P39LH, core_P40LH, core_P41LH, core_P42LH, core_P43LH)
+
+#Right Hand
+core_RH_merge <- merge_phyloseq(core_P01RH, core_P02RH, core_P03RH, core_P04RH, core_P05RH, core_P06RH, core_P07RH, 
+                            core_P08RH, core_P09RH, core_P10RH, core_P11RH, core_P12RH, core_P13RH, core_P14RH,
+                            core_P15RH, core_P16RH, core_P17RH, core_P18RH, core_P19RH, core_P20RH, core_P21RH,
+                            core_P22RH, core_P23RH, core_P24RH, core_P25RH, core_P26RH, core_P27RH, core_P28RH,
+                            core_P29RH, core_P30RH, core_P31RH, core_P32RH, core_P34RH, core_P35RH, core_P36RH,
+                            core_P37RH, core_P38RH, core_P39RH, core_P40RH, core_P41RH, core_P42RH, core_P43RH)
+#Scalp
+core_SC_merge <- merge_phyloseq(core_P01SC, core_P02SC, core_P03SC, core_P04SC, core_P05SC, core_P06SC, core_P07SC, 
+                            core_P08SC, core_P09SC, core_P10SC, core_P11SC, core_P12SC, core_P13SC, core_P14SC,
+                            core_P15SC, core_P16SC, core_P17SC, core_P18SC, core_P19SC, core_P20SC, core_P21SC,
+                            core_P22SC, core_P23SC, core_P24SC, core_P25SC, core_P26SC, core_P27SC, core_P28SC,
+                            core_P29SC, core_P30SC, core_P31SC, core_P32SC, core_P34SC, core_P35SC, core_P36SC,
+                            core_P37SC, core_P38SC, core_P39SC, core_P40SC, core_P41SC, core_P42SC, core_P43SC)
+#Both Hands
+core_hands_merge <- merge_phyloseq(core_P01LH, core_P02LH, core_P03LH, core_P04LH, core_P05LH, core_P06LH, core_P07LH, 
+                            core_P08LH, core_P09LH, core_P10LH, core_P11LH, core_P12LH, core_P13LH, core_P14LH,
+                            core_P15LH, core_P16LH, core_P17LH, core_P18LH, core_P19LH, core_P20LH, core_P21LH,
+                            core_P22LH, core_P23LH, core_P24LH, core_P25LH, core_P26LH, core_P27LH, core_P28LH,
+                            core_P29LH, core_P30LH, core_P31LH, core_P32LH, core_P34LH, core_P35LH, core_P36LH,
+                            core_P37LH, core_P38LH, core_P39LH, core_P40LH, core_P41LH, core_P42LH, core_P43LH,
+                            core_P01RH, core_P02RH, core_P03RH, core_P04RH, core_P05RH, core_P06RH, core_P07RH, 
+                            core_P08RH, core_P09RH, core_P10RH, core_P11RH, core_P12RH, core_P13RH, core_P14RH,
+                            core_P15RH, core_P16RH, core_P17RH, core_P18RH, core_P19RH, core_P20RH, core_P21RH,
+                            core_P22RH, core_P23RH, core_P24RH, core_P25RH, core_P26RH, core_P27RH, core_P28RH,
+                            core_P29RH, core_P30RH, core_P31RH, core_P32RH, core_P34RH, core_P35RH, core_P36RH,
+                            core_P37RH, core_P38RH, core_P39RH, core_P40RH, core_P41RH, core_P42RH, core_P43RH)
+
+
+```
+
+#Alpha Diversity of core samples
+
+```{r}
+# Extract abundance matrix from the phyloseq object
+Total_core_OTU = as(otu_table(core_total_merge), "matrix")
+# transpose if necessary
+Total_core_OTU <- t(Total_core_OTU)
+# Coerce to data.frame
+Total_core_OTUdf = as.data.frame(Total_core_OTU)
+
+#merge metadata file with alpha diversity measures:
+
+#Remove samples from metadatafile that were removed from your phyloseq object (ie control samples, repeated samples, and other samples that are of other persons you are not using in this data set (P33, >P43))
+Samples_toRemove <- c("HV_001_27", "HV_002_27", "HV_003_27", "HV_004_27", "HV_005_27", "HV_006_27", "HV_007_27", "HV_008_27",
+                      "HV_009_27", "HV_010_27", "HV_011_27", "HV_012_27", "HV_013_27", "HV_014_27", "HV_015_27", "HV_016_27",
+                      "HV_017_27", "HV_018_27", "HV_019_27", "HV_020_27", "HV_021_27", "HV_022_27", "HV_023_27", "HV_024_27",
+                      "HV_025_27", "HV_026_27", "HV_027_27", "HV_028_27", "HV_029_27", "HV_030_27", "HV_015_20", "HV_015_21", 
+                      "HV_020_22", "HV_027_02", "HV_027_03", "HV_027_04", "HV_027_05", "HV_027_06", "HV_027_07", "HV_020_10",
+                      "HV_021_13", "HV_027_01")
+
+Metadata_core_stat <- Metadata2[!grepl("HV_001_27", Metadata2$SampleID),]
+Metadata_core_stat <- Metadata_core_stat[!grepl("HV_002_27", Metadata_core_stat$SampleID),]
+Metadata_core_stat <- Metadata_core_stat[!grepl("HV_027_03", Metadata_core_stat$SampleID),]
+Metadata_core_stat <- Metadata_core_stat[!grepl("HV_027_04", Metadata_core_stat$SampleID),]
+Metadata_core_stat <- Metadata_core_stat[!grepl("HV_027_06", Metadata_core_stat$SampleID),]
+Metadata_core_stat <- Metadata_core_stat[!grepl("HV_027_07", Metadata_core_stat$SampleID),]
+Metadata_core_stat <- Metadata_core_stat[!grepl("HV_021_13", Metadata_core_stat$SampleID),]
+Metadata_core_stat <- Metadata_core_stat[!grepl("HV_027_01", Metadata_core_stat$SampleID),]
+Metadata_core_stat <- Metadata_core_stat[!grepl("HV_020_10", Metadata_core_stat$SampleID),]
+Metadata_core_stat <- Metadata_core_stat[!grepl("HV_015_21", Metadata_core_stat$SampleID),]
+Metadata_core_stat <- Metadata_core_stat[!grepl("HV_027_05", Metadata_core_stat$SampleID),]
+Metadata_core_stat <- Metadata_core_stat[!grepl("HV_020_22", Metadata_core_stat$SampleID),]
+Metadata_core_stat <- Metadata_core_stat[!grepl("HV_027_02", Metadata_core_stat$SampleID),]
+Metadata_core_stat <- Metadata_core_stat[!grepl("HV_015_20", Metadata_core_stat$SampleID),]
+Metadata_core_stat <- Metadata_core_stat[!grepl("HV_003_27", Metadata_core_stat$SampleID),]
+Metadata_core_stat <- Metadata_core_stat[!grepl("HV_004_27", Metadata_core_stat$SampleID),]
+Metadata_core_stat <- Metadata_core_stat[!grepl("HV_005_27", Metadata_core_stat$SampleID),]
+Metadata_core_stat <- Metadata_core_stat[!grepl("HV_006_27", Metadata_core_stat$SampleID),]
+Metadata_core_stat <- Metadata_core_stat[!grepl("HV_007_27", Metadata_core_stat$SampleID),]
+Metadata_core_stat <- Metadata_core_stat[!grepl("HV_008_27", Metadata_core_stat$SampleID),]
+Metadata_core_stat <- Metadata_core_stat[!grepl("HV_009_27", Metadata_core_stat$SampleID),]
+Metadata_core_stat <- Metadata_core_stat[!grepl("HV_010_27", Metadata_core_stat$SampleID),]
+Metadata_core_stat <- Metadata_core_stat[!grepl("HV_011_27", Metadata_core_stat$SampleID),]
+Metadata_core_stat <- Metadata_core_stat[!grepl("HV_012_27", Metadata_core_stat$SampleID),]
+Metadata_core_stat <- Metadata_core_stat[!grepl("HV_013_27", Metadata_core_stat$SampleID),]
+Metadata_core_stat <- Metadata_core_stat[!grepl("HV_014_27", Metadata_core_stat$SampleID),]
+Metadata_core_stat <- Metadata_core_stat[!grepl("HV_015_27", Metadata_core_stat$SampleID),]
+Metadata_core_stat <- Metadata_core_stat[!grepl("HV_016_27", Metadata_core_stat$SampleID),]
+Metadata_core_stat <- Metadata_core_stat[!grepl("HV_017_27", Metadata_core_stat$SampleID),]
+Metadata_core_stat <- Metadata_core_stat[!grepl("HV_018_27", Metadata_core_stat$SampleID),]
+Metadata_core_stat <- Metadata_core_stat[!grepl("HV_019_27", Metadata_core_stat$SampleID),]
+Metadata_core_stat <- Metadata_core_stat[!grepl("HV_020_27", Metadata_core_stat$SampleID),]
+Metadata_core_stat <- Metadata_core_stat[!grepl("HV_021_27", Metadata_core_stat$SampleID),]
+Metadata_core_stat <- Metadata_core_stat[!grepl("HV_022_27", Metadata_core_stat$SampleID),]
+Metadata_core_stat <- Metadata_core_stat[!grepl("HV_023_27", Metadata_core_stat$SampleID),]
+Metadata_core_stat <- Metadata_core_stat[!grepl("HV_024_27", Metadata_core_stat$SampleID),]
+Metadata_core_stat <- Metadata_core_stat[!grepl("HV_025_27", Metadata_core_stat$SampleID),]
+Metadata_core_stat <- Metadata_core_stat[!grepl("HV_026_27", Metadata_core_stat$SampleID),]
+Metadata_core_stat <- Metadata_core_stat[!grepl("HV_027_27", Metadata_core_stat$SampleID),]
+Metadata_core_stat <- Metadata_core_stat[!grepl("HV_028_27", Metadata_core_stat$SampleID),]
+Metadata_core_stat <- Metadata_core_stat[!grepl("HV_029_27", Metadata_core_stat$SampleID),]
+Metadata_core_stat <- Metadata_core_stat[!grepl("HV_030_27", Metadata_core_stat$SampleID),]
+
+#alpha diversity measures:
+Metadata_core_stat$shannon.vegan <- diversity(Total_core_OTUdf, index = "shannon")
+Metadata_core_stat$simpson.vegan <- diversity(Total_core_OTUdf, index = "simpson")
+Metadata_core_stat$invsimpson.vegan <- diversity(Total_core_OTUdf, index = "invsimpson")
+```
+
+#ANOVA of alpha diversity measures using shannon (can be repeated for simpson)
+```{r}
+model_core_AOV <- aov(shannon.vegan~Location+Gender+Time_Week+Subject/Location+ Subject/Time_Week+Subject, data = Metadata_core_stat)
+summary(model_core_AOV)
+```
+
+#Shapiro's test for normality
+```{r}
+shapiro.test(Metadata_core_stat$shannon.vegan)
+```
+
+
+#Beta Diversity of merged core phyloseq objects
+
+```{r}
+#Core all locations
+norm_merged_groups <- transform_sample_counts(core_total_merge , function(x) x / sum(x) )
+ord.merged_groups.pcoa <- ordinate(norm_merged_groups, method="PCoA", distance="bray")
+plot_ordination(norm_merged_groups, ord.merged_groups.pcoa, color = "Subject", shape = "Time_Collected") +
+  geom_point(size=1)
+```
+```{r}
+metadata_core <- as(sample_data(norm_merged_groups ), "data.frame")
+adonis(phyloseq::distance(norm_merged_groups, method="bray") ~  Location+Gender+Time_Week+Subject/Location+ Subject/Time_Week+Subject,
+       data = metadata_core)
+```
+
+```{r}
+#Core Left Hand
+norm_LH_groups <- transform_sample_counts(core_LH_merge , function(x) x / sum(x) )
+ord.LH_groups.pcoa <- ordinate(norm_LH_groups, method="PCoA", distance="bray")
+plot_ordination(norm_LH_groups, ord.LH_groups.pcoa, color = "Subject", shape = "Time_Collected") +
+  geom_point(size=1)
+```
+```{r}
+metadata_LH_core <- as(sample_data(norm_LH_groups ), "data.frame")
+adonis(phyloseq::distance(norm_LH_groups, method="bray") ~  Gender+Time_Week+Subject+Subject/Time_Week,
+       data = metadata_LH_core)
+```
+
+
+```{r}
+#Core Right Hand
+norm_RH_groups <- transform_sample_counts(core_RH_merge , function(x) x / sum(x) )
+ord.RH_groups.pcoa <- ordinate(norm_RH_groups, method="PCoA", distance="bray")
+plot_ordination(norm_LH_groups, ord.RH_groups.pcoa, color = "Subject", shape = "Time_Collected") +
+  geom_point(size=1)
+```
+```{r}
+metadata_RH_core <- as(sample_data(norm_RH_groups ), "data.frame")
+adonis(phyloseq::distance(norm_RH_groups, method="bray") ~  Gender+Time_Week+Subject+Subject/Time_Week,
+       data = metadata_RH_core)
+```
+
+```{r}
+#Core Scalp Hand
+norm_SC_groups <- transform_sample_counts(core_SC_merge , function(x) x / sum(x) )
+ord.SC_groups.pcoa <- ordinate(norm_SC_groups, method="PCoA", distance="bray")
+plot_ordination(norm_SC_groups, ord.SC_groups.pcoa, color = "Subject", shape = "Time_Collected") +
+  geom_point(size=1)
+```
+```{r}
+metadata_SC_core <- as(sample_data(norm_SC_groups ), "data.frame")
+adonis(phyloseq::distance(norm_SC_groups, method="bray") ~  Gender+Time_Week+Subject+Subject/Time_Week,
+       data = metadata_SC_core)
+```
+
+```{r}
+#Core both hands
+norm_hands_groups <- transform_sample_counts(core_hands_merge , function(x) x / sum(x) )
+ord.hands_groups.pcoa <- ordinate(norm_hands_groups, method="PCoA", distance="bray")
+plot_ordination(norm_hands_groups, ord.hands_groups.pcoa, color = "Subject", shape = "Time_Collected") +
+  geom_point(size=1)
+```
+```{r}
+metadata_hands_core <- as(sample_data(norm_hands_groups ), "data.frame")
+adonis(phyloseq::distance(norm_hands_groups, method="bray") ~  Location+Gender+Time_Week+Subject/Location+ Subject/Time_Week+Subject,
+       data = metadata_hands_core)
+```
+
+```{r}
+core_hands_merge_test <- merge_phyloseq(core_P01LH, core_P02LH, core_P03LH, core_P04LH, core_P05LH, core_P06LH, core_P07LH, 
+                            core_P08LH, core_P09LH, core_P10LH, core_P11LH, core_P12LH, core_P13LH, core_P14LH,
+                            core_P15LH, core_P16LH, core_P17LH, core_P18LH, core_P19LH, core_P20LH, core_P21LH,
+                            core_P22LH, core_P23LH, core_P24LH, core_P25LH,core_P01RH, core_P02RH, core_P03RH, core_P04RH, core_P05RH, core_P06RH, core_P07RH, 
+                            core_P08RH, core_P09RH, core_P10RH, core_P11RH, core_P12RH, core_P13RH, core_P14RH,
+                            core_P15RH, core_P16RH, core_P17RH, core_P18RH, core_P19RH, core_P20RH, core_P21RH,
+                            core_P22RH, core_P23RH, core_P24RH, core_P25RH)
+```
+```{r}
+
+#Core both hands
+norm_hands_groups_test <- transform_sample_counts(core_hands_merge_test , function(x) x / sum(x) )
+ord.hands_groups.pcoa_test <- ordinate(norm_hands_groups_test, method="PCoA", distance="bray")
+plot_ordination(norm_hands_groups_test, ord.hands_groups.pcoa_test, color = "Subject", shape = "Time_Collected") +
+  geom_point(size=1)
+```
+
+```{r}
+
+metadata_hands_core_test <- as(sample_data(norm_hands_groups_test ), "data.frame")
+adonis(phyloseq::distance(norm_hands_groups_test, method="bray") ~  Location+Gender+Time_Week+Subject/Location+ Subject/Time_Week+Subject,
+       data = metadata_hands_core_test)
+```
+
+```{r}
+# Extract abundance matrix from the phyloseq object
+RH_core_OTU = as(otu_table(core_RH_merge), "matrix")
+# transpose if necessary
+RH_core_OTU <- t(RH_core_OTU)
+# Coerce to data.frame
+RH_core_OTUdf = as.data.frame(RH_core_OTU)
+
+#merge metadata file with alpha diversity measures:
+
+#Remove samples from metadatafile that were removed from your phyloseq object (ie control samples, repeated samples, and other samples that are of other persons you are not using in this data set (P33, >P43))
+Samples_toRemove <- c("HV_001_27", "HV_002_27", "HV_003_27", "HV_004_27", "HV_005_27", "HV_006_27", "HV_007_27", "HV_008_27",
+                      "HV_009_27", "HV_010_27", "HV_011_27", "HV_012_27", "HV_013_27", "HV_014_27", "HV_015_27", "HV_016_27",
+                      "HV_017_27", "HV_018_27", "HV_019_27", "HV_020_27", "HV_021_27", "HV_022_27", "HV_023_27", "HV_024_27",
+                      "HV_025_27", "HV_026_27", "HV_027_27", "HV_028_27", "HV_029_27", "HV_030_27", "HV_015_20", "HV_015_21", 
+                      "HV_020_22", "HV_027_02", "HV_027_03", "HV_027_04", "HV_027_05", "HV_027_06", "HV_027_07", "HV_020_10",
+                      "HV_021_13", "HV_027_01")
+
+RH_Metadata_core_stat <- Metadata2[!grepl("HV_001_27", Metadata2$SampleID),]
+RH_Metadata_core_stat <- RH_Metadata_core_stat[!grepl("HV_002_27", RH_Metadata_core_stat$SampleID),]
+RH_Metadata_core_stat <- RH_Metadata_core_stat[!grepl("HV_027_03", RH_Metadata_core_stat$SampleID),]
+RH_Metadata_core_stat <- RH_Metadata_core_stat[!grepl("HV_027_04", RH_Metadata_core_stat$SampleID),]
+RH_Metadata_core_stat <- RH_Metadata_core_stat[!grepl("HV_027_06", RH_Metadata_core_stat$SampleID),]
+RH_Metadata_core_stat <- RH_Metadata_core_stat[!grepl("HV_027_07", RH_Metadata_core_stat$SampleID),]
+RH_Metadata_core_stat <- RH_Metadata_core_stat[!grepl("HV_021_13", RH_Metadata_core_stat$SampleID),]
+RH_Metadata_core_stat <- RH_Metadata_core_stat[!grepl("HV_027_01", RH_Metadata_core_stat$SampleID),]
+RH_Metadata_core_stat <- RH_Metadata_core_stat[!grepl("HV_020_10", RH_Metadata_core_stat$SampleID),]
+RH_Metadata_core_stat <- RH_Metadata_core_stat[!grepl("HV_015_21", RH_Metadata_core_stat$SampleID),]
+RH_Metadata_core_stat <- RH_Metadata_core_stat[!grepl("HV_027_05", RH_Metadata_core_stat$SampleID),]
+RH_Metadata_core_stat <- RH_Metadata_core_stat[!grepl("HV_020_22", RH_Metadata_core_stat$SampleID),]
+RH_Metadata_core_stat <- RH_Metadata_core_stat[!grepl("HV_027_02", RH_Metadata_core_stat$SampleID),]
+RH_Metadata_core_stat <- RH_Metadata_core_stat[!grepl("HV_015_20", RH_Metadata_core_stat$SampleID),]
+RH_Metadata_core_stat <- RH_Metadata_core_stat[!grepl("HV_003_27", RH_Metadata_core_stat$SampleID),]
+RH_Metadata_core_stat <- RH_Metadata_core_stat[!grepl("HV_004_27", RH_Metadata_core_stat$SampleID),]
+RH_Metadata_core_stat <- RH_Metadata_core_stat[!grepl("HV_005_27", RH_Metadata_core_stat$SampleID),]
+RH_Metadata_core_stat <- RH_Metadata_core_stat[!grepl("HV_006_27", RH_Metadata_core_stat$SampleID),]
+RH_Metadata_core_stat <- RH_Metadata_core_stat[!grepl("HV_007_27", RH_Metadata_core_stat$SampleID),]
+RH_Metadata_core_stat <- RH_Metadata_core_stat[!grepl("HV_008_27", RH_Metadata_core_stat$SampleID),]
+RH_Metadata_core_stat <- RH_Metadata_core_stat[!grepl("HV_009_27", RH_Metadata_core_stat$SampleID),]
+RH_Metadata_core_stat <- RH_Metadata_core_stat[!grepl("HV_010_27", RH_Metadata_core_stat$SampleID),]
+RH_Metadata_core_stat <- RH_Metadata_core_stat[!grepl("HV_011_27", RH_Metadata_core_stat$SampleID),]
+RH_Metadata_core_stat <- RH_Metadata_core_stat[!grepl("HV_012_27", RH_Metadata_core_stat$SampleID),]
+RH_Metadata_core_stat <- RH_Metadata_core_stat[!grepl("HV_013_27", RH_Metadata_core_stat$SampleID),]
+RH_Metadata_core_stat <- RH_Metadata_core_stat[!grepl("HV_014_27", RH_Metadata_core_stat$SampleID),]
+RH_Metadata_core_stat <- RH_Metadata_core_stat[!grepl("HV_015_27", RH_Metadata_core_stat$SampleID),]
+RH_Metadata_core_stat <- RH_Metadata_core_stat[!grepl("HV_016_27", RH_Metadata_core_stat$SampleID),]
+RH_Metadata_core_stat <- RH_Metadata_core_stat[!grepl("HV_017_27", RH_Metadata_core_stat$SampleID),]
+RH_Metadata_core_stat <- RH_Metadata_core_stat[!grepl("HV_018_27", RH_Metadata_core_stat$SampleID),]
+RH_Metadata_core_stat <- RH_Metadata_core_stat[!grepl("HV_019_27", RH_Metadata_core_stat$SampleID),]
+RH_Metadata_core_stat <- RH_Metadata_core_stat[!grepl("HV_020_27", RH_Metadata_core_stat$SampleID),]
+RH_Metadata_core_stat <- RH_Metadata_core_stat[!grepl("HV_021_27", RH_Metadata_core_stat$SampleID),]
+RH_Metadata_core_stat <- RH_Metadata_core_stat[!grepl("HV_022_27", RH_Metadata_core_stat$SampleID),]
+RH_Metadata_core_stat <- RH_Metadata_core_stat[!grepl("HV_023_27", RH_Metadata_core_stat$SampleID),]
+RH_Metadata_core_stat <- RH_Metadata_core_stat[!grepl("HV_024_27", RH_Metadata_core_stat$SampleID),]
+RH_Metadata_core_stat <- RH_Metadata_core_stat[!grepl("HV_025_27", RH_Metadata_core_stat$SampleID),]
+RH_Metadata_core_stat <- RH_Metadata_core_stat[!grepl("HV_026_27", RH_Metadata_core_stat$SampleID),]
+RH_Metadata_core_stat <- RH_Metadata_core_stat[!grepl("HV_027_27", RH_Metadata_core_stat$SampleID),]
+RH_Metadata_core_stat <- RH_Metadata_core_stat[!grepl("HV_028_27", RH_Metadata_core_stat$SampleID),]
+RH_Metadata_core_stat <- RH_Metadata_core_stat[!grepl("HV_029_27", RH_Metadata_core_stat$SampleID),]
+RH_Metadata_core_stat <- RH_Metadata_core_stat[!grepl("HV_030_27", RH_Metadata_core_stat$SampleID),]
+RH_Metadata_core_stat <- RH_Metadata_core_stat[!grepl("left", RH_Metadata_core_stat$Location),]
+RH_Metadata_core_stat <- RH_Metadata_core_stat[!grepl("scalp", RH_Metadata_core_stat$Location),]
+#alpha diversity measures:
+RH_Metadata_core_stat$shannon.vegan <- diversity(RH_core_OTUdf, index = "shannon")
+RH_Metadata_core_stat$simpson.vegan <- diversity(RH_core_OTUdf, index = "simpson")
+RH_Metadata_core_stat$invsimpson.vegan <- diversity(RH_core_OTUdf, index = "invsimpson")
+```
+
+```{r}
+library(ComplexHeatmap)
+library(stringr)
+
+RH_Metadata_core_stat2<-RH_Metadata_core_stat
+RH_Metadata_core_stat2 <-  subset(RH_Metadata_core_stat2, select = c(Time_Collected, Subject, shannon.vegan))
+
+RH_Metadata_core_stat2$Time_Collected[which(RH_Metadata_core_stat2$Time_Collected == "T_0")] <-"T1"
+RH_Metadata_core_stat2$Time_Collected[which(RH_Metadata_core_stat2$Time_Collected == "2_week")] <-"T2"
+RH_Metadata_core_stat2$Time_Collected[which(RH_Metadata_core_stat2$Time_Collected == "1_month")] <-"T3"
+RH_Metadata_core_stat2$Time_Collected[which(RH_Metadata_core_stat2$Time_Collected == "3_month")] <-"T4"
+RH_Metadata_core_stat2$Time_Collected[which(RH_Metadata_core_stat2$Time_Collected == "6_month")] <-"T5"
+library(reshape2)
+mat <- dcast(RH_Metadata_core_stat2, Subject~Time_Collected, value.var="shannon.vegan")
+rownames(mat) <- mat[,1]
+mat[,1] <- NULL
+mat<- as.matrix(mat)
+Heatmap(mat)
+```
