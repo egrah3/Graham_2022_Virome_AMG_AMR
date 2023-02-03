@@ -1,0 +1,61 @@
+---
+title: "krona_figure1"
+output: html_document
+---
+
+```{r}
+CHeckV_counts <- read.csv("counts2_bowtie.csv", quote = "", header = TRUE, stringsAsFactors = FALSE, row.names = 1)
+CHeckV_counts  <- subset(CHeckV_counts , select = -c(length))
+
+tax_ann <- read.csv("vc_tax_nounclass.csv", quote = "", header = TRUE, stringsAsFactors = FALSE, row.names = 1)
+CHeckV_bar_OTU <- otu_table(CHeckV_counts, taxa_are_rows = TRUE)
+tax_ann <-as.matrix(tax_ann)
+CHeckV_bar_tax <- tax_table(tax_ann)
+
+CHeckV_bar_PHY <- phyloseq(CHeckV_bar_OTU, CHeckV_bar_tax, META)
+
+
+
+Samples_toRemove <- c("HV_001_27", "HV_002_27", "HV_003_27", "HV_004_27", "HV_005_27", "HV_006_27", "HV_007_27", "HV_008_27",
+                      "HV_009_27", "HV_010_27", "HV_011_27", "HV_012_27", "HV_013_27", "HV_014_27", "HV_015_27", "HV_016_27",
+                      "HV_017_27", "HV_018_27", "HV_019_27", "HV_020_27", "HV_021_27", "HV_022_27", "HV_023_27", "HV_024_27",
+                      "HV_025_27", "HV_026_27", "HV_027_27", "HV_028_27", "HV_029_27", "HV_030_27", "HV_015_20", "HV_015_21", 
+                      "HV_020_22", "HV_027_02", "HV_027_03", "HV_027_04", "HV_027_05", "HV_027_06", "HV_027_07", "HV_020_10",
+                      "HV_021_13", "HV_027_01","HV_003_15")
+
+CHeckV_bar_PHY2 <- subset_samples(CHeckV_bar_PHY, !(SampleID %in% Samples_toRemove))
+```
+
+```{r}
+prevelancedf <- apply(X = otu_table(CHeckV_bar_PHY2),
+                     MARGIN = 1,
+                     FUN = function(x){sum(x > 0)})
+# Add taxonomy and total read counts to this data.frame
+prevelancedf <- data.frame(Prevalence = prevelancedf,
+                          TotalAbundance = taxa_sums(CHeckV_bar_PHY2),
+                          tax_table(CHeckV_bar_PHY2))
+```
+
+```{r}
+krona_plot <- subset(prevelancedf, select = -c(Prevalence))
+#for $life use the highest taxonomic grouping in your taxonomy file. For me (viruses) it is life. For bacteria it is usually kingdom
+#krona_plot <- krona_plot[- grep("NA", krona_plot$Superkingdom),]
+krona_plot$root<- "root"
+#use krona_plot[c("TotalAbundance", "root", then list your organism classification ranks (col headers of your taxonomy file)
+krona_plot <- krona_plot[c("TotalAbundance", "root", "Superkingdom", "Realm", "Kingdom", "Phylum", "Class", "Order", "Family","Subfamily", "Genus", "Species")]
+rownames(krona_plot) <- c()
+colnames(krona_plot) <- c()
+#write the name of the file you want to save it as
+write.table(krona_plot, file='~/Desktop/Current_work/Overall_Analysis/FIGURE_krona_plot.tsv', col.names=F, row.names=F, sep = "\t",quote=F)
+#write_tsv(krona_plot,'~/Desktop/Current_work/Overall_Analysis/FIGURE_krona_plot.tsv', append = FALSE, col_names = FALSE)
+```
+
+
+#in terminal:
+#make sure to download KronaTools to your desktop. KronaTools will not work in R. 
+#in Terminal in R, move to file containing scripts downloaded from KronaTools
+
+cd /Users/eh2/Desktop/KronaTools-2.7/scripts
+
+#change name of .hmtl file to what you want krona graph saved as 
+./ImportText.pl -o /Users/eh2/Desktop/Current_work/OTU_Builber/krona_plot_P01,2,3.html /Users/eh2/Desktop/Current_work/OTU_Builber/krona_plot_P03.tsv /Users/eh2/Desktop/Current_work/OTU_Builber/krona_plot_P02.tsv /Users/eh2/Desktop/Current_work/OTU_Builber/krona_plot_P01.tsv /Users/eh2/Desktop/Current_work/OTU_Builber/krona_plot_P40.tsv
